@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Plus, RefreshCw } from 'lucide-react';
+import { Link as LinkIcon, Plus, RefreshCw } from 'lucide-react';
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { systemClassColor } from '@/components/map/styling';
@@ -131,6 +131,11 @@ export function TheraModule({
           >
             Sync all
           </Button> */}
+          <Button asChild variant="ghost" size="icon-sm" aria-label="Open EVE-Scout">
+            <a href="https://www.eve-scout.com/" target="_blank" rel="noreferrer">
+              <LinkIcon />
+            </a>
+          </Button>
           <Button
             variant="ghost"
             size="icon-sm"
