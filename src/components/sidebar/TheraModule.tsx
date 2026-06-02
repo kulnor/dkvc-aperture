@@ -131,10 +131,20 @@ export function TheraModule({
           >
             Sync all
           </Button> */}
-          <Button asChild variant="ghost" size="icon-sm" aria-label="Open EVE-Scout">
-            <a href="https://www.eve-scout.com/" target="_blank" rel="noreferrer">
-              <LinkIcon />
-            </a>
+          <Button
+            nativeButton={false}
+            render={
+              <a
+                href="https://www.eve-scout.com/"
+                target="_blank"
+                rel="noreferrer"
+              />
+            }
+            variant="ghost"
+            size="icon-sm"
+            aria-label="Open EVE-Scout"
+          >
+            <LinkIcon />
           </Button>
           <Button
             variant="ghost"

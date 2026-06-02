@@ -88,24 +88,25 @@ export function SystemKillboardModule({ system }: { system: MapSystemNode | null
         <CardTitle>Killboard</CardTitle>
         <CardAction className="flex items-center gap-1">
           <Button
-            asChild
+            nativeButton={false}
+            render={
+              <a
+                href={
+                  systemId != null
+                    ? `https://zkillboard.com/system/${systemId}/`
+                    : 'https://zkillboard.com/'
+                }
+                target="_blank"
+                rel="noreferrer"
+              />
+            }
             variant="ghost"
             size="icon-sm"
             aria-label={
               systemId != null ? 'Open system on zKillboard' : 'Open zKillboard'
             }
           >
-            <a
-              href={
-                systemId != null
-                  ? `https://zkillboard.com/system/${systemId}/`
-                  : 'https://zkillboard.com/'
-              }
-              target="_blank"
-              rel="noreferrer"
-            >
-              <LinkIcon />
-            </a>
+            <LinkIcon />
           </Button>
           {system ? (
             <Button
