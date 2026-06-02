@@ -140,6 +140,7 @@ export function MapCanvas({
       position: { x: s.positionX, y: s.positionY },
       data: s,
       selected: false,
+      draggable: !s.locked,
     })),
   );
   const appliedEventIds = useRef<Set<number>>(new Set());
@@ -601,6 +602,7 @@ export function MapCanvas({
           position,
           data: { ...s, onAliasOrTagCommit },
           selected: selectedSystemIds.has(s.id),
+          draggable: !s.locked,
         };
       });
     });
