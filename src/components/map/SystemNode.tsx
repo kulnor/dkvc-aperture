@@ -37,8 +37,20 @@ export function SystemNode({ data, selected }: NodeProps & { data: SystemNodeDat
 
   return (
     <div
-      className="relative min-w-36 cursor-pointer rounded-md bg-card text-xs text-card-foreground shadow-sm ring-1"
-      style={{ borderLeft: `4px solid ${color}`, outline: selected ? `2px solid ${color}` : 'none' }}
+      className="relative min-w-36 cursor-pointer rounded-md bg-card text-xs text-card-foreground shadow-sm ring-1 transition-[box-shadow,outline,transform] duration-50"
+      style={{
+        borderLeft: `4px solid ${color}`,
+        // Selected tiles get a prominent halo in their status colour: a solid
+        // offset ring plus a soft outer glow, so selection reads at a glance
+        // regardless of the (often muted) status stripe. `${color}NN` appends an
+        // 8-digit-hex alpha to the status hex.
+        outline: selected ? `2px solid ${color}` : 'none',
+        outlineOffset: selected ? '3px' : undefined,
+        boxShadow: selected
+          ? `0 0 0 4px ${color}40, 0 0 16px 3px ${color}cc`
+          : undefined,
+        transform: selected ? 'scale(1.01)' : undefined,
+      }}
       title={`${data.regionName} › ${data.constellationName}`}
     >
       {glow && <SystemUnderglow key={glow.token} {...glow.config} />}
