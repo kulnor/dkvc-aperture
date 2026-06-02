@@ -120,20 +120,23 @@ async function notify(load: SystemNotificationLoad): Promise<void> {
 }
 
 /**
- * R2Z2 returns the ESI killmail with a `zkb` block. The historical RedisQ
- * `{ package: { killmail, zkb } }` nesting is handled defensively so a feed
- * shape change degrades to "no notification", never a crash.
+ * R2Z2's ephemeral feed nests the ESI killmail under an `esi` key with the `zkb`
+ * block alongside it at the top level (`{ killmail_id, hash, esi: {…}, zkb }`) —
+ * the solar system, victim, and attackers live in `esi`, not at the top level.
+ * The historical RedisQ `{ killmail, zkb }` nesting is also handled. Either way a
+ * feed shape change degrades to "no notification", never a crash.
  */
 function decodeKill(raw: unknown): ZkbKill | null {
   const flat = zkbKillSchema.safeParse(raw);
   if (flat.success && flat.data.solar_system_id !== undefined) return flat.data;
 
-  if (raw && typeof raw === 'object' && 'killmail' in raw) {
-    const inner = (raw as { killmail?: unknown }).killmail;
+  if (raw && typeof raw === 'object') {
+    const container = raw as { esi?: unknown; killmail?: unknown; zkb?: unknown };
+    const inner = container.esi ?? container.killmail;
     if (inner && typeof inner === 'object') {
       const merged = zkbKillSchema.safeParse({
         ...(inner as object),
-        zkb: (raw as { zkb?: unknown }).zkb,
+        zkb: container.zkb,
       });
       if (merged.success) return merged.data;
     }

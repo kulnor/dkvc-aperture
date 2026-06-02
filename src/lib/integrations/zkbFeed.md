@@ -33,7 +33,7 @@ Test seam — resets module singleton state (cursor, index, timers) between case
 ### Behaviour & notes
 - **Backoff:** a throwing tick (network/timeout, 429) never kills the loop — it backs off (`WS_RECONNECT_BASE_MS`·2^n capped at `WS_RECONNECT_MAX_MS`, floored at `ZKB_FEED_POLL_MS`) and retries. A clean tick resets backoff.
 - **404 = caught up:** the cursor is not advanced past a 404, so that sequence is retried next tick.
-- **Defensive decode:** accepts both the flat R2Z2 shape (ESI fields + `zkb`) and the legacy nested `{ killmail, zkb }`; an unrecognised shape degrades to "no notification", never a crash.
+- **Defensive decode:** accepts the R2Z2 ephemeral shape (killmail nested under `esi`, with `zkb` alongside at the top level), the flat shape (ESI fields at the top level), and the legacy nested `{ killmail, zkb }`; an unrecognised shape degrades to "no notification", never a crash.
 - Each fetch carries `INTEGRATION_USER_AGENT` (blank UA → zKB 403) and an `INTEGRATION_REQUEST_TIMEOUT_MS` timeout combined with the loop's stop signal.
 
 ### Depends On

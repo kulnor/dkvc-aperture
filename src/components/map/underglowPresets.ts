@@ -10,5 +10,5 @@ import type { UnderglowConfig } from '@/types';
  */
 export const UNDERGLOW_PRESETS: Record<SystemNotificationLoad['kind'], UnderglowConfig> = {
   // Killmail: red, ~8s transient pulse.
-  killmail: { color: '#ef4444', brightness: 0.9, durationMs: 8_000, speedMs: 1_400 },
+  killmail: { color: '#ef4444', brightness: 0.9, durationMs: 15_000, speedMs: 1_400 },
 };

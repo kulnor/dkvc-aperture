@@ -103,4 +103,34 @@ describe('pollOnce', () => {
     expect(result.cursor).toBe(101); // not advanced past the 404'd 102
     expect(db.execute as Mock).toHaveBeenCalledTimes(1);
   });
+
+  it('decodes and notifies the R2Z2 ephemeral shape (killmail nested under `esi`)', async () => {
+    // R2Z2 wraps the ESI killmail under `esi` with `zkb` alongside at the top
+    // level — solar_system_id is NOT at the top level. Regression: this shape
+    // previously decoded to a system-less kill and fanned no notification.
+    const ephemeral = {
+      killmail_id: 555,
+      hash: 'abc',
+      esi: {
+        killmail_id: 555,
+        solar_system_id: 30000142,
+        victim: { ship_type_id: 587 },
+        attackers: [{}, {}],
+      },
+      zkb: { totalValue: 8_000_000 },
+    };
+    globalThis.fetch = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.endsWith('/sequence.json')) return jsonResponse({ sequence: 100 });
+      if (url.endsWith('/101.json')) return jsonResponse(ephemeral);
+      return new Response('', { status: 404 });
+    }) as unknown as typeof fetch;
+
+    await pollOnce(); // seed cursor = 100
+    const result = await pollOnce();
+
+    expect(result.processed).toBe(1);
+    expect(result.notified).toBe(1);
+    expect(db.execute as Mock).toHaveBeenCalledTimes(1);
+  });
 });
