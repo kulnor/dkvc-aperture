@@ -31,7 +31,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
           mainCharacterId={mainCharacterId}
           travelAnimation={travelAnimation}
         />
-        <main className="w-full flex-1 px-4 py-6">{children}</main>
+        <main className="w-full flex-1 px-4 py-3">{children}</main>
         <AppFooter />
         <Toaster />
       </div>

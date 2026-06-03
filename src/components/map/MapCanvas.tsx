@@ -1061,44 +1061,54 @@ export function MapCanvas({
           onBulkPaste={onBulkPaste}
         />
         <div className="flex flex-col gap-2">
-          <div className="flex items-center justify-end gap-1">
-            <Menu>
-              <MenuTrigger
-                render={
-                  <Button variant="ghost" size="sm">
-                    <LayoutDashboard />
-                    Panels
-                  </Button>
-                }
-              />
-              <MenuContent>
-                {PANELS.map((p) => (
-                  <MenuCheckboxItem
-                    key={p.id}
-                    checked={!layout.hidden.includes(p.id)}
-                    onCheckedChange={() => handleToggleVisible(p.id)}
-                  >
-                    {p.title}
-                  </MenuCheckboxItem>
-                ))}
-                <MenuSeparator />
-                <MenuItem icon={<RotateCcw />} onClick={handleResetLayout}>
-                  Reset layout
-                </MenuItem>
-              </MenuContent>
-            </Menu>
-            <Button variant="ghost" size="sm" onClick={() => setAddSystemOpen(true)}>
-              <Plus />
-              Add system
-            </Button>
-            <Button variant="ghost" size="sm" onClick={() => setMapInfoOpen(true)}>
-              <Info />
-              Map info
-            </Button>
-            <Button variant="ghost" size="sm" onClick={() => setSettingsOpen(true)}>
-              <Settings />
-              Settings
-            </Button>
+          <div className="flex items-center justify-between gap-1">
+            <div className="min-w-0">
+              <div className="font-heading truncate text-base font-semibold tracking-tight">
+                {viewData.map.name}
+              </div>
+              <div className="text-muted-foreground truncate text-xs capitalize">
+                {viewData.map.type} · {viewData.map.scope} · {viewData.systems.length} systems
+              </div>
+            </div>
+            <div className="flex shrink-0 items-center gap-1">
+              <Menu>
+                <MenuTrigger
+                  render={
+                    <Button variant="ghost" size="sm">
+                      <LayoutDashboard />
+                      Panels
+                    </Button>
+                  }
+                />
+                <MenuContent>
+                  {PANELS.map((p) => (
+                    <MenuCheckboxItem
+                      key={p.id}
+                      checked={!layout.hidden.includes(p.id)}
+                      onCheckedChange={() => handleToggleVisible(p.id)}
+                    >
+                      {p.title}
+                    </MenuCheckboxItem>
+                  ))}
+                  <MenuSeparator />
+                  <MenuItem icon={<RotateCcw />} onClick={handleResetLayout}>
+                    Reset layout
+                  </MenuItem>
+                </MenuContent>
+              </Menu>
+              <Button variant="ghost" size="sm" onClick={() => setAddSystemOpen(true)}>
+                <Plus />
+                Add system
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => setMapInfoOpen(true)}>
+                <Info />
+                Map info
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => setSettingsOpen(true)}>
+                <Settings />
+                Settings
+              </Button>
+            </div>
           </div>
           <MapLayoutGrid layouts={layout.layouts} onLayoutChange={handleLayoutChange}>
             {visiblePanels.map((p) => (

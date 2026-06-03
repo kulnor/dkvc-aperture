@@ -28,7 +28,7 @@ export async function AppHeader({
 
   return (
     <header className="border-b border-border">
-      <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
+      <div className="flex h-9 items-center justify-between px-4">
         <div className="flex items-center gap-1.5">
           <Link href="/maps" className="font-heading text-lg font-semibold tracking-tight">
             Aperture

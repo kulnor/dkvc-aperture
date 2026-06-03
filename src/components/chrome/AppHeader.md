@@ -13,7 +13,7 @@
 | travelAnimation | boolean | yes | The account's connection-travel-animation toggle, forwarded to the panel |
 
 ### Renders
-A bordered header bar: on the left, an "Aperture" link to `/maps` with the `VersionChip` immediately beside it (reads as "Aperture v1.0.0-…"); on the right, the `StatisticsButton` and `ReferenceMenu` info menu next to the `CharacterPanel`.
+A compact (`h-9`) full-width bordered header bar with no max-width cap: on the left, an "Aperture" link to `/maps` with the `VersionChip` immediately beside it (reads as "Aperture v1.0.0-…"); on the right, the `StatisticsButton` and `ReferenceMenu` info menu next to the `CharacterPanel`.
 
 ### Behaviour & Interactions
 - Async server component. Fetches the cached changelog releases (`fetchChangelogReleases`) and passes them to `VersionChip`. A fetch failure is swallowed (empty array) so a GitHub outage never breaks the header.

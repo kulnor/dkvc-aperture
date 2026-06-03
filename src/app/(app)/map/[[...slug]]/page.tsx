@@ -81,26 +81,18 @@ export default async function MapPage({ params }: { params: Promise<{ slug?: str
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <div>
-        <h1 className="font-heading text-2xl font-semibold tracking-tight">{data.map.name}</h1>
-        <p className="text-sm text-muted-foreground capitalize">
-          {data.map.type} · {data.map.scope} · {data.systems.length} systems
-        </p>
-      </div>
-      <MapCanvas
-        data={data}
-        routes={routes}
-        stats={stats}
-        intel={intel}
-        structures={structures}
-        settings={settings}
-        travelAnimation={travelAnimation}
-        canConfigureTagging={canConfigureTagging}
-        viewerCharacterIds={viewerCharacterIds}
-        mapLayout={mapLayout}
-      />
-    </div>
+    <MapCanvas
+      data={data}
+      routes={routes}
+      stats={stats}
+      intel={intel}
+      structures={structures}
+      settings={settings}
+      travelAnimation={travelAnimation}
+      canConfigureTagging={canConfigureTagging}
+      viewerCharacterIds={viewerCharacterIds}
+      mapLayout={mapLayout}
+    />
   );
 }
 

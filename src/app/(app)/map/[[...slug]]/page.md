@@ -4,7 +4,7 @@
 **File:** `src/app/(app)/map/[[...slug]]/page.tsx`
 
 ### Renders
-The map name/meta header above `<MapCanvas>`. Empty-state `Card` (with a back-to-maps link) when no map id is in the slug or the map is missing/deleted.
+`<MapCanvas>` directly (the map name and meta are rendered inside the canvas toolbar row). Empty-state `Card` (with a back-to-maps link) when no map id is in the slug or the map is missing/deleted.
 
 ### Behaviour & Interactions
 - Optional catch-all slug; the first segment is the map id (numeric → bigint, else empty state).
