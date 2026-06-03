@@ -36,6 +36,16 @@ const METRICS: { key: keyof SystemStatsPoint; label: string; className: string }
 // breaks the line rather than implying zero activity for an unmeasured hour.
 type FilledPoint = { label: string } & Record<'jumps' | 'shipKills' | 'podKills' | 'factionKills', number | null>;
 
+// Compact large Y-axis ticks so they fit the narrow axis gutter: 1300 -> "1.3k",
+// 10000 -> "10k", 2_000_000 -> "2M". Keeps at most one decimal and drops a
+// trailing ".0".
+function formatCompactTick(value: number): string {
+  const compact = (n: number, suffix: string) => `${Number(n.toFixed(1))}${suffix}`;
+  if (Math.abs(value) >= 1_000_000) return compact(value / 1_000_000, 'M');
+  if (Math.abs(value) >= 1_000) return compact(value / 1_000, 'k');
+  return String(value);
+}
+
 function truncUtc(ms: number, unit: 'hour' | 'day'): number {
   const d = new Date(ms);
   d.setUTCMinutes(0, 0, 0);
@@ -169,11 +179,12 @@ export function SystemGraphModule({ system }: { system: MapSystemNode | null }) 
                         height={14}
                       />
                       <YAxis
-                        width={20}
+                        width={28}
                         tickLine={false}
                         axisLine={false}
                         allowDecimals={false}
                         tickCount={3}
+                        tickFormatter={formatCompactTick}
                         tick={{ fontSize: 9, fill: 'var(--color-muted-foreground)' }}
                       />
                       <ChartTooltip
