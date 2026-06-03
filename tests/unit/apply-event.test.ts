@@ -161,6 +161,14 @@ describe('applyEvent — connection.create', () => {
     expect(next.connections).toHaveLength(1);
     expect(next.connections[0]).toMatchObject({ id: '20', scope: 'wh' });
   });
+
+  it('upserts when a connection with the same id already exists (no duplicate edge)', () => {
+    const state = makeState({ connections: [conn1] });
+    const updated = { ...conn1, scope: 'stargate' as const };
+    const next = applyEvent(state, { kind: 'connection.create', eventId: 10, ...updated });
+    expect(next.connections).toHaveLength(1);
+    expect(next.connections[0]).toMatchObject({ id: '20', scope: 'stargate' });
+  });
 });
 
 // ---------------------------------------------------------------------------

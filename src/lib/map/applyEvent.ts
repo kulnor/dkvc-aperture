@@ -49,9 +49,18 @@ export function applyEvent(state: MapViewData, payload: MapEventPayload): MapVie
       };
     }
 
-    case 'connection.create':
+    case 'connection.create': {
       // payload structurally satisfies MapConnectionEdge.
-      return { ...state, connections: [...state.connections, payload as MapConnectionEdge] };
+      const edge = payload as MapConnectionEdge;
+      const exists = state.connections.some((c) => c.id === edge.id);
+      if (exists) {
+        return {
+          ...state,
+          connections: state.connections.map((c) => (c.id === edge.id ? edge : c)),
+        };
+      }
+      return { ...state, connections: [...state.connections, edge] };
+    }
 
     case 'connection.update': {
       return {
