@@ -9,7 +9,7 @@
 Opens a single `db.transaction()`, loads the system's current `apMapSignature` rows, partitions by `sigId` against the incoming `ResolvedSigRow[]`, and dispatches each diff item:
 
 - **Incoming only** + `addMissing` → `createSignature` (with `expiresAt = input.defaultExpiresAt`, `name = null`, `description = null`).
-- **Both, with a resolved-and-different `groupId`/`typeId`** + `updateExisting` → `updateSignature` patching ONLY the differing scanned ids. Incoming `null`s are treated as "unknown" and never overwrite prior classification (partial re-scans don't blow away known data).
+- **Both** + `updateExisting` → `updateSignature`. Field patch is built from differing non-null `groupKey`/`typeId` only (incoming nulls never clobber prior classification), but `updateSignature` is always called even when the patch is empty — this unconditionally bumps `updatedAt` so the "last seen" timestamp is refreshed for every sig that appears in the paste.
 - **Existing only** + `removeMissing` → `deleteSignature`. If the sig had `mapConnectionId IS NOT NULL` and `removeOrphanedConnections` is on, also `deleteConnection` for that edge.
 
 Each helper call forwards `tx`, so every event row + side-effect insert/update runs on the same transaction. On any helper returning `{ ok: false }`, throws to abort the transaction — partial writes are impossible. On success, the `tg_map_event_notify` trigger fires once per inserted event row *after* commit, fanning N realtime envelopes to every subscribed tab.

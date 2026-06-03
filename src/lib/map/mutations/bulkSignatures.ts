@@ -127,8 +127,6 @@ export async function pasteSignatures(
         if (incoming.typeId !== null && incoming.typeId !== existingRow.typeId) {
           patch.typeId = incoming.typeId;
         }
-        if (Object.keys(patch).length === 0) continue;
-
         const res = await updateSignature({
           mapId: input.mapId,
           signatureId: existingRow.id,
