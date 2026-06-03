@@ -6,6 +6,7 @@ import {
   EdgeLabelRenderer,
   Position,
   getBezierPath,
+  getSmoothStepPath,
   useInternalNode,
   type EdgeProps,
 } from '@xyflow/react';
@@ -113,14 +114,21 @@ export function ConnectionEdge(props: EdgeProps & { data: ConnectionEdgeData }) 
       )
       : null;
 
-  const [path, labelX, labelY] = getBezierPath({
+  const pathArgs = {
     sourceX: anchors?.source.x ?? sourceX,
     sourceY: anchors?.source.y ?? sourceY,
     sourcePosition: anchors?.source.position ?? sourcePosition,
     targetX: anchors?.target.x ?? targetX,
     targetY: anchors?.target.y ?? targetY,
     targetPosition: anchors?.target.position ?? targetPosition,
-  });
+  };
+  // Gate links render as right-angled (orthogonal) paths to read distinctly from
+  // the smooth bezier of wormhole/jumpbridge/abyssal connections; `borderRadius:
+  // 0` keeps the corners crisp.
+  const [path, labelX, labelY] =
+    data.scope === 'stargate'
+      ? getSmoothStepPath({ ...pathArgs, borderRadius: 0 })
+      : getBezierPath(pathArgs);
   const style = connectionStyle(data);
   const finalStyle = selected ? { ...style, strokeWidth: (style.strokeWidth ?? 3) + 2 } : style;
   const badges = connectionBadges(data);

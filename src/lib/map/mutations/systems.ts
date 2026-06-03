@@ -1,9 +1,17 @@
 import 'server-only';
-import { and, eq, type InferInsertModel } from 'drizzle-orm';
-import { apMap, apMapSystem, systemStatus } from '@/db/schema';
+import { and, eq, inArray, ne, or, type InferInsertModel } from 'drizzle-orm';
+import { db } from '@/db/client';
+import {
+  apMap,
+  apMapConnection,
+  apMapSystem,
+  systemStatus,
+  universeStargateEdge,
+} from '@/db/schema';
 import { buildSystemNode } from '../systemNode';
 import { assignTagOnAdd } from '@/lib/tagging/service';
-import { commitMapEvent, type ActionResult, type Tx } from './core';
+import { commitMapEvent, enqueueWebhookDispatch, type ActionResult, type Tx } from './core';
+import { createConnection } from './connections';
 import type { MapEventPatch, MapEventPayload } from '@/lib/realtime/protocol';
 
 /**
@@ -22,6 +30,13 @@ export type AddSystemInput = {
   characterId: bigint | null;
   positionX?: number;
   positionY?: number;
+  /** Optional outer transaction (joined by `addSystemWithStargateLinks` so the add + its gate links commit atomically). */
+  tx?: Tx;
+};
+
+/** The system.added event plus any auto-created `stargate` connection events, in commit order. */
+export type AddSystemResult = {
+  payloads: MapEventPayload[];
 };
 
 export type RemoveSystemInput = {
@@ -64,6 +79,7 @@ export function addSystem(input: AddSystemInput): Promise<ActionResult<MapEventP
     mapId: input.mapId,
     characterId: input.characterId,
     kind: 'system.added',
+    tx: input.tx,
     mutate: async (tx) => {
       const now = new Date();
       const reactivate: Partial<InferInsertModel<typeof apMapSystem>> = {
@@ -167,6 +183,112 @@ export function updateSystem(input: UpdateSystemInput): Promise<ActionResult<Map
       return out;
     },
   });
+}
+
+/**
+ * Add a solar system and auto-link it to every system already on the map that
+ * shares an in-game stargate with it (`universe_stargate_edge`). The system add
+ * plus each `stargate` connection commit atomically under one transaction and
+ * return as an ordered `MapEventPayload[]` (the `system.added` event first), so
+ * the client folds them like a bulk paste.
+ *
+ * K-space / Pochven systems pick up gate links; wormhole systems have no
+ * stargate edges and so add with zero extra events. A re-added system that
+ * already carries `stargate` links to a neighbour is not duplicated.
+ */
+export async function addSystemWithStargateLinks(
+  input: AddSystemInput,
+): Promise<ActionResult<AddSystemResult>> {
+  try {
+    const payloads = await db.transaction(async (tx) => {
+      const out: MapEventPayload[] = [];
+
+      const added = await addSystem({ ...input, tx });
+      if (!added.ok) throw new Error(added.error);
+      out.push(added.data);
+      if (added.data.kind !== 'system.added') throw new Error('Unexpected add payload.');
+      const newMapSystemId = BigInt(added.data.id);
+
+      // Visible systems on this map that share a stargate with the new one. The
+      // edge table is bidirectional (one row per direction); matching neighbour→new
+      // is enough to catch every gate-adjacent system exactly once.
+      const neighbors = await tx
+        .select({ mapSystemId: apMapSystem.id })
+        .from(apMapSystem)
+        .innerJoin(
+          universeStargateEdge,
+          and(
+            eq(universeStargateEdge.fromSystemId, apMapSystem.systemId),
+            eq(universeStargateEdge.toSystemId, input.systemId),
+          ),
+        )
+        .where(
+          and(
+            eq(apMapSystem.mapId, input.mapId),
+            eq(apMapSystem.visible, true),
+            ne(apMapSystem.id, newMapSystemId),
+          ),
+        );
+
+      if (neighbors.length > 0) {
+        const neighborIds = neighbors.map((n) => n.mapSystemId);
+        // A removed system keeps its connection rows (soft-delete), so a re-add
+        // can find pre-existing gate links — skip those to avoid duplicates.
+        const existing = await tx
+          .select({
+            source: apMapConnection.sourceMapSystemId,
+            target: apMapConnection.targetMapSystemId,
+          })
+          .from(apMapConnection)
+          .where(
+            and(
+              eq(apMapConnection.mapId, input.mapId),
+              eq(apMapConnection.scope, 'stargate'),
+              or(
+                and(
+                  eq(apMapConnection.sourceMapSystemId, newMapSystemId),
+                  inArray(apMapConnection.targetMapSystemId, neighborIds),
+                ),
+                and(
+                  eq(apMapConnection.targetMapSystemId, newMapSystemId),
+                  inArray(apMapConnection.sourceMapSystemId, neighborIds),
+                ),
+              ),
+            ),
+          );
+        const newKey = newMapSystemId.toString();
+        const linked = new Set<string>();
+        for (const e of existing) {
+          linked.add(e.source.toString() === newKey ? e.target.toString() : e.source.toString());
+        }
+
+        for (const n of neighbors) {
+          if (linked.has(n.mapSystemId.toString())) continue;
+          const conn = await createConnection({
+            mapId: input.mapId,
+            characterId: input.characterId,
+            sourceMapSystemId: newMapSystemId,
+            targetMapSystemId: n.mapSystemId,
+            scope: 'stargate',
+            tx,
+          });
+          if (!conn.ok) throw new Error(conn.error);
+          out.push(conn.data);
+        }
+      }
+
+      return out;
+    });
+
+    // Webhook fanout for the system add (preserves the standalone-add behaviour
+    // the joined transaction would otherwise skip). The auto gate links are
+    // structural and deliberately do NOT notify — they'd only add noise.
+    await enqueueWebhookDispatch(input.mapId, payloads[0]!.eventId, new Date());
+
+    return { ok: true, data: { payloads }, eventId: 0 };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Add system failed.' };
+  }
 }
 
 // `buildSystemNode` moved to `../systemNode.ts` so the Stage 12.2 location-poll

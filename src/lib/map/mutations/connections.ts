@@ -27,6 +27,8 @@ export type CreateConnectionInput = {
   preserveMass?: boolean;
   isRolling?: boolean;
   isStatic?: boolean;
+  /** Optional outer transaction (joined by `addSystemWithStargateLinks` to commit gate links atomically with the system add). */
+  tx?: Tx;
 };
 
 export type DeleteConnectionInput = {
@@ -63,6 +65,7 @@ export function createConnection(
     mapId: input.mapId,
     characterId: input.characterId,
     kind: 'connection.create',
+    tx: input.tx,
     mutate: async (tx) => {
       const stage = input.eolStage ?? 'none';
       const [row] = await tx

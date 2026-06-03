@@ -13,6 +13,7 @@ Inserts one `ap_map_connection` row between two map systems. Flag defaults: `mas
 - `input.scope` — required `connection_scope` (wh|stargate|jumpbridge|abyssal).
 - `input.massStatus`, `input.jumpMassClass`, `input.eolStage`, `input.preserveMass`, `input.isRolling`, `input.isStatic` — optional flag overrides. `isStatic` designates the link as the source system's static.
 - `input.mapId`, `input.characterId` — map + audit FK.
+- `input.tx` — optional outer transaction (joined by `addSystemWithStargateLinks` to write the auto `stargate` gate links atomically with the system add); when passed, failures throw instead of returning `{ ok: false }`.
 
 ---
 

@@ -11,6 +11,7 @@ import {
   universeConstellation,
   universeGroup,
   universeRegion,
+  universeStargateEdge,
   universeSystem,
   universeSystemStatic,
   universeType,
@@ -18,6 +19,7 @@ import {
 } from '@/db/schema';
 import {
   addSystem,
+  addSystemWithStargateLinks,
   removeSystem,
   updateSystem,
 } from '@/lib/map/mutations/systems';
@@ -43,6 +45,8 @@ const REGION = 98030001;
 const CONSTELLATION = 98030001;
 const C3 = 98030003; // a C3 wormhole system (security label 'C3')
 const HS = 98030004; // a high-sec system (security label 'H')
+const KS1 = 98030005; // a K-space system gate-linked to KS2
+const KS2 = 98030006; // a K-space system gate-linked to KS1
 const CATEGORY = 98030001;
 const GROUP = 98030001;
 // Wormhole catalog rows:
@@ -64,6 +68,13 @@ describe.skipIf(!run)('system & connection mutations (real Postgres)', () => {
     await db.insert(universeSystem).values([
       { id: C3, constellationId: CONSTELLATION, name: 'J130003', security: 'C3' },
       { id: HS, constellationId: CONSTELLATION, name: 'Mut HS', security: 'H' },
+      { id: KS1, constellationId: CONSTELLATION, name: 'Mut KS1', security: 'H' },
+      { id: KS2, constellationId: CONSTELLATION, name: 'Mut KS2', security: 'H' },
+    ]);
+    // KS1 ↔ KS2 share an in-game stargate (SDE mirrors both directions).
+    await db.insert(universeStargateEdge).values([
+      { fromSystemId: KS1, toSystemId: KS2 },
+      { fromSystemId: KS2, toSystemId: KS1 },
     ]);
 
     await db.insert(universeCategory).values({ id: CATEGORY, name: 'Mut Cat' });
@@ -240,6 +251,48 @@ describe.skipIf(!run)('system & connection mutations (real Postgres)', () => {
     const none = await staticMatchForConnection({ sourceSystemId: C3, targetSystemId: C3 });
     expect(none).toEqual([]);
   });
+
+  it('addSystemWithStargateLinks auto-links gate-adjacent systems and never duplicates', async () => {
+    // First system on a (gate-wise) empty map: no neighbours yet → just the add.
+    const first = await addSystemWithStargateLinks({ mapId, systemId: KS1, characterId: null });
+    expect(first.ok).toBe(true);
+    if (!first.ok) return;
+    expect(first.data.payloads).toHaveLength(1);
+    expect(first.data.payloads[0]).toMatchObject({ kind: 'system.added', systemId: KS1 });
+
+    // Second system shares a stargate with KS1 → one auto `stargate` connection.
+    const second = await addSystemWithStargateLinks({ mapId, systemId: KS2, characterId: null });
+    expect(second.ok).toBe(true);
+    if (!second.ok) return;
+    expect(second.data.payloads).toHaveLength(2);
+    expect(second.data.payloads[0]).toMatchObject({ kind: 'system.added', systemId: KS2 });
+    expect(second.data.payloads[1]).toMatchObject({ kind: 'connection.create', scope: 'stargate' });
+
+    const ks1Id = await mapSystemId(KS1);
+    const ks2Id = await mapSystemId(KS2);
+    const gateLinks = await db
+      .select({ id: apMapConnection.id })
+      .from(apMapConnection)
+      .where(and(eq(apMapConnection.mapId, mapId), eq(apMapConnection.scope, 'stargate')));
+    expect(gateLinks).toHaveLength(1);
+    expect(second.data.payloads[1]).toMatchObject({
+      source: ks2Id.toString(),
+      target: ks1Id.toString(),
+    });
+
+    // Re-adding KS2 must not create a second gate link (the row persists across
+    // a soft-remove, so the dedup query finds the existing one).
+    await removeSystem({ mapId, mapSystemId: ks2Id, characterId: null });
+    const readd = await addSystemWithStargateLinks({ mapId, systemId: KS2, characterId: null });
+    expect(readd.ok).toBe(true);
+    if (!readd.ok) return;
+    expect(readd.data.payloads).toHaveLength(1); // just the re-add, no new link
+    const after = await db
+      .select({ id: apMapConnection.id })
+      .from(apMapConnection)
+      .where(and(eq(apMapConnection.mapId, mapId), eq(apMapConnection.scope, 'stargate')));
+    expect(after).toHaveLength(1);
+  });
 });
 
 async function eventCount(): Promise<number> {
@@ -267,7 +320,10 @@ async function cleanup() {
   await db.delete(universeType).where(inArray(universeType.id, [WH_C3_HS, WH_K162, WH_C5]));
   await db.delete(universeGroup).where(eq(universeGroup.id, GROUP));
   await db.delete(universeCategory).where(eq(universeCategory.id, CATEGORY));
-  await db.delete(universeSystem).where(inArray(universeSystem.id, [C3, HS]));
+  await db
+    .delete(universeStargateEdge)
+    .where(inArray(universeStargateEdge.fromSystemId, [KS1, KS2]));
+  await db.delete(universeSystem).where(inArray(universeSystem.id, [C3, HS, KS1, KS2]));
   await db.delete(universeConstellation).where(eq(universeConstellation.id, CONSTELLATION));
   await db.delete(universeRegion).where(eq(universeRegion.id, REGION));
 }

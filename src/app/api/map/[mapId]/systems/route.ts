@@ -2,13 +2,15 @@ import 'server-only';
 import { type NextRequest } from 'next/server';
 import { z } from 'zod';
 import { getSession } from '@/lib/session';
-import { addSystem } from '@/lib/map/mutations/systems';
+import { addSystemWithStargateLinks } from '@/lib/map/mutations/systems';
 import { requireMapMutate } from '../../utils';
 
 /**
  * POST /api/map/[mapId]/systems
  * Add a solar system to a map. Body: { systemId, positionX?, positionY? }.
- * Returns { ok, data, eventId }.
+ * Returns { ok, data: { payloads }, eventId: 0 } — the `system.added` event plus
+ * any auto-created `stargate` connection events (gate links to systems already
+ * on the map). Consumers fold `data.payloads` like a bulk paste.
  *
  * Access: `map_update` right on the target map.
  */
@@ -47,7 +49,7 @@ export async function POST(
     );
   }
 
-  const result = await addSystem({
+  const result = await addSystemWithStargateLinks({
     mapId: guard.mapId,
     characterId: guard.characterId,
     systemId: parsed.data.systemId,

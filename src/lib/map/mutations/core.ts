@@ -120,7 +120,7 @@ export async function commitMapEvent<K extends MapEventKind>(
  * configured) free of any graphile-worker traffic. Failures are logged and
  * swallowed — webhook delivery never blocks the underlying map mutation.
  */
-async function enqueueWebhookDispatch(
+export async function enqueueWebhookDispatch(
   mapId: bigint,
   eventId: number,
   occurredAt: Date,

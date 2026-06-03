@@ -7,7 +7,7 @@
 xyflow `EdgeProps` with `data: ConnectionEdgeData` (`MapConnectionEdge & { parallelIndex: number; parallelCount: number }`) and `selected`.
 
 ### Renders
-A bezier `BaseEdge` styled via `connectionStyle` (scope→colour, wormhole recoloured by mass, EOL dashed — tighter for the critical stage, frigate thinned) plus a midpoint label of badges (`connectionBadges`: jump-mass, `EOL`/`EOL 1h`, ROLL, PRES) when any apply. When `eolStage !== 'none'` the label also carries a live countdown ("23h", "2d", "expired") derived from `eolAt +` the per-stage lifetime constant. When a travel pulse is active for this connection, a faint `TravelDot` (SVG `<circle>` r 3, opacity 0.55, edge stroke colour) with an `<animateMotion>` glides once along the curve.
+A `BaseEdge` styled via `connectionStyle` (scope→colour, wormhole recoloured by mass, EOL dashed — tighter for the critical stage, frigate thinned). The path geometry is scope-dependent: `stargate` (gate) links render as a right-angled orthogonal `getSmoothStepPath` (`borderRadius: 0`) so they read distinctly from the smooth `getBezierPath` used by wormhole / jumpbridge / abyssal connections. Plus a midpoint label of badges (`connectionBadges`: jump-mass, `EOL`/`EOL 1h`, ROLL, PRES) when any apply. When `eolStage !== 'none'` the label also carries a live countdown ("23h", "2d", "expired") derived from `eolAt +` the per-stage lifetime constant. When a travel pulse is active for this connection, a faint `TravelDot` (SVG `<circle>` r 3, opacity 0.55, edge stroke colour) with an `<animateMotion>` glides once along the curve.
 
 ### Behaviour & Interactions
 - Selectable by click — `MapCanvas` consumes `onSelectionChange` and routes the selected edge into the sidebar inspector.
@@ -21,6 +21,6 @@ A bezier `BaseEdge` styled via `connectionStyle` (scope→colour, wormhole recol
   - The SMIL animation is started imperatively via `beginElement()` in a mount effect (with `begin="indefinite"`), **not** the default `begin="0s"`. A SMIL begin offset is resolved against the SVG document timeline (page load); on a long-lived canvas "0s" is already in the past when a jump occurs, so the browser would render the animation as already-finished — the dot snaps to the curve's end (`fill="freeze"`) and never visibly moves. `beginElement()` starts it at the current document time.
 
 ### Depends On
-- `@xyflow/react` (`BaseEdge`, `EdgeLabelRenderer`, `Position`, `getBezierPath`, `useInternalNode`, `EdgeProps`).
+- `@xyflow/react` (`BaseEdge`, `EdgeLabelRenderer`, `Position`, `getBezierPath`, `getSmoothStepPath`, `useInternalNode`, `EdgeProps`).
 - `./styling` for stroke + badge calculation.
 - `@/lib/map/connectionState` (`connectionTimeLeftMs`) + `@/lib/map/relativeTime` (`formatRelativeFromMs`) for the EOL countdown.

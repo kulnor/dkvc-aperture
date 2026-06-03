@@ -13,8 +13,18 @@ Adds a solar system to a map. Inserts a new `visible = true` `ap_map_system` row
 - `input.systemId` — EVE solar-system id (`universe_system.id`).
 - `input.characterId` — audit FK; null when the actor was erased.
 - `input.positionX` / `input.positionY` — optional canvas coordinates.
+- `input.tx` — optional outer transaction to join (used by `addSystemWithStargateLinks`); when passed, failures throw instead of returning `{ ok: false }`.
 
 **Returns:** `ActionResult<MapEventPayload>` with a `system.added` payload.
+
+---
+
+### addSystemWithStargateLinks(input: AddSystemInput): Promise<ActionResult<AddSystemResult>>
+Add a system and auto-link it to every visible system already on the map that shares an in-game stargate with it (`universe_stargate_edge`). Runs `addSystem` plus each `createConnection` (scope `stargate`) under one `db.transaction`, so the add and all gate links commit atomically and the per-row `tg_map_event_notify` triggers fire after commit. Returns the ordered `MapEventPayload[]` (the `system.added` event first, then each `connection.create`) so the client folds them like a bulk paste. K-space / Pochven systems pick up gate links; wormhole systems have no stargate edges and so add with zero extra events. A re-added system that already carries `stargate` links to a neighbour is not duplicated (a soft-removed system keeps its connection rows). This is the orchestrator the `POST /api/map/[mapId]/systems` route calls; the other `addSystem` callers (location-poll fold, signature paste, import, Thera) use `addSystem` directly and are unaffected.
+
+Webhook fanout: the joined transaction skips the per-commit webhook enqueue (like every bulk path), so after commit this explicitly `enqueueWebhookDispatch`es **only** the `system.added` event — preserving the standalone-add notification. The auto gate links are structural and intentionally don't notify (they'd be noise).
+
+**Returns:** `ActionResult<AddSystemResult>` (`{ payloads }`); the wrapper-level `eventId` is always `0`.
 
 ---
 
@@ -36,10 +46,12 @@ Updates intel/position fields. Only keys present in `input.patch` are written (p
 
 ---
 
-### type AddSystemInput / RemoveSystemInput / UpdateSystemInput / UpdateSystemPatch
-Input bags for the three helpers. Re-exported from `src/types/index.ts`.
+### type AddSystemInput / AddSystemResult / RemoveSystemInput / UpdateSystemInput / UpdateSystemPatch
+Input bags for the helpers (`AddSystemInput` carries an optional `tx`) plus `AddSystemResult` (`{ payloads: MapEventPayload[] }`, the orchestrator return). Re-exported from `src/types/index.ts`.
 
 ### Depends On
-- `commitMapEvent` (`./core`) — the single commit primitive.
-- `apMapSystem`, `universeSystem`, `universeConstellation`, `universeRegion`, `universeSystemStatic`, `universeWormhole` (Drizzle schema) for the node-body re-read.
+- `commitMapEvent`, `enqueueWebhookDispatch` (`./core`) — the single commit primitive + the post-commit webhook enqueue for the orchestrator's `system.added` event.
+- `createConnection` (`./connections`) — used by `addSystemWithStargateLinks` to write the gate links (joined to the outer tx).
+- `db` (`@/db/client`) — opens the orchestrator transaction.
+- `apMapSystem`, `apMapConnection`, `universeStargateEdge`, `universeSystem`, `universeConstellation`, `universeRegion`, `universeSystemStatic`, `universeWormhole` (Drizzle schema) for the node-body re-read + gate-adjacency lookup.
 - `mapEventPayloadSchema` variants `system.added` / `system.removed` / `system.updated` (`@/lib/realtime/protocol`).

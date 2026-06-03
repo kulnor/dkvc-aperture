@@ -348,6 +348,15 @@ export function MapCanvas({
     [],
   );
 
+  // Apply N event payloads in commit order and register each eventId in the
+  // dedupe set — the bulk equivalent of `awaitServer`. Used by signature paste,
+  // import, Thera sync, subchain delete, and manual add (system + gate links).
+  const onBulkPaste = useCallback((payloads: MapEventPayload[]) => {
+    if (payloads.length === 0) return;
+    for (const p of payloads) appliedEventIds.current.add(p.eventId);
+    setViewData((prev) => payloads.reduce(applyEvent, prev));
+  }, []);
+
   // ---- xyflow → server callbacks -----------------------------------------
   const mapId = viewData.map.id;
 
@@ -441,7 +450,8 @@ export function MapCanvas({
   // selected system's position when one is selected, else the viewport centre
   // (falling back to (0,0) before the instance is ready), then settle into the
   // nearest open, grid-aligned slot so adds never overlap existing nodes.
-  // POST → await the server payload → apply (same path as onConnect).
+  // POST → fold the returned payloads (the new system + any auto-created gate
+  // links to systems already on the map) like a bulk paste.
   const onAddSystem = useCallback(
     (systemId: number) => {
       const occupied: Point[] = viewData.systems.map((s) => ({ x: s.positionX, y: s.positionY }));
@@ -469,16 +479,16 @@ export function MapCanvas({
         }
       }
       const pos = findOpenPosition(anchor, occupied);
-      awaitServer(() =>
-        addSystemOnServer({
-          mapId,
-          systemId,
-          positionX: pos.x,
-          positionY: pos.y,
-        }),
-      );
+      void addSystemOnServer({
+        mapId,
+        systemId,
+        positionX: pos.x,
+        positionY: pos.y,
+      }).then((result) => {
+        if (result.ok) onBulkPaste(result.data.payloads);
+      });
     },
-    [mapId, awaitServer, selected, viewData.systems],
+    [mapId, onBulkPaste, selected, viewData.systems],
   );
 
   // Pane "Add system" entry point: remember the cursor point so `onAddSystem`
@@ -673,15 +683,6 @@ export function MapCanvas({
     },
     [mapId, runOptimistic],
   );
-
-  // Bulk paste returns N event payloads in commit order. Apply each and
-  // register its eventId in the dedupe set — same contract `awaitServer`
-  // uses for single-event mutations, just looped.
-  const onBulkPaste = useCallback((payloads: MapEventPayload[]) => {
-    if (payloads.length === 0) return;
-    for (const p of payloads) appliedEventIds.current.add(p.eventId);
-    setViewData((prev) => payloads.reduce(applyEvent, prev));
-  }, []);
 
   // ---- Delete subchain ----------------------------------------------------
   // Compute the doomed set from the current view (head + everything orphaned

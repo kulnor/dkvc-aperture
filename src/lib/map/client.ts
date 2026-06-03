@@ -1,5 +1,6 @@
 import type {
   ActionResult,
+  AddSystemResult,
   BulkPasteOptions,
   BulkPasteResult,
   ConnectionMassLogEntry,
@@ -124,14 +125,20 @@ function readFetch<T>(url: string): Promise<FetchResult<T>> {
 // System mutations
 // ---------------------------------------------------------------------------
 
+/**
+ * Add a system. The route returns N committed event payloads — the
+ * `system.added` event plus any auto-created `stargate` gate links to systems
+ * already on the map — so callers fold `data.payloads` like a bulk paste
+ * (the wrapper-level `eventId` is always `0`).
+ */
 export function addSystemOnServer(args: {
   mapId: string;
   systemId: number;
   positionX?: number;
   positionY?: number;
-}): Promise<ActionResult<MapEventPayload>> {
+}): Promise<ActionResult<AddSystemResult>> {
   const { mapId, ...body } = args;
-  return mutationFetch<MapEventPayload>('POST', `/api/map/${mapId}/systems`, body);
+  return mutationFetch<AddSystemResult>('POST', `/api/map/${mapId}/systems`, body);
 }
 
 /**

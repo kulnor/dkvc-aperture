@@ -19,8 +19,8 @@ Each helper returns `ActionResult<MapEventPayload>` — same shape as the route 
 
 ---
 
-### addSystemOnServer({ mapId, systemId, positionX?, positionY? }): Promise<ActionResult<MapEventPayload>>
-POSTs `/api/map/{mapId}/systems`. POST = the caller awaits the server payload before applying. Drives both the location-poll fold and the manual "add system" dialog (the latter passes a viewport-center `positionX`/`positionY`).
+### addSystemOnServer({ mapId, systemId, positionX?, positionY? }): Promise<ActionResult<AddSystemResult>>
+POSTs `/api/map/{mapId}/systems`. Returns `{ payloads }` — the `system.added` event plus any auto-created `stargate` gate links to systems already on the map — so the caller folds `data.payloads` via `onBulkPaste` (wrapper-level `eventId` is always `0`). Drives the manual "add system" dialog (passing a placement `positionX`/`positionY`).
 
 ### searchSystemsOnServer({ mapId, query }): Promise<FetchResult<SystemSearchResult[]>>
 GET `/api/map/{mapId}/system-search?q=`. Read-only (view rights) so no `eventId`. Feeds the `AddSystemDialog` autocomplete; the caller debounces and the server returns `[]` for queries under 2 chars.
@@ -73,5 +73,5 @@ POST `/api/map/{mapId}/thera/sync` (`map_update` right). Folds the chosen connec
 
 ### Depends On
 - `sonner` (`toast.error`)
-- Types from `@/types`: `ActionResult`, `MapEventPayload`, `WormholeTypeOption`, `BulkPasteOptions`, `BulkPasteResult`, `ParsedSigRow`, `ResolvedSigRow`, `MapExportFile`, `ImportResult`, `TheraConnection`, `TheraSyncInput`, `TheraSyncResult`
+- Types from `@/types`: `ActionResult`, `AddSystemResult`, `MapEventPayload`, `WormholeTypeOption`, `BulkPasteOptions`, `BulkPasteResult`, `ParsedSigRow`, `ResolvedSigRow`, `MapExportFile`, `ImportResult`, `TheraConnection`, `TheraSyncInput`, `TheraSyncResult`
 - Enum value types from `@/lib/map/enumLabels`

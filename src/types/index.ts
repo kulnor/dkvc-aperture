@@ -237,6 +237,7 @@ export type { ActionResult, CommitMapEventArgs } from '@/lib/map/mutations/core'
 // System mutation input types (src/lib/map/mutations/systems.ts).
 export type {
   AddSystemInput,
+  AddSystemResult,
   RemoveSystemInput,
   UpdateSystemInput,
   UpdateSystemPatch,
