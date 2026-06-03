@@ -34,3 +34,5 @@ Stage 17.10 adds `TagScheme` (the `tag_scheme` pgEnum union: `none`/`abc`/`0121`
 Stage 17.9 adds the Thera module types from `src/lib/map/thera.ts`: `TheraHub` (`'Thera' | 'Turnur'`), `TheraConnection` (oriented + class-enriched EVE-Scout row), `TheraSyncInput`, and `TheraSyncResult` (`{ summary, payloads }`).
 
 Stage 17.11a adds `ApMapConnectionLog` / `NewApMapConnectionLog` (the `ap_map_connection_log` row) and the `ConnectionMassLogEntry` view type — a display row for the per-jump connection mass-log (joined character + ship-type name, `mass`/`cumulativeMass` as `number` kg). See `src/lib/map/connectionMassLog.ts`.
+
+The delete-subchain feature re-exports `DeleteSubchainInput`, `SubchainDeleteSummary`, and `SubchainDeleteResult` (`{ summary, payloads }`) from `src/lib/map/mutations/subchain.ts` — an N-event branch teardown matching the bulk-paste/Thera `{ summary, payloads }` shape.

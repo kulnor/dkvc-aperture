@@ -42,6 +42,7 @@ import {
   createSignatureOnServer,
   deleteConnectionOnServer,
   deleteSignatureOnServer,
+  deleteSubchainOnServer,
   removeSystemOnServer,
   updateConnectionOnServer,
   updateSignatureOnServer,
@@ -51,6 +52,7 @@ import {
   type UpdateSignatureBody,
   type UpdateSystemBody,
 } from '@/lib/map/client';
+import { computeSubchain } from '@/lib/map/subchainGraph';
 import {
   createStructureOnServer,
   deleteStructureOnServer,
@@ -82,6 +84,7 @@ import { MapUnderglowProvider } from './MapUnderglowContext';
 import { MapUnderglowBridge } from './MapUnderglowBridge';
 import { SystemNode, type SystemNodeData } from './SystemNode';
 import { MapContextMenu } from './MapContextMenu';
+import { SubchainDeleteDialog } from './SubchainDeleteDialog';
 
 const nodeTypes = { system: SystemNode };
 const edgeTypes = { connection: ConnectionEdge };
@@ -119,6 +122,14 @@ export function MapCanvas({
   // Right-click context-menu target (independent of selection — right-click does
   // not change `selected`/`selectedSystemIds`). `null` ⇒ no menu open.
   const [contextMenu, setContextMenu] = useState<MapContextMenuTarget | null>(null);
+  // Pending delete-subchain confirmation. The doomed systems are also highlighted
+  // via `selectedSystemIds` while this is open. `null` ⇒ no dialog.
+  const [subchainPreview, setSubchainPreview] = useState<{
+    headId: string;
+    anchorId: string | null;
+    headName: string;
+    names: string[];
+  } | null>(null);
   const [mapInfoOpen, setMapInfoOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [addSystemOpen, setAddSystemOpen] = useState(false);
@@ -556,6 +567,68 @@ export function MapCanvas({
     setViewData((prev) => payloads.reduce(applyEvent, prev));
   }, []);
 
+  // ---- Delete subchain ----------------------------------------------------
+  // Compute the doomed set from the current view (head + everything orphaned
+  // from the keep-side anchor), highlight it, and open the confirm dialog. The
+  // server recomputes the set authoritatively on confirm.
+  const openSubchainPreview = useCallback(
+    (headId: string, anchorId: string) => {
+      const ids = computeSubchain({
+        systems: viewData.systems,
+        connections: viewData.connections,
+        headId,
+        anchorId,
+      });
+      if (ids.size === 0) return;
+      const byId = new Map(viewData.systems.map((s) => [s.id, s]));
+      const nameOf = (id: string) => {
+        const s = byId.get(id);
+        return s ? s.alias?.trim() || s.name : id;
+      };
+      setSelected(null);
+      setSelectedSystemIds(new Set(ids));
+      setSubchainPreview({
+        headId,
+        anchorId,
+        headName: nameOf(headId),
+        names: [...ids].map(nameOf).sort((a, b) => a.localeCompare(b)),
+      });
+    },
+    [viewData],
+  );
+
+  const onDeleteSubchain = useCallback(
+    (headId: string) => {
+      const homeId = viewData.map.homeMapSystemId;
+      if (homeId === null) return; // the menu only offers this when a Home is set
+      openSubchainPreview(headId, homeId);
+    },
+    [viewData.map.homeMapSystemId, openSubchainPreview],
+  );
+
+  const onDeleteSubchainPick = useCallback(
+    (headId: string, anchorId: string) => openSubchainPreview(headId, anchorId),
+    [openSubchainPreview],
+  );
+
+  const onCancelSubchain = useCallback(() => {
+    setSubchainPreview(null);
+    setSelectedSystemIds(new Set());
+  }, []);
+
+  const onConfirmSubchain = useCallback(async () => {
+    if (!subchainPreview) return;
+    const { headId, anchorId } = subchainPreview;
+    setSubchainPreview(null);
+    const result = await deleteSubchainOnServer({
+      mapId,
+      headMapSystemId: headId,
+      anchorMapSystemId: anchorId,
+    });
+    if (result.ok) onBulkPaste(result.data.payloads);
+    setSelectedSystemIds(new Set());
+  }, [subchainPreview, mapId, onBulkPaste]);
+
   const onMoveEnd = useCallback(
     (_: MouseEvent | TouchEvent | null, vp: Viewport) => {
       localStorage.setItem(`aperture:map:${mapId}:viewport`, JSON.stringify(vp));
@@ -826,11 +899,21 @@ export function MapCanvas({
                 onClose={() => setContextMenu(null)}
                 systems={viewData.systems}
                 connections={viewData.connections}
+                homeMapSystemId={viewData.map.homeMapSystemId}
                 onSystemPatch={onSystemPatch}
                 onSystemRemove={onSystemRemove}
                 onConnectionPatch={onConnectionPatch}
                 onConnectionDelete={onConnectionDelete}
                 onAddSystemAt={onAddSystemAt}
+                onDeleteSubchain={onDeleteSubchain}
+                onDeleteSubchainPick={onDeleteSubchainPick}
+              />
+              <SubchainDeleteDialog
+                open={subchainPreview !== null}
+                headName={subchainPreview?.headName ?? ''}
+                systemNames={subchainPreview?.names ?? []}
+                onConfirm={onConfirmSubchain}
+                onCancel={onCancelSubchain}
               />
             </div>
 

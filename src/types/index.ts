@@ -263,6 +263,13 @@ export type {
   PasteSignaturesInput,
 } from '@/lib/map/mutations/bulkSignatures';
 
+// Delete-subchain orchestrator types (src/lib/map/mutations/subchain.ts).
+export type {
+  DeleteSubchainInput,
+  SubchainDeleteSummary,
+  SubchainDeleteResult,
+} from '@/lib/map/mutations/subchain';
+
 // Wormhole-catalog lookup result types (src/lib/map/wormholeTypes.ts).
 export type { WormholeTypeOption, StaticMatch } from '@/lib/map/wormholeTypes';
 

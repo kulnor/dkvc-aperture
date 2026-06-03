@@ -42,6 +42,9 @@ GET `/api/map/{mapId}/connections/{connectionId}/mass-log` (view rights). Lists 
 per-jump mass-log oldest-first with a running cumulative mass. Read-only — the log is server-derived
 (Stage 17.11a); the `ConnectionMassLog` inspector module refetches on the `connectionMassLog` realtime task.
 
+### deleteSubchainOnServer({ mapId, headMapSystemId, anchorMapSystemId? }): Promise<ActionResult<SubchainDeleteResult>>
+POST `/api/map/{mapId}/subchain`. Delete a head system and everything orphaned from the keep-side anchor by removing it. The server recomputes the set authoritatively from `headMapSystemId` (+ `anchorMapSystemId`, the neighbour to keep, only when the map has no Home). Returns `{ summary, payloads }`; the caller iterates `payloads` to register each `eventId` and apply each locally (wrapper-level `eventId` is always `0` — N-events). Used by `MapCanvas`'s delete-subchain handler.
+
 ### createSignatureOnServer({ mapId, body }) / updateSignatureOnServer({ mapId, signatureId, patch }) / deleteSignatureOnServer({ mapId, signatureId })
 POST / PATCH / DELETE on `/api/map/{mapId}/signatures[/{sigId}]`. Create awaits; update/delete are optimistic.
 

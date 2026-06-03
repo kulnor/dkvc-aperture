@@ -2,10 +2,11 @@
 
 import { Menu as MenuPrimitive } from '@base-ui/react/menu';
 import { ContextMenu } from '@base-ui/react/context-menu';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Scissors, Trash2 } from 'lucide-react';
 
 import type { MapContextMenuTarget, MapSystemNode, MapConnectionEdge } from '@/types';
 import type { UpdateSystemBody, UpdateConnectionBody } from '@/lib/map/client';
+import { neighborsOf } from '@/lib/map/subchainGraph';
 import {
   MenuItem,
   MenuSubmenu,
@@ -36,6 +37,9 @@ const NONE_JUMP_MASS = '__none__';
 
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
+/** Human label for a system in menus: its alias when set, else the solar-system name. */
+const systemLabel = (s: MapSystemNode) => s.alias?.trim() || s.name;
+
 /**
  * Controlled, cursor-anchored context menu for the map canvas. Driven entirely
  * by `target`: when non-null the menu opens, anchored to the stored client x/y
@@ -49,21 +53,30 @@ export function MapContextMenu({
   onClose,
   systems,
   connections,
+  homeMapSystemId,
   onSystemPatch,
   onSystemRemove,
   onConnectionPatch,
   onConnectionDelete,
   onAddSystemAt,
+  onDeleteSubchain,
+  onDeleteSubchainPick,
 }: {
   target: MapContextMenuTarget | null;
   onClose: () => void;
   systems: MapSystemNode[];
   connections: MapConnectionEdge[];
+  /** `ap_map_system.id` of the designated Home, or null. Drives the subchain anchor. */
+  homeMapSystemId: string | null;
   onSystemPatch: (id: string, patch: UpdateSystemBody) => void;
   onSystemRemove: (id: string) => void;
   onConnectionPatch: (id: string, patch: UpdateConnectionBody) => void;
   onConnectionDelete: (id: string) => void;
   onAddSystemAt: (clientX: number, clientY: number) => void;
+  /** Home-anchored: delete this head system + its branch (Home is the keep-side). */
+  onDeleteSubchain: (headId: string) => void;
+  /** No-Home fallback: delete this head, keeping the chosen neighbour's side. */
+  onDeleteSubchainPick: (headId: string, anchorId: string) => void;
 }) {
   // A zero-size virtual element at the cursor point; recreated per render so the
   // rect tracks the current target's coordinates.
@@ -116,11 +129,14 @@ export function MapContextMenu({
               onClose,
               systems,
               connections,
+              homeMapSystemId,
               onSystemPatch,
               onSystemRemove,
               onConnectionPatch,
               onConnectionDelete,
               onAddSystemAt,
+              onDeleteSubchain,
+              onDeleteSubchainPick,
             })}
           </MenuPrimitive.Popup>
         </MenuPrimitive.Positioner>
@@ -134,21 +150,27 @@ function renderItems({
   onClose,
   systems,
   connections,
+  homeMapSystemId,
   onSystemPatch,
   onSystemRemove,
   onConnectionPatch,
   onConnectionDelete,
   onAddSystemAt,
+  onDeleteSubchain,
+  onDeleteSubchainPick,
 }: {
   target: MapContextMenuTarget | null;
   onClose: () => void;
   systems: MapSystemNode[];
   connections: MapConnectionEdge[];
+  homeMapSystemId: string | null;
   onSystemPatch: (id: string, patch: UpdateSystemBody) => void;
   onSystemRemove: (id: string) => void;
   onConnectionPatch: (id: string, patch: UpdateConnectionBody) => void;
   onConnectionDelete: (id: string) => void;
   onAddSystemAt: (clientX: number, clientY: number) => void;
+  onDeleteSubchain: (headId: string) => void;
+  onDeleteSubchainPick: (headId: string, anchorId: string) => void;
 }) {
   if (!target) return null;
 
@@ -159,12 +181,24 @@ function renderItems({
       return (
         <SystemItems
           system={system}
+          systems={systems}
+          connections={connections}
+          isHome={homeMapSystemId === system.id}
+          hasHome={homeMapSystemId !== null}
           onPatch={(patch) => {
             onSystemPatch(system.id, patch);
             onClose();
           }}
           onRemove={() => {
             onSystemRemove(system.id);
+            onClose();
+          }}
+          onDeleteSubchain={() => {
+            onDeleteSubchain(system.id);
+            onClose();
+          }}
+          onDeleteSubchainPick={(anchorId) => {
+            onDeleteSubchainPick(system.id, anchorId);
             onClose();
           }}
         />
@@ -204,12 +238,26 @@ function renderItems({
 
 function SystemItems({
   system,
+  systems,
+  connections,
+  isHome,
+  hasHome,
   onPatch,
   onRemove,
+  onDeleteSubchain,
+  onDeleteSubchainPick,
 }: {
   system: MapSystemNode;
+  systems: MapSystemNode[];
+  connections: MapConnectionEdge[];
+  /** This system is the map's designated Home (can't be a subchain head). */
+  isHome: boolean;
+  /** The map has a designated Home (drives single-click vs keep-side fallback). */
+  hasHome: boolean;
   onPatch: (patch: UpdateSystemBody) => void;
   onRemove: () => void;
+  onDeleteSubchain: () => void;
+  onDeleteSubchainPick: (anchorId: string) => void;
 }) {
   return (
     <>
@@ -254,7 +302,70 @@ function SystemItems({
       >
         Remove from map
       </MenuItem>
+
+      {/* Delete subchain: hidden for the Home node (it can't be a head). With a
+          Home set it's a single click (Home is the keep-side); otherwise the
+          user picks which neighbour to keep. */}
+      {!isHome &&
+        (hasHome ? (
+          <MenuItem
+            className="text-destructive data-highlighted:text-destructive"
+            icon={<Scissors className="size-3.5" />}
+            onClick={onDeleteSubchain}
+          >
+            Delete subchain
+          </MenuItem>
+        ) : (
+          <SubchainKeepSubmenu
+            system={system}
+            systems={systems}
+            connections={connections}
+            onPick={onDeleteSubchainPick}
+          />
+        ))}
     </>
+  );
+}
+
+/**
+ * No-Home fallback: a submenu listing the head's neighbours so the user picks
+ * which side to KEEP. That neighbour becomes the anchor; the head and the rest
+ * of its branch are deleted. Disabled when the head has no connections.
+ */
+function SubchainKeepSubmenu({
+  system,
+  systems,
+  connections,
+  onPick,
+}: {
+  system: MapSystemNode;
+  systems: MapSystemNode[];
+  connections: MapConnectionEdge[];
+  onPick: (anchorId: string) => void;
+}) {
+  const neighbourIds = neighborsOf(connections, system.id);
+  if (neighbourIds.length === 0) {
+    return (
+      <MenuItem inset disabled>
+        Delete subchain
+      </MenuItem>
+    );
+  }
+  const byId = new Map(systems.map((s) => [s.id, s]));
+  return (
+    <MenuSubmenu>
+      <MenuSubmenuTrigger inset>Delete subchain</MenuSubmenuTrigger>
+      <MenuSubmenuContent>
+        {neighbourIds.map((id) => {
+          const neighbour = byId.get(id);
+          return (
+            <MenuItem key={id} onClick={() => onPick(id)}>
+              Keep {neighbour ? systemLabel(neighbour) : id}
+            </MenuItem>
+          );
+        })}
+      </MenuSubmenuContent>
+    </MenuSubmenu>
   );
 }
 

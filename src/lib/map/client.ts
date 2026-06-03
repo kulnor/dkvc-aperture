@@ -9,6 +9,7 @@ import type {
   ParsedSigRow,
   ResolvedSigRow,
   SignatureGroupKey,
+  SubchainDeleteResult,
   SystemSearchResult,
   TheraConnection,
   TheraSyncInput,
@@ -214,6 +215,28 @@ export function fetchConnectionMassLog(args: {
   return readFetch<ConnectionMassLogEntry[]>(
     `/api/map/${args.mapId}/connections/${args.connectionId}/mass-log`,
   );
+}
+
+// ---------------------------------------------------------------------------
+// Delete subchain (delete a head system + its orphaned branch in one call)
+// ---------------------------------------------------------------------------
+
+/**
+ * Delete a head system and everything orphaned from the keep-side anchor by
+ * removing it. The server recomputes the set authoritatively; the client only
+ * sends the head (+ a neighbour to keep when the map has no Home). Returns the N
+ * committed event payloads — register each `eventId` and fold each via
+ * `applyEvent` (the wrapper-level `eventId` is always `0`).
+ */
+export function deleteSubchainOnServer(args: {
+  mapId: string;
+  headMapSystemId: string;
+  anchorMapSystemId?: string | null;
+}): Promise<ActionResult<SubchainDeleteResult>> {
+  return mutationFetch<SubchainDeleteResult>('POST', `/api/map/${args.mapId}/subchain`, {
+    headMapSystemId: args.headMapSystemId,
+    anchorMapSystemId: args.anchorMapSystemId ?? null,
+  });
 }
 
 // ---------------------------------------------------------------------------

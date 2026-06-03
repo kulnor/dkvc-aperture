@@ -3,7 +3,7 @@ import { and, eq, type InferInsertModel } from 'drizzle-orm';
 import { apMap, apMapSystem, systemStatus } from '@/db/schema';
 import { buildSystemNode } from '../systemNode';
 import { assignTagOnAdd } from '@/lib/tagging/service';
-import { commitMapEvent, type ActionResult } from './core';
+import { commitMapEvent, type ActionResult, type Tx } from './core';
 import type { MapEventPatch, MapEventPayload } from '@/lib/realtime/protocol';
 
 /**
@@ -29,6 +29,8 @@ export type RemoveSystemInput = {
   /** `ap_map_system.id` (the xyflow node id). */
   mapSystemId: bigint;
   characterId: bigint | null;
+  /** Optional outer transaction (joined by `subchain.ts` to drop a whole branch atomically). */
+  tx?: Tx;
 };
 
 /** Fields a client may change on a placed system. Omitted keys are left untouched. */
@@ -103,6 +105,7 @@ export function removeSystem(input: RemoveSystemInput): Promise<ActionResult<Map
     mapId: input.mapId,
     characterId: input.characterId,
     kind: 'system.removed',
+    tx: input.tx,
     mutate: async (tx) => {
       // Home-system delete guard (Stage 17.10): the auto-tagging Home is the
       // node both schemes calculate from and must not be removable while
