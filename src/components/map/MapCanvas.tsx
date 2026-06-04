@@ -622,9 +622,11 @@ export function MapCanvas({
     [mapId, runOptimistic],
   );
 
-  // Group delete — shared by the Delete/Backspace key handler and the floating
-  // "Remove N" button. Loops the existing single-item DELETE endpoint (the
-  // onBulkPaste precedent: small, hand-selected groups need no batch endpoint).
+  // Group delete — driven by the floating "Remove N" button only. There is
+  // deliberately no Delete/Backspace keybind: a stray backspace (e.g. while an
+  // input is unfocused) must never wipe systems off the map. Loops the existing
+  // single-item DELETE endpoint (the onBulkPaste precedent: small, hand-selected
+  // groups need no batch endpoint).
   const removeSelectedSystems = useCallback(() => {
     if (selectedSystemIds.size === 0) return;
     for (const id of selectedSystemIds) {
@@ -635,21 +637,6 @@ export function MapCanvas({
     setSelected(null);
     setSelectedSystemIds(new Set());
   }, [mapId, runOptimistic, selectedSystemIds]);
-
-  // Delete/Backspace removes the whole selection. Gated against text inputs so
-  // editing an alias / signature field never deletes systems.
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key !== 'Delete' && e.key !== 'Backspace') return;
-      const t = e.target as HTMLElement | null;
-      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
-      if (selectedSystemIds.size === 0) return;
-      e.preventDefault();
-      removeSelectedSystems();
-    };
-    document.addEventListener('keydown', onKeyDown);
-    return () => document.removeEventListener('keydown', onKeyDown);
-  }, [selectedSystemIds, removeSelectedSystems]);
 
   const onConnectionPatch = useCallback(
     (connectionId: string, patch: UpdateConnectionBody) => {
