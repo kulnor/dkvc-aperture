@@ -311,9 +311,10 @@ function SignaturePanelBody({
                 <td className="px-1 py-0.5">
                   <SignatureGroupSelect
                     value={sig.groupKey}
-                    onValueChange={(nextKey) =>
-                      onPatch(sig.id, buildGroupChangePatch(sig, nextKey))
-                    }
+                    onValueChange={(nextKey) => {
+                      if (nextKey === sig.groupKey) return;
+                      onPatch(sig.id, buildGroupChangePatch(sig, nextKey));
+                    }}
                   />
                 </td>
                 <td className="px-1 py-0.5">
@@ -391,6 +392,7 @@ function SignaturePanelBody({
           <SignatureGroupSelect
             value={draftGroupKey}
             onValueChange={(next) => {
+              if (next === draftGroupKey) return;
               setDraftGroupKey(next);
               setDraftTypeId(null);
               setDraftName('');

@@ -25,7 +25,7 @@ A `Card` with:
 
 ### Behaviour & Interactions
 - The body re-mounts on system change (`key={system.id}`) so draft state for the add form resets cleanly when the selection changes.
-- **Group cascade:** Changing a row's Group always nulls `typeId` and `name`; when the new group is no longer `wormhole` (or wasn't but now is), `mapConnectionId` is also nulled. The cascade is sent as one PATCH containing the combined keys (see `buildGroupChangePatch`).
+- **Group cascade:** Changing a row's Group to a *different* value nulls `typeId` and `name`; when the new group is no longer `wormhole` (or wasn't but now is), `mapConnectionId` is also nulled. Re-selecting the same group is a no-op — no PATCH is issued and no fields are cleared. The cascade is sent as one PATCH containing the combined keys (see `buildGroupChangePatch`).
 - **Type cell** cascades on Group:
   - `wormhole` → `WormholeTypeSelect`. Picks a `universe_wormhole` row; writes `typeId`.
   - cosmic groups → `SiteTypeCombobox` bound to `sig.name`: class+group-filtered site-name suggestions (from `signatureSites.ts`, keyed off `system.security`) with a free-text fallback; patches on blur.
