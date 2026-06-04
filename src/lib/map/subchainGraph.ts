@@ -97,6 +97,32 @@ export function computeSubchain(args: {
 }
 
 /**
+ * Resolve the set of systems disconnected from `homeId` — every visible system
+ * with no path back to the Home over the undirected connection graph. Powers the
+ * "delete disconnected" pane action: clear out branches that went stale after a
+ * hole collapsed elsewhere. The Home is reachable from itself, so it is never in
+ * the result.
+ *
+ * Returns an empty set when `homeId` isn't in the system set.
+ */
+export function computeDisconnected(args: {
+  systems: readonly SystemRef[];
+  connections: readonly ConnectionRef[];
+  homeId: string;
+}): Set<string> {
+  const { systems, connections, homeId } = args;
+  const adjacency = buildAdjacency(systems, connections);
+  if (!adjacency.has(homeId)) return new Set();
+
+  const fromHome = reachable(adjacency, homeId, null);
+  const out = new Set<string>();
+  for (const s of systems) {
+    if (!fromHome.has(s.id)) out.add(s.id);
+  }
+  return out;
+}
+
+/**
  * Direct neighbours of `systemId` over the undirected graph. Powers the
  * no-Home fallback submenu, where the user picks which neighbour to keep.
  * Deduplicated and order-stable by first appearance in `connections`.

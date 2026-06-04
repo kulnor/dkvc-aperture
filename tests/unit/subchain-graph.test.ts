@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { computeSubchain, neighborsOf } from '@/lib/map/subchainGraph';
+import { computeDisconnected, computeSubchain, neighborsOf } from '@/lib/map/subchainGraph';
 
 /** Helper: build the system + connection refs from a compact edge list. */
 function graph(edges: Array<[string, string]>) {
@@ -110,6 +110,49 @@ describe('computeSubchain', () => {
   it('returns empty when the head is not a known system', () => {
     const g = graph([['Home', 'N']]);
     expect(computeSubchain({ ...g, headId: 'ghost', anchorId: 'Home' }).size).toBe(0);
+  });
+});
+
+describe('computeDisconnected', () => {
+  it('returns empty when every system is reachable from Home', () => {
+    // Home — R — N — A, all one chain.
+    const g = graph([
+      ['Home', 'R'],
+      ['R', 'N'],
+      ['N', 'A'],
+    ]);
+    expect(computeDisconnected({ ...g, homeId: 'Home' }).size).toBe(0);
+  });
+
+  it('returns an island cut off from Home, keeping the Home chain', () => {
+    // Home — R is the live chain; X — Y is a detached island.
+    const g = graph([
+      ['Home', 'R'],
+      ['X', 'Y'],
+    ]);
+    const out = computeDisconnected({ ...g, homeId: 'Home' });
+    expect(sorted(out)).toEqual(['X', 'Y']);
+  });
+
+  it('returns a lone floating system with no connections', () => {
+    // Float has no edges, so the helper won't include it — add it explicitly.
+    const g = graph([['Home', 'R']]);
+    const systems = [...g.systems, { id: 'Float' }];
+    const out = computeDisconnected({ systems, connections: g.connections, homeId: 'Home' });
+    expect(sorted(out)).toEqual(['Float']);
+  });
+
+  it('returns empty when Home is not a known system', () => {
+    const g = graph([['X', 'Y']]);
+    expect(computeDisconnected({ ...g, homeId: 'Home' }).size).toBe(0);
+  });
+
+  it('never includes the Home itself', () => {
+    const g = graph([
+      ['Home', 'R'],
+      ['X', 'Y'],
+    ]);
+    expect(computeDisconnected({ ...g, homeId: 'Home' }).has('Home')).toBe(false);
   });
 });
 

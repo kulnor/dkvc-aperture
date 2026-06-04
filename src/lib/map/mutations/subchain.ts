@@ -2,7 +2,7 @@ import 'server-only';
 import { and, eq } from 'drizzle-orm';
 import { db } from '@/db/client';
 import { apMap, apMapConnection, apMapSystem } from '@/db/schema';
-import { computeSubchain, neighborsOf } from '@/lib/map/subchainGraph';
+import { computeDisconnected, computeSubchain, neighborsOf } from '@/lib/map/subchainGraph';
 import type { MapEventPayload } from '@/lib/realtime/protocol';
 import type { ActionResult } from './core';
 import { deleteConnection } from './connections';
@@ -149,5 +149,101 @@ export async function deleteSubchain(
     return { ok: true, data: result, eventId: 0 };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : 'Delete subchain failed.' };
+  }
+}
+
+export type DeleteDisconnectedInput = {
+  mapId: bigint;
+  characterId: bigint | null;
+};
+
+/**
+ * Delete-disconnected orchestrator. Resolves every visible system with no path
+ * back to the map's Home (`computeDisconnected`, see `subchainGraph.ts`) and
+ * tears it down under one outer `db.transaction`, reusing the exact teardown of
+ * `deleteSubchain`: hard-delete every connection touching the doomed set, then
+ * soft-delete the systems, all routed through `deleteConnection` / `removeSystem`
+ * with the shared `tx`. Returns the N committed payloads.
+ *
+ * Requires a Home to be set — without one there's no anchor to measure
+ * "disconnected" against, so the call throws.
+ */
+export async function deleteDisconnected(
+  input: DeleteDisconnectedInput,
+): Promise<ActionResult<SubchainDeleteResult>> {
+  try {
+    const result = await db.transaction(async (tx) => {
+      const [map] = await tx
+        .select({ homeMapSystemId: apMap.homeMapSystemId })
+        .from(apMap)
+        .where(eq(apMap.id, input.mapId));
+      if (!map) throw new Error('Map not found.');
+      if (map.homeMapSystemId === null) throw new Error('No Home system is set.');
+
+      const systemRows = await tx
+        .select({ id: apMapSystem.id })
+        .from(apMapSystem)
+        .where(and(eq(apMapSystem.mapId, input.mapId), eq(apMapSystem.visible, true)));
+      const homeId = map.homeMapSystemId.toString();
+      const visibleIds = new Set(systemRows.map((s) => s.id.toString()));
+      if (!visibleIds.has(homeId)) throw new Error('Home system not found on map.');
+
+      const connectionRows = await tx
+        .select({
+          id: apMapConnection.id,
+          source: apMapConnection.sourceMapSystemId,
+          target: apMapConnection.targetMapSystemId,
+        })
+        .from(apMapConnection)
+        .where(eq(apMapConnection.mapId, input.mapId));
+      const connections = connectionRows.map((c) => ({
+        id: c.id,
+        source: c.source.toString(),
+        target: c.target.toString(),
+      }));
+
+      const doomed = computeDisconnected({
+        systems: systemRows.map((s) => ({ id: s.id.toString() })),
+        connections,
+        homeId,
+      });
+      if (doomed.size === 0) throw new Error('Nothing to delete.');
+
+      const payloads: MapEventPayload[] = [];
+
+      for (const c of connectionRows) {
+        if (!doomed.has(c.source.toString()) && !doomed.has(c.target.toString())) continue;
+        const res = await deleteConnection({
+          mapId: input.mapId,
+          connectionId: c.id,
+          characterId: input.characterId,
+          tx,
+        });
+        if (!res.ok) throw new Error(res.error);
+        payloads.push(res.data);
+      }
+      const connectionsRemoved = payloads.length;
+
+      for (const id of doomed) {
+        const res = await removeSystem({
+          mapId: input.mapId,
+          mapSystemId: BigInt(id),
+          characterId: input.characterId,
+          tx,
+        });
+        if (!res.ok) throw new Error(res.error);
+        payloads.push(res.data);
+      }
+
+      const summary: SubchainDeleteSummary = {
+        systemsRemoved: doomed.size,
+        connectionsRemoved,
+      };
+      return { summary, payloads };
+    });
+
+    return { ok: true, data: result, eventId: 0 };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Delete disconnected failed.' };
   }
 }

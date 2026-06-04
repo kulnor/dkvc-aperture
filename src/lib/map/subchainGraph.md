@@ -22,6 +22,18 @@ Returns the head plus everything orphaned from `args.anchorId` by removing `args
 
 ---
 
+### computeDisconnected(args): Set<string>
+Returns every system in `args.systems` with no path back to `args.homeId` over the undirected graph built from `args.systems` + `args.connections`. Computed as `systems \ (reachable from home)`. Powers the "delete disconnected" pane action.
+
+**Parameters:**
+- `args.systems` — visible systems (`{ id }`, `ap_map_system.id` as a string). Defines the node set.
+- `args.connections` — edges (`{ source, target }`); treated as undirected, scope-agnostic.
+- `args.homeId` — the Home system; the reachability root, never in the result.
+
+**Returns:** Set of disconnected `ap_map_system.id`s (excludes `homeId`). Empty when `homeId` isn't in `systems`.
+
+---
+
 ### neighborsOf(connections, systemId): string[]
 Direct neighbours of `systemId`, deduplicated and order-stable by first appearance in `connections`. Powers the no-Home fallback submenu (pick which neighbour to keep).
 

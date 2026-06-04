@@ -246,6 +246,18 @@ export function deleteSubchainOnServer(args: {
   });
 }
 
+/**
+ * Delete every visible system disconnected from the map's Home (the server
+ * recomputes the set authoritatively from the live graph; no body is sent).
+ * Returns the N committed event payloads — register each `eventId` and fold each
+ * via `applyEvent` (the wrapper-level `eventId` is always `0`).
+ */
+export function deleteDisconnectedOnServer(args: {
+  mapId: string;
+}): Promise<ActionResult<SubchainDeleteResult>> {
+  return mutationFetch<SubchainDeleteResult>('POST', `/api/map/${args.mapId}/disconnected`);
+}
+
 // ---------------------------------------------------------------------------
 // Signature mutations
 // ---------------------------------------------------------------------------

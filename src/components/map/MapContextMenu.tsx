@@ -2,11 +2,11 @@
 
 import { Menu as MenuPrimitive } from '@base-ui/react/menu';
 import { ContextMenu } from '@base-ui/react/context-menu';
-import { Plus, Scissors, Trash2 } from 'lucide-react';
+import { Plus, Scissors, Trash2, Unlink } from 'lucide-react';
 
 import type { MapContextMenuTarget, MapSystemNode, MapConnectionEdge } from '@/types';
 import type { UpdateSystemBody, UpdateConnectionBody } from '@/lib/map/client';
-import { neighborsOf } from '@/lib/map/subchainGraph';
+import { computeDisconnected, neighborsOf } from '@/lib/map/subchainGraph';
 import {
   MenuItem,
   MenuSubmenu,
@@ -61,6 +61,7 @@ export function MapContextMenu({
   onAddSystemAt,
   onDeleteSubchain,
   onDeleteSubchainPick,
+  onDeleteDisconnected,
 }: {
   target: MapContextMenuTarget | null;
   onClose: () => void;
@@ -77,6 +78,8 @@ export function MapContextMenu({
   onDeleteSubchain: (headId: string) => void;
   /** No-Home fallback: delete this head, keeping the chosen neighbour's side. */
   onDeleteSubchainPick: (headId: string, anchorId: string) => void;
+  /** Pane action: delete every system disconnected from the Home. */
+  onDeleteDisconnected: () => void;
 }) {
   // A zero-size virtual element at the cursor point; recreated per render so the
   // rect tracks the current target's coordinates.
@@ -137,6 +140,7 @@ export function MapContextMenu({
               onAddSystemAt,
               onDeleteSubchain,
               onDeleteSubchainPick,
+              onDeleteDisconnected,
             })}
           </MenuPrimitive.Popup>
         </MenuPrimitive.Positioner>
@@ -158,6 +162,7 @@ function renderItems({
   onAddSystemAt,
   onDeleteSubchain,
   onDeleteSubchainPick,
+  onDeleteDisconnected,
 }: {
   target: MapContextMenuTarget | null;
   onClose: () => void;
@@ -171,6 +176,7 @@ function renderItems({
   onAddSystemAt: (clientX: number, clientY: number) => void;
   onDeleteSubchain: (headId: string) => void;
   onDeleteSubchainPick: (headId: string, anchorId: string) => void;
+  onDeleteDisconnected: () => void;
 }) {
   if (!target) return null;
 
@@ -221,18 +227,39 @@ function renderItems({
         />
       );
     }
-    case 'pane':
+    case 'pane': {
+      // "Delete disconnected" needs a Home to measure against and at least one
+      // system actually cut off from it — otherwise the action is a no-op, so
+      // hide it.
+      const showDeleteDisconnected =
+        homeMapSystemId !== null &&
+        computeDisconnected({ systems, connections, homeId: homeMapSystemId }).size > 0;
       return (
-        <MenuItem
-          icon={<Plus className="size-3.5" />}
-          onClick={() => {
-            onAddSystemAt(target.x, target.y);
-            onClose();
-          }}
-        >
-          Add system
-        </MenuItem>
+        <>
+          <MenuItem
+            icon={<Plus className="size-3.5" />}
+            onClick={() => {
+              onAddSystemAt(target.x, target.y);
+              onClose();
+            }}
+          >
+            Add system
+          </MenuItem>
+          {showDeleteDisconnected && (
+            <MenuItem
+              className="text-destructive data-highlighted:text-destructive"
+              icon={<Unlink className="size-3.5" />}
+              onClick={() => {
+                onDeleteDisconnected();
+                onClose();
+              }}
+            >
+              Delete disconnected
+            </MenuItem>
+          )}
+        </>
       );
+    }
   }
 }
 

@@ -45,6 +45,7 @@ import {
   createConnectionOnServer,
   createSignatureOnServer,
   deleteConnectionOnServer,
+  deleteDisconnectedOnServer,
   deleteSignatureOnServer,
   deleteSubchainOnServer,
   removeSystemOnServer,
@@ -56,7 +57,7 @@ import {
   type UpdateSignatureBody,
   type UpdateSystemBody,
 } from '@/lib/map/client';
-import { computeSubchain } from '@/lib/map/subchainGraph';
+import { computeDisconnected, computeSubchain } from '@/lib/map/subchainGraph';
 import {
   createStructureOnServer,
   deleteStructureOnServer,
@@ -183,6 +184,9 @@ export function MapCanvas({
     headName: string;
     count: number;
   } | null>(null);
+  // Pending delete-disconnected confirmation. The doomed systems (everything cut
+  // off from the Home) are highlighted via `selectedSystemIds` while open.
+  const [disconnectedPreview, setDisconnectedPreview] = useState<{ count: number } | null>(null);
   const [mapInfoOpen, setMapInfoOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [addSystemOpen, setAddSystemOpen] = useState(false);
@@ -787,6 +791,36 @@ export function MapCanvas({
     if (result.ok) onBulkPaste(result.data.payloads);
   }, [subchainSigPrompt, mapId, onBulkPaste]);
 
+  // ---- Delete disconnected -----------------------------------------------
+  // Compute the systems cut off from the Home, highlight them, and open the
+  // confirm dialog. The server recomputes the set authoritatively on confirm.
+  const onDeleteDisconnected = useCallback(() => {
+    const homeId = viewData.map.homeMapSystemId;
+    if (homeId === null) return; // the menu only offers this when a Home is set
+    const ids = computeDisconnected({
+      systems: viewData.systems,
+      connections: viewData.connections,
+      homeId,
+    });
+    if (ids.size === 0) return;
+    setSelected(null);
+    setSelectedSystemIds(new Set(ids));
+    setDisconnectedPreview({ count: ids.size });
+  }, [viewData]);
+
+  const onCancelDisconnected = useCallback(() => {
+    setDisconnectedPreview(null);
+    setSelectedSystemIds(new Set());
+  }, []);
+
+  const onConfirmDisconnected = useCallback(async () => {
+    if (!disconnectedPreview) return;
+    setDisconnectedPreview(null);
+    const result = await deleteDisconnectedOnServer({ mapId });
+    if (result.ok) onBulkPaste(result.data.payloads);
+    setSelectedSystemIds(new Set());
+  }, [disconnectedPreview, mapId, onBulkPaste]);
+
   const onMoveEnd = useCallback(
     (_: MouseEvent | TouchEvent | null, vp: Viewport) => {
       localStorage.setItem(`aperture:map:${mapId}:viewport`, JSON.stringify(vp));
@@ -945,7 +979,7 @@ export function MapCanvas({
             ref={flowWrapperRef}
             className="relative h-full overflow-hidden rounded-lg ring-1 ring-foreground/10"
           >
-            {selectedSystemIds.size > 1 && !subchainPreview && (
+            {selectedSystemIds.size > 1 && !subchainPreview && !disconnectedPreview && (
               <Button
                 variant="destructive"
                 size="sm"
@@ -980,6 +1014,14 @@ export function MapCanvas({
                 count={subchainPreview.count}
                 onConfirm={onConfirmSubchain}
                 onDismiss={onCancelSubchain}
+              />
+            )}
+            {disconnectedPreview && (
+              <SubchainDeletePrompt
+                lead="Delete systems disconnected from Home"
+                count={disconnectedPreview.count}
+                onConfirm={onConfirmDisconnected}
+                onDismiss={onCancelDisconnected}
               />
             )}
             <ReactFlow
@@ -1036,6 +1078,7 @@ export function MapCanvas({
               onAddSystemAt={onAddSystemAt}
               onDeleteSubchain={onDeleteSubchain}
               onDeleteSubchainPick={onDeleteSubchainPick}
+              onDeleteDisconnected={onDeleteDisconnected}
             />
           </div>
         );
