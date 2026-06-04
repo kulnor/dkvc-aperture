@@ -22,6 +22,7 @@ import {
   signOutAction,
 } from '@/app/(app)/actions/character';
 import { AccountSettingsDialog } from '@/components/account/AccountSettingsDialog';
+import type { SignatureIndicatorAccountSettings } from '@/types';
 
 export type PanelCharacter = {
   id: string;
@@ -46,11 +47,13 @@ export function CharacterPanel({
   characters,
   mainCharacterId,
   travelAnimation,
+  signatureIndicators,
 }: {
   active: { id: string; name: string };
   characters: PanelCharacter[];
   mainCharacterId: string | null;
   travelAnimation: boolean;
+  signatureIndicators: SignatureIndicatorAccountSettings;
 }) {
   const params = useParams();
   const currentMapId = currentMapIdFromParams(params?.slug);
@@ -194,6 +197,7 @@ export function CharacterPanel({
         mainCharacterId={mainCharacterId}
         activeCharacter={active}
         travelAnimation={travelAnimation}
+        signatureIndicators={signatureIndicators}
       />
     </Sheet>
   );

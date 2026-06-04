@@ -1,5 +1,13 @@
 import { sql } from 'drizzle-orm';
-import { bigint, check, pgTable, primaryKey, smallint, timestamp } from 'drizzle-orm/pg-core';
+import {
+  bigint,
+  check,
+  integer,
+  pgTable,
+  primaryKey,
+  smallint,
+  timestamp,
+} from 'drizzle-orm/pg-core';
 import { accessMode, accessPrincipal } from './enums';
 
 // Permissions-overhaul. Per-deployment access configuration.
@@ -22,6 +30,12 @@ export const apInstance = pgTable(
     // Singleton: there is exactly one config row, pinned to id 1.
     id: smallint('id').primaryKey(),
     accessMode: accessMode('access_mode').notNull().default('restricted'),
+    // Global default for the stale-signature indicator (minutes). A system whose
+    // newest signature is older than this is flagged on the map. Admins edit it;
+    // each user may override it to a *smaller* value (never larger) on `ap_user`.
+    staleSignatureThresholdMinutes: integer('stale_signature_threshold_minutes')
+      .notNull()
+      .default(240),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [check('ap_instance_singleton_chk', sql`${t.id} = 1`)],

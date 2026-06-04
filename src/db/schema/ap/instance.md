@@ -9,6 +9,7 @@
 `pgTable('ap_instance', …)` — singleton config row (there is exactly one):
 - `id` — `smallint` PK, pinned to `1` by CHECK `ap_instance_singleton_chk` (`id = 1`).
 - `access_mode` — `access_mode` enum, required, default `restricted`. `restricted` gates login behind owner membership + the allowlist; `open` restores legacy "any EVE account may log in".
+- `stale_signature_threshold_minutes` (`staleSignatureThresholdMinutes`) — `integer NOT NULL DEFAULT 240` (migration `0035`). Global default for the stale-signature map indicator: a system whose newest signature is older than this (or a wormhole system with no signatures) is flagged. Admins edit it via `/admin/settings` (`adminSetStaleSignatureThreshold`); each account may override it to a *smaller* value on `ap_user.stale_signature_threshold_minutes`. Resolved per-user by `getSignatureIndicatorPrefs` (`session.ts`).
 - `updated_at` — `timestamptz`, default `now()`.
 
 **Constraints:**

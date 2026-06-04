@@ -19,6 +19,18 @@ export const apUser = pgTable('ap_user', {
   // global layout applied to every map this user opens. Nullable; NULL ⇒ the
   // client falls back to DEFAULT_MAP_LAYOUT (no per-account row is seeded).
   mapLayout: jsonb('map_layout').$type<MapLayoutConfig>(),
+  // Stale/unscanned signature indicators (per-account). The stale threshold is a
+  // personal override of the global `ap_instance.stale_signature_threshold_minutes`:
+  // NULL ⇒ use the global default; a non-null value is capped at the global on
+  // write (a user may only make themselves *more* eager, never ignore the corp
+  // default by setting a larger value). The two booleans toggle each indicator.
+  staleSignatureThresholdMinutes: integer('stale_signature_threshold_minutes'),
+  showStaleSignatureIndicator: boolean('show_stale_signature_indicator')
+    .notNull()
+    .default(true),
+  showUnscannedSignatureIndicator: boolean('show_unscanned_signature_indicator')
+    .notNull()
+    .default(true),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });

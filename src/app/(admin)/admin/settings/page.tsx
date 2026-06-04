@@ -1,9 +1,11 @@
 import { redirect } from 'next/navigation';
 import { auth } from '@/lib/auth';
 import { adminVisibilityScope } from '@/lib/auth/rights';
+import { getGlobalStaleThresholdMinutes } from '@/lib/session';
 import { listCorpsForAdmin, loadCorpRightsMatrix } from '@/lib/admin/corpRights';
 import { CorpRightsMatrix } from '@/components/admin/CorpRightsMatrix';
 import { CorpPicker } from '@/components/admin/CorpPicker';
+import { StaleThresholdForm } from '@/components/admin/StaleThresholdForm';
 
 /**
  * Stage 16.5 — `/admin/settings` per-corp rights matrix editor.
@@ -21,6 +23,9 @@ export default async function AdminSettingsPage({
   if (scope === null) redirect('/maps');
 
   const corps = await listCorpsForAdmin(scope);
+  // Instance-wide settings are global-admin only (managers are corp-scoped).
+  const staleThresholdMinutes =
+    scope.kind === 'global' ? await getGlobalStaleThresholdMinutes() : null;
 
   const { corp: corpParam } = await searchParams;
   const selected = pickCorp({
@@ -37,6 +42,17 @@ export default async function AdminSettingsPage({
           Scope: {scope.kind === 'global' ? 'global' : `corp ${scope.corporationId.toString()}`}
         </span>
       </header>
+
+      {staleThresholdMinutes !== null && (
+        <section className="flex flex-col gap-2 rounded-lg border border-border bg-card p-4">
+          <h2 className="text-sm font-medium">Signature indicators</h2>
+          <p className="text-sm text-muted-foreground">
+            Default age at which a system&apos;s signatures are flagged as stale on the map.
+            Each member can override this to a smaller value in their Account settings.
+          </p>
+          <StaleThresholdForm initialMinutes={staleThresholdMinutes} />
+        </section>
+      )}
 
       <p className="text-sm text-muted-foreground">
         Per-corporation rights matrix. A character holding the matching corp may exercise

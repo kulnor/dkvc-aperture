@@ -194,6 +194,31 @@ export type AccessCapability = (typeof accessCapability.enumValues)[number];
  * as free-text `name` strings rather than a `typeId` FK. */
 export type CosmicSignatureGroupKey = Exclude<SignatureGroupKey, 'wormhole'>;
 
+/**
+ * Per-account, already-resolved settings for the stale/unscanned signature map
+ * indicators. `thresholdMinutes` is the *effective* value (the user override
+ * already capped to the global default); the two booleans gate each indicator.
+ * Resolved server-side by `getSignatureIndicatorPrefs` and consumed on the
+ * client by `MapSignatureIndicatorContext`.
+ */
+export type SignatureIndicatorPrefs = {
+  thresholdMinutes: number;
+  showStale: boolean;
+  showUnscanned: boolean;
+};
+
+/**
+ * Raw (un-resolved) signature-indicator settings for the Account Settings dialog:
+ * the global cap, the account's own override (`null` ⇒ use the global), and the
+ * two toggles. Shaped by `getSignatureIndicatorAccountSettings` (`session.ts`).
+ */
+export type SignatureIndicatorAccountSettings = {
+  globalThresholdMinutes: number;
+  userThresholdMinutes: number | null;
+  showStale: boolean;
+  showUnscanned: boolean;
+};
+
 // Read-only map view-model types (shaped in src/lib/map/loadMap.ts).
 export type {
   MapSystemNode,

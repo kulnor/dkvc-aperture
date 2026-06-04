@@ -11,6 +11,7 @@ import {
   getAccountCharacters,
   getConnectionTravelAnimation,
   getMapLayout,
+  getSignatureIndicatorPrefs,
   requireSession,
 } from '@/lib/session';
 
@@ -53,6 +54,7 @@ export default async function MapPage({ params }: { params: Promise<{ slug?: str
     structures,
     settings,
     travelAnimation,
+    signatureIndicators,
     canConfigureTagging,
     accountCharacters,
     mapLayout,
@@ -63,6 +65,7 @@ export default async function MapPage({ params }: { params: Promise<{ slug?: str
     structuresForSystems(systemIds),
     loadMapSettings(BigInt(session.characterId), mapId),
     getConnectionTravelAnimation(session.userId),
+    getSignatureIndicatorPrefs(session.userId),
     isMapOwnerOrAdmin(BigInt(session.characterId), mapId),
     getAccountCharacters(session.userId),
     getMapLayout(session.userId),
@@ -89,6 +92,7 @@ export default async function MapPage({ params }: { params: Promise<{ slug?: str
       structures={structures}
       settings={settings}
       travelAnimation={travelAnimation}
+      signatureIndicators={signatureIndicators}
       canConfigureTagging={canConfigureTagging}
       viewerCharacterIds={viewerCharacterIds}
       mapLayout={mapLayout}

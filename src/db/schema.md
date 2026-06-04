@@ -52,6 +52,6 @@ Per-table detail lives in the companion `.md` beside each schema file. Migration
 
 | Table (`const`) | DB name | Key columns / constraints |
 |---|---|---|
-| `apInstance` | `ap_instance` | singleton `id` smallint PK (CHECK `id = 1`), `access_mode` enum default `restricted`, `updated_at` timestamptz |
+| `apInstance` | `ap_instance` | singleton `id` smallint PK (CHECK `id = 1`), `access_mode` enum default `restricted`, `stale_signature_threshold_minutes` integer default 240 (migration `0035`), `updated_at` timestamptz |
 | `apInstanceOwner` | `ap_instance_owner` | `principal_kind` enum (CHECK in `corporation`/`alliance`), `principal_id` bigint, PK `(principal_kind, principal_id)` |
 | `apAccessGrant` | `ap_access_grant` | `id` bigserial PK, `principal_kind`/`principal_id`, `scope` enum, `map_id` → ap_map **CASCADE** (NULL ⇔ instance scope, CHECK), `capability` enum (CHECK paired to scope), `expires_at`, `note`, `granted_by_character_id` → ap_character **SET NULL**, `granted_at`. UNIQUE **NULLS NOT DISTINCT** `(principal_kind, principal_id, scope, map_id, capability)` |

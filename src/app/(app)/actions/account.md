@@ -1,6 +1,6 @@
 ## account.ts
 
-**Purpose:** Account self-service Server Actions over `ap_user` (Stage 17.5) — set the main character and delete the account.
+**Purpose:** Account self-service Server Actions over `ap_user` (Stage 17.5) — set the main character, toggle preferences (travel animation, signature indicators), save the map layout, and delete the account.
 **File:** `src/app/(app)/actions/account.ts`
 
 ---
@@ -14,6 +14,11 @@ Sets `ap_user.main_character_id` to `targetCharacterId` for the current account.
 
 ### setConnectionTravelAnimationAction(enabled: boolean): Promise<AccountActionResult>
 Sets `ap_user.connection_travel_animation` for the current account. Revalidates the `/` layout so the toggle's initial state (threaded through the app layout) and any open map reflect the change. Always returns `{ ok: true }` — there is nothing to validate beyond the session.
+
+---
+
+### setSignatureIndicatorPrefsAction({ thresholdMinutes, showStale, showUnscanned }): Promise<AccountActionResult>
+Persists the account's stale/unscanned signature-indicator preferences to `ap_user`. `thresholdMinutes` is an optional stale-threshold override: `null` clears it (use the global default); a non-null value must be a positive integer and is **capped at the global default** (`getGlobalStaleThresholdMinutes`) — a value larger than the corp default is rejected with `{ ok: false, error }`, so a user can only make the indicator more eager, never ignore it. The two booleans toggle each indicator. Revalidates the `/` layout so an open map picks up the change. Personal — no per-map row.
 
 ---
 

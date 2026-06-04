@@ -5,7 +5,11 @@ import { eq } from 'drizzle-orm';
 import { db } from '@/db/client';
 import { apUser } from '@/db/schema';
 import { signOut } from '@/lib/auth';
-import { assertCharacterOwnership, requireSession } from '@/lib/session';
+import {
+  assertCharacterOwnership,
+  getGlobalStaleThresholdMinutes,
+  requireSession,
+} from '@/lib/session';
 import { mapLayoutConfigSchema } from '@/lib/map/layout/schema';
 
 // Account self-service (Stage 17.5). Low-frequency, user-initiated state changes
@@ -52,6 +56,46 @@ export async function setConnectionTravelAnimationAction(
   await db
     .update(apUser)
     .set({ connectionTravelAnimation: enabled, updatedAt: new Date() })
+    .where(eq(apUser.id, session.userId));
+  revalidatePath('/', 'layout');
+  return { ok: true };
+}
+
+/**
+ * Persist the account's stale/unscanned signature-indicator preferences: the two
+ * on/off toggles and an optional stale-threshold override. The override is capped
+ * at the global default (`ap_instance`) — a user may make the indicator *more*
+ * eager (a smaller value) but never larger, so they can't quietly ignore the corp
+ * default. `null` clears the override (use the global). Personal, so no per-map row.
+ */
+export async function setSignatureIndicatorPrefsAction(input: {
+  thresholdMinutes: number | null;
+  showStale: boolean;
+  showUnscanned: boolean;
+}): Promise<AccountActionResult> {
+  const session = await requireSession();
+
+  let override: number | null = null;
+  if (input.thresholdMinutes != null) {
+    const n = input.thresholdMinutes;
+    if (!Number.isInteger(n) || n < 1) {
+      return { ok: false, error: 'Threshold must be a positive whole number of minutes.' };
+    }
+    const global = await getGlobalStaleThresholdMinutes();
+    if (n > global) {
+      return { ok: false, error: `Threshold can be at most the corp default (${global} min).` };
+    }
+    override = n;
+  }
+
+  await db
+    .update(apUser)
+    .set({
+      staleSignatureThresholdMinutes: override,
+      showStaleSignatureIndicator: input.showStale,
+      showUnscannedSignatureIndicator: input.showUnscanned,
+      updatedAt: new Date(),
+    })
     .where(eq(apUser.id, session.userId));
   revalidatePath('/', 'layout');
   return { ok: true };

@@ -27,6 +27,7 @@ import type {
   MapSystemNode,
   MapViewData,
   PanelId,
+  SignatureIndicatorPrefs,
   StructureIntel,
 } from '@/types';
 import type { HubRoute } from '@/lib/map/route';
@@ -92,6 +93,7 @@ import { MapSettingsDialog } from '@/components/dialogs/MapSettingsDialog';
 import { AddSystemDialog } from './AddSystemDialog';
 import { ConnectionEdge, type ConnectionEdgeData } from './ConnectionEdge';
 import { MapPresenceProvider } from './MapPresenceContext';
+import { MapSignatureIndicatorProvider } from './MapSignatureIndicatorContext';
 import { SignaturePasteHotkey } from './SignaturePasteHotkey';
 import { TransitSignaturePrompt } from './TransitSignaturePrompt';
 import { MapTravelProvider, TravelBridge } from './MapTravelContext';
@@ -138,6 +140,7 @@ export function MapCanvas({
   structures: initialStructures,
   settings,
   travelAnimation,
+  signatureIndicators,
   canConfigureTagging,
   viewerCharacterIds,
   mapLayout,
@@ -149,6 +152,8 @@ export function MapCanvas({
   structures: Record<number, StructureIntel[]>;
   settings: MapSettings;
   travelAnimation: boolean;
+  /** Viewer's resolved stale/unscanned indicator prefs (threshold + toggles). */
+  signatureIndicators: SignatureIndicatorPrefs;
   /** Owner/admin gate (Stage 17.10): shows the Map Settings "Tagging" tab. */
   canConfigureTagging: boolean;
   /** Viewer's account character ids — matched against presence for the CTRL+V fast-paste location check. */
@@ -1165,6 +1170,10 @@ export function MapCanvas({
     <MapPresenceProvider initial={data.presence}>
       <MapTravelProvider>
         <MapUnderglowProvider>
+        <MapSignatureIndicatorProvider
+          signatures={viewData.signatures}
+          prefs={signatureIndicators}
+        >
         {travelAnimation && (
           <TravelBridge systems={viewData.systems} connections={viewData.connections} />
         )}
@@ -1261,6 +1270,7 @@ export function MapCanvas({
           existingSystemIds={existingSystemIds}
           onAdd={onAddSystem}
         />
+        </MapSignatureIndicatorProvider>
         </MapUnderglowProvider>
       </MapTravelProvider>
     </MapPresenceProvider>

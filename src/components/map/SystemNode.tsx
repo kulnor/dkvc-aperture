@@ -1,12 +1,16 @@
 'use client';
 
+import type { ReactNode } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { PreviewCard } from '@base-ui/react/preview-card';
-import { Home, Lock, Users } from 'lucide-react';
+import { Tooltip } from '@base-ui/react/tooltip';
+import { Clock, Home, Lock, Signal, Users } from 'lucide-react';
 import type { MapSystemNode } from '@/lib/map/loadMap';
+import { formatAgoFromMs } from '@/lib/map/relativeTime';
 import { homeAccentColor, systemClassColor, systemStatusColor } from './styling';
 import { InlineTextEdit } from './InlineTextEdit';
 import { usePresenceForSystem } from './MapPresenceContext';
+import { useSignatureIndicator } from './MapSignatureIndicatorContext';
 import { useUnderglowForSystem } from './MapUnderglowContext';
 import { SystemUnderglow } from './SystemUnderglow';
 
@@ -36,6 +40,7 @@ export function SystemNode({ data, selected }: NodeProps & { data: SystemNodeDat
   const onAliasOrTagCommit = data.onAliasOrTagCommit;
   const pilots = usePresenceForSystem(data.systemId);
   const glow = useUnderglowForSystem(data.id);
+  const sigIndicator = useSignatureIndicator(data.id, isWormhole);
 
   // Compose the box-shadow from the Home accent ring (inner) and the selection
   // halo, so a selected Home tile shows both. Empty → undefined so the Tailwind
@@ -65,6 +70,11 @@ export function SystemNode({ data, selected }: NodeProps & { data: SystemNodeDat
       title={`${data.regionName} › ${data.constellationName}`}
     >
       {glow && <SystemUnderglow key={glow.token} {...glow.config} />}
+      <SignatureIndicators
+        stale={sigIndicator.stale}
+        ageMs={sigIndicator.ageMs}
+        unscanned={sigIndicator.unscanned}
+      />
       <Handle type="source" position={Position.Top} style={{ opacity: 0.2 }} />
       <Handle type="source" position={Position.Right} style={{ opacity: 0.2 }} />
       <Handle type="source" position={Position.Bottom} style={{ opacity: 0.2 }} />
@@ -131,6 +141,91 @@ export function SystemNode({ data, selected }: NodeProps & { data: SystemNodeDat
         )}
       </div>
     </div>
+  );
+}
+
+/** "3h ago" → "3h" for the compact badge; sub-minute reads empty. */
+function compactAge(ms: number): string {
+  const label = formatAgoFromMs(ms);
+  return label === 'just now' ? '' : label.replace(' ago', '');
+}
+
+/**
+ * Stale (clock) and unscanned (signal) indicators, floating just off the
+ * top-right corner of the tile. `pointer-events-none` so they never swallow a
+ * node click; `nodrag nopan` keeps xyflow from panning if one is grabbed.
+ */
+function SignatureIndicators({
+  stale,
+  ageMs,
+  unscanned,
+}: {
+  stale: boolean;
+  ageMs: number | null;
+  unscanned: number;
+}) {
+  if (!stale && unscanned === 0) return null;
+  return (
+    // `pointer-events-none` on the wrapper keeps the gaps between pills from
+    // swallowing node clicks; each pill re-enables pointer events so its
+    // tooltip can open on hover/focus.
+    <div className="nodrag nopan pointer-events-none absolute -top-2 -right-2 flex items-center gap-1">
+      {stale && (
+        <IndicatorPill
+          className="text-amber-400 ring-amber-400/40"
+          label={
+            ageMs != null
+              ? `Signatures last updated ${formatAgoFromMs(ageMs)}`
+              : 'No signatures scanned'
+          }
+        >
+          <Clock className="size-2.5" aria-hidden />
+          {ageMs != null && compactAge(ageMs)}
+        </IndicatorPill>
+      )}
+      {unscanned > 0 && (
+        <IndicatorPill
+          className="text-sky-400 ring-sky-400/40"
+          label={`${unscanned} unscanned signature${unscanned === 1 ? '' : 's'}`}
+        >
+          <Signal className="size-2.5" aria-hidden />
+          {unscanned}
+        </IndicatorPill>
+      )}
+    </div>
+  );
+}
+
+/**
+ * One signature-indicator pill with a hover/focus tooltip explaining what it
+ * means. `pointer-events-auto` overrides the wrapper so the tooltip can open;
+ * `nodrag nopan` keeps the interaction from panning the canvas.
+ */
+function IndicatorPill({
+  label,
+  className,
+  children,
+}: {
+  label: string;
+  className: string;
+  children: ReactNode;
+}) {
+  return (
+    <Tooltip.Root>
+      <Tooltip.Trigger
+        render={<span />}
+        className={`nodrag nopan pointer-events-auto inline-flex items-center gap-0.5 rounded-full bg-card px-1 py-0.5 text-[9px] font-semibold leading-none shadow-sm ring-1 ${className}`}
+      >
+        {children}
+      </Tooltip.Trigger>
+      <Tooltip.Portal>
+        <Tooltip.Positioner sideOffset={4} side="top" align="center">
+          <Tooltip.Popup className="nodrag nopan z-50 rounded-md border bg-popover px-2 py-1 text-xs text-popover-foreground shadow-md">
+            {label}
+          </Tooltip.Popup>
+        </Tooltip.Positioner>
+      </Tooltip.Portal>
+    </Tooltip.Root>
   );
 }
 

@@ -26,6 +26,15 @@ The account's `ap_user.connection_travel_animation` toggle (defaults to `true` w
 ### getMapLayout(userId: number): Promise<MapLayoutConfig | null>
 The account's `ap_user.map_layout` — the free-form map dashboard arrangement (map-layout-builder), or `null` when unset (the client then falls back to `DEFAULT_MAP_LAYOUT`). One global layout per account, applied to every map. Loaded in `map/[[...slug]]/page.tsx` and passed to `MapCanvas`; written by `setMapLayoutAction` (`actions/account.ts`).
 
+### getGlobalStaleThresholdMinutes(): Promise<number>
+The instance-wide default stale-signature threshold (`ap_instance.stale_signature_threshold_minutes`), defaulting to 240 (4h) when the singleton row is somehow missing. The cap for per-account overrides.
+
+### getSignatureIndicatorPrefs(userId: number): Promise<SignatureIndicatorPrefs>
+The account's *resolved* signature-indicator prefs for client rendering: the effective `thresholdMinutes` (the `ap_user` override, capped to the global default — a defensive `Math.min` even though the write action already enforces it) plus `showStale` / `showUnscanned`. Loaded in `map/[[...slug]]/page.tsx`, passed to `MapCanvas` → `MapSignatureIndicatorContext`.
+
+### getSignatureIndicatorAccountSettings(userId: number): Promise<{ globalThresholdMinutes; userThresholdMinutes; showStale; showUnscanned }>
+Raw (un-resolved) values for the Account Settings dialog: the global cap, the account's own override (or `null`), and the two toggles. Written by `setSignatureIndicatorPrefsAction` (`actions/account.ts`).
+
 ### assertCharacterOwnership(characterId: bigint, userId: number): Promise<boolean>
 True iff the character belongs to `userId` **and** is `status='active'`. Single source of truth for the character-ownership authorization check; reused by `setCharacterTrackingAction` (and any future per-character account action).
 

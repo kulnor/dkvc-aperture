@@ -6,6 +6,7 @@ import {
   getActiveCharacter,
   getConnectionTravelAnimation,
   getMainCharacterId,
+  getSignatureIndicatorAccountSettings,
   requireSession,
 } from '@/lib/session';
 import { AppHeader } from '@/components/chrome/AppHeader';
@@ -20,6 +21,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   const characters = await getAccountCharacters(session.userId);
   const mainCharacterId = await getMainCharacterId(session.userId);
   const travelAnimation = await getConnectionTravelAnimation(session.userId);
+  const signatureIndicators = await getSignatureIndicatorAccountSettings(session.userId);
 
   return (
     <RealtimeProvider>
@@ -30,6 +32,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
           characters={characters}
           mainCharacterId={mainCharacterId}
           travelAnimation={travelAnimation}
+          signatureIndicators={signatureIndicators}
         />
         <main className="w-full flex-1 px-4 py-3">{children}</main>
         <AppFooter />

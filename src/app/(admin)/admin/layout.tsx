@@ -8,6 +8,7 @@ import {
   getActiveCharacter,
   getConnectionTravelAnimation,
   getMainCharacterId,
+  getSignatureIndicatorAccountSettings,
   requireSession,
 } from '@/lib/session';
 import { CharacterPanel } from '@/components/chrome/CharacterPanel';
@@ -22,6 +23,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   const characters = await getAccountCharacters(session.userId);
   const mainCharacterId = await getMainCharacterId(session.userId);
   const travelAnimation = await getConnectionTravelAnimation(session.userId);
+  const signatureIndicators = await getSignatureIndicatorAccountSettings(session.userId);
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -40,6 +42,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
             characters={characters}
             mainCharacterId={mainCharacterId}
             travelAnimation={travelAnimation}
+            signatureIndicators={signatureIndicators}
           />
         </div>
       </header>

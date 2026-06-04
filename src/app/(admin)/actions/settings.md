@@ -11,6 +11,9 @@ Inserts or updates one `(corp, right)` row. Primary key is `(corporation_id, rig
 ### adminDeleteCorpRight({ corporationId, right }): Promise<ActionResult>
 Deletes one row by `(corp, right)`. Idempotent — running against an already-absent row returns `{ ok: true }` (the matrix UI treats both as "none"). Revalidates `/admin/settings`.
 
+### adminSetStaleSignatureThreshold({ minutes }): Promise<ActionResult>
+Sets the instance-wide default stale-signature threshold (`ap_instance.stale_signature_threshold_minutes`). Zod-validates `minutes` as an integer in `[1, 10080]` (one week). Gated to **global admins only** via `isAdmin` (not `isManagerOrAdmin` — a corp-scoped manager must not move every deployment's default). Per-account overrides, capped at this value, live on `ap_user` (`setSignatureIndicatorPrefsAction`). Revalidates `/admin/settings`.
+
 ---
 
 ### Gating helper (internal)
@@ -19,8 +22,8 @@ Deletes one row by `(corp, right)`. Idempotent — running against an already-ab
 ---
 
 ### Depends on
-- `auth` / `isManagerOrAdmin` / `adminVisibilityScope` — `@/lib/auth/rights` (16.1).
-- `apCorporation`, `apCorporationRight`, `mapRight`, `authzLevel` — `@/db/schema`.
+- `auth` / `isAdmin` / `isManagerOrAdmin` / `adminVisibilityScope` — `@/lib/auth/rights` (16.1).
+- `apCorporation`, `apCorporationRight`, `apInstance`, `mapRight`, `authzLevel` — `@/db/schema`.
 
 ### Notes
 - No `ap_map_event` row is written. Corp-right config is not map state; `ap_map_event` is map-scoped. Audit gap is documented in the Stage 16 plan ("What is intentionally NOT in scope").

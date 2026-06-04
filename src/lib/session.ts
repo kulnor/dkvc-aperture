@@ -2,10 +2,14 @@ import 'server-only';
 import { redirect } from 'next/navigation';
 import { and, eq } from 'drizzle-orm';
 import type { Session } from 'next-auth';
-import type { MapLayoutConfig } from '@/types';
+import type {
+  MapLayoutConfig,
+  SignatureIndicatorAccountSettings,
+  SignatureIndicatorPrefs,
+} from '@/types';
 import { auth } from '@/lib/auth';
 import { db } from '@/db/client';
-import { apCharacter, apUser } from '@/db/schema';
+import { apCharacter, apInstance, apUser } from '@/db/schema';
 
 // Server-only account/session helpers. Everything map- and chrome-level reads
 // the active character and the account's character roster through here so the
@@ -101,6 +105,69 @@ export async function getMapLayout(userId: number): Promise<MapLayoutConfig | nu
     .from(apUser)
     .where(eq(apUser.id, userId));
   return row?.mapLayout ?? null;
+}
+
+const DEFAULT_STALE_THRESHOLD_MINUTES = 240;
+
+/** The instance-wide default stale-signature threshold (minutes). */
+export async function getGlobalStaleThresholdMinutes(): Promise<number> {
+  const [row] = await db
+    .select({ minutes: apInstance.staleSignatureThresholdMinutes })
+    .from(apInstance)
+    .where(eq(apInstance.id, 1));
+  return row?.minutes ?? DEFAULT_STALE_THRESHOLD_MINUTES;
+}
+
+/**
+ * The account's *resolved* signature-indicator preferences for client rendering:
+ * the effective threshold (user override already capped to the global default)
+ * plus the two on/off toggles. A missing override falls back to the global.
+ */
+export async function getSignatureIndicatorPrefs(
+  userId: number,
+): Promise<SignatureIndicatorPrefs> {
+  const [global, [user]] = await Promise.all([
+    getGlobalStaleThresholdMinutes(),
+    db
+      .select({
+        override: apUser.staleSignatureThresholdMinutes,
+        showStale: apUser.showStaleSignatureIndicator,
+        showUnscanned: apUser.showUnscannedSignatureIndicator,
+      })
+      .from(apUser)
+      .where(eq(apUser.id, userId)),
+  ]);
+  const override = user?.override ?? null;
+  // Defensive cap: the write action already enforces this, but never trust a row.
+  const thresholdMinutes = override != null ? Math.min(override, global) : global;
+  return {
+    thresholdMinutes,
+    showStale: user?.showStale ?? true,
+    showUnscanned: user?.showUnscanned ?? true,
+  };
+}
+
+/** Raw values for the Account Settings dialog (the global cap + the user's own). */
+export async function getSignatureIndicatorAccountSettings(
+  userId: number,
+): Promise<SignatureIndicatorAccountSettings> {
+  const [globalThresholdMinutes, [user]] = await Promise.all([
+    getGlobalStaleThresholdMinutes(),
+    db
+      .select({
+        override: apUser.staleSignatureThresholdMinutes,
+        showStale: apUser.showStaleSignatureIndicator,
+        showUnscanned: apUser.showUnscannedSignatureIndicator,
+      })
+      .from(apUser)
+      .where(eq(apUser.id, userId)),
+  ]);
+  return {
+    globalThresholdMinutes,
+    userThresholdMinutes: user?.override ?? null,
+    showStale: user?.showStale ?? true,
+    showUnscanned: user?.showUnscanned ?? true,
+  };
 }
 
 /**

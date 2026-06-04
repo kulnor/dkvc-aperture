@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import type { SignatureIndicatorAccountSettings } from '@/types';
 import pkg from '../../../package.json';
 import { fetchChangelogReleases, type ChangelogRelease } from '@/lib/integrations/github';
 import { CharacterPanel, type PanelCharacter } from './CharacterPanel';
@@ -11,11 +12,13 @@ export async function AppHeader({
   characters,
   mainCharacterId,
   travelAnimation,
+  signatureIndicators,
 }: {
   active: { id: string; name: string };
   characters: PanelCharacter[];
   mainCharacterId: string | null;
   travelAnimation: boolean;
+  signatureIndicators: SignatureIndicatorAccountSettings;
 }) {
   // A changelog fetch failure (GitHub down, rate limit) must never break the
   // header — the chip just renders without release notes.
@@ -43,6 +46,7 @@ export async function AppHeader({
             characters={characters}
             mainCharacterId={mainCharacterId}
             travelAnimation={travelAnimation}
+            signatureIndicators={signatureIndicators}
           />
         </div>
       </div>

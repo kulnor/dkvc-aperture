@@ -11,6 +11,7 @@
 | characters | `PanelCharacter[]` | yes | Account roster (incl. `authzLevel`), forwarded to the panel |
 | mainCharacterId | `string \| null` | yes | The account's main, forwarded to the panel |
 | travelAnimation | boolean | yes | The account's connection-travel-animation toggle, forwarded to the panel |
+| signatureIndicators | SignatureIndicatorAccountSettings | yes | The account's signature-indicator settings, forwarded to the panel |
 
 ### Renders
 A compact (`h-9`) full-width bordered header bar with no max-width cap: on the left, an "Aperture" link to `/maps` with the `VersionChip` immediately beside it (reads as "Aperture v1.0.0-…"); on the right, the `StatisticsButton` and `ReferenceMenu` info menu next to the `CharacterPanel`.
