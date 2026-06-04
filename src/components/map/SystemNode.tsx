@@ -98,7 +98,7 @@ export function SystemNode({ data, selected }: NodeProps & { data: SystemNodeDat
 
       <div className="flex items-center px-2 py-1">
         <span
-          className="rounded bg-muted px-0.5 font-mono text-[10px] leading-tight"
+          className="rounded bg-muted px-1 py-0.5 font-mono text-sm font-bold leading-none"
           style={{ color: systemClassColor(data.security) }}
         >
           {securityLabel(data)}
@@ -110,12 +110,12 @@ export function SystemNode({ data, selected }: NodeProps & { data: SystemNodeDat
             ariaLabel="Tag"
             maxLength={50}
             onCommit={(next) => onAliasOrTagCommit(data.id, 'tag', next)}
-            className="rounded bg-primary/15 px-0.5 text-[10px] font-mono leading-tight empty:hidden"
-            inputClassName="w-12"
+            className="rounded bg-primary/15 px-1 py-0.5 text-sm font-bold font-mono leading-none text-primary empty:hidden"
+            inputClassName="w-14"
           />
         ) : (
           data.tag && (
-            <span className="rounded bg-primary/15 px-1 text-[10px] font-medium text-primary">
+            <span className="rounded bg-primary/15 px-1 py-0.5 text-sm font-bold text-primary">
               {data.tag}
             </span>
           )
@@ -127,11 +127,13 @@ export function SystemNode({ data, selected }: NodeProps & { data: SystemNodeDat
             ariaLabel="Alias"
             maxLength={100}
             onCommit={(next) => onAliasOrTagCommit(data.id, 'alias', next)}
-            className="flex-1 truncate font-medium pl-1"
+            className="flex-1 truncate text-xs px-2 text-foreground"
             inputClassName="w-full"
           />
         ) : (
-          <span className="flex-1 truncate font-medium">{data.alias ?? data.name}</span>
+          <span className="flex-1 truncate text-xs text-foreground">
+            {data.alias ?? data.name}
+          </span>
         )}
         {pilots.length > 0 && <PresenceBadge pilots={pilots} />}
         {data.isHome && (
