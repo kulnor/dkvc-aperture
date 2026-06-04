@@ -98,6 +98,7 @@ import { MapUnderglowBridge } from './MapUnderglowBridge';
 import { SystemNode, type SystemNodeData } from './SystemNode';
 import { MapContextMenu } from './MapContextMenu';
 import { SubchainDeleteDialog } from './SubchainDeleteDialog';
+import { SubchainDeletePrompt } from './SubchainDeletePrompt';
 import { MapLayoutGrid } from './layout/MapLayoutGrid';
 import { MapPanel } from './layout/MapPanel';
 import { DEFAULT_MAP_LAYOUT, PANELS, ensurePanelsPlaced } from '@/lib/map/layout/panels';
@@ -174,6 +175,14 @@ export function MapCanvas({
     anchorId: string | null;
     headName: string;
     names: string[];
+  } | null>(null);
+  // Non-blocking "also delete the subchain?" prompt, offered after a wormhole
+  // sig with a populated "Leads to" is deleted. `null` ⇒ no prompt.
+  const [subchainSigPrompt, setSubchainSigPrompt] = useState<{
+    headId: string;
+    anchorId: string;
+    headName: string;
+    count: number;
   } | null>(null);
   const [mapInfoOpen, setMapInfoOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -678,11 +687,35 @@ export function MapCanvas({
 
   const onSignatureDelete = useCallback(
     (signatureId: string) => {
+      const sig = viewData.signatures.find((s) => s.id === signatureId);
       runOptimistic({ kind: 'signature.delete', eventId: 0, id: signatureId }, () =>
         deleteSignatureOnServer({ mapId, signatureId }),
       );
+      // If the sig resolved to a wormhole, offer to delete the subchain behind
+      // it. Head = the connection's far end; anchor mirrors the two context-menu
+      // paths (Home when set, else the sig's own system — always a neighbour of
+      // head). Bail quietly on any missing piece or an empty subchain.
+      if (!sig || sig.mapConnectionId == null) return;
+      const conn = viewData.connections.find((c) => c.id === sig.mapConnectionId);
+      if (!conn) return;
+      const headId = conn.source === sig.mapSystemId ? conn.target : conn.source;
+      const anchorId = viewData.map.homeMapSystemId ?? sig.mapSystemId;
+      const ids = computeSubchain({
+        systems: viewData.systems,
+        connections: viewData.connections,
+        headId,
+        anchorId,
+      });
+      if (ids.size === 0) return;
+      const head = viewData.systems.find((s) => s.id === headId);
+      setSubchainSigPrompt({
+        headId,
+        anchorId,
+        headName: head ? head.alias?.trim() || head.name : headId,
+        count: ids.size,
+      });
     },
-    [mapId, runOptimistic],
+    [mapId, runOptimistic, viewData],
   );
 
   // ---- Delete subchain ----------------------------------------------------
@@ -746,6 +779,18 @@ export function MapCanvas({
     if (result.ok) onBulkPaste(result.data.payloads);
     setSelectedSystemIds(new Set());
   }, [subchainPreview, mapId, onBulkPaste]);
+
+  const onConfirmSubchainSig = useCallback(async () => {
+    if (!subchainSigPrompt) return;
+    const { headId, anchorId } = subchainSigPrompt;
+    setSubchainSigPrompt(null);
+    const result = await deleteSubchainOnServer({
+      mapId,
+      headMapSystemId: headId,
+      anchorMapSystemId: anchorId,
+    });
+    if (result.ok) onBulkPaste(result.data.payloads);
+  }, [subchainSigPrompt, mapId, onBulkPaste]);
 
   const onMoveEnd = useCallback(
     (_: MouseEvent | TouchEvent | null, vp: Viewport) => {
@@ -925,6 +970,14 @@ export function MapCanvas({
               onPatchSignature={onSignaturePatch}
               onConnectionPatch={onConnectionPatch}
             />
+            {subchainSigPrompt && (
+              <SubchainDeletePrompt
+                headName={subchainSigPrompt.headName}
+                count={subchainSigPrompt.count}
+                onConfirm={onConfirmSubchainSig}
+                onDismiss={() => setSubchainSigPrompt(null)}
+              />
+            )}
             <ReactFlow
               nodes={nodes}
               edges={edges}

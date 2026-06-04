@@ -62,10 +62,11 @@ A free-form dashboard (the page scrolls). A full-width toolbar row sits above a 
 - Inside that, wraps the subtree in `MapUnderglowProvider` (`MapUnderglowContext`) so each `SystemNode` can read its own underglow slice, and always mounts `MapUnderglowBridge` (passing `viewData.systems`) which turns incoming `systemNotification` realtime events (Stage 17.8 zKB kills) into a per-node glow pulse.
 - Mounts `SignaturePasteHotkey` (inside `MapPresenceProvider`, so it can read live presence) — the CTRL+V fast-paste listener. On a scanner-data paste it applies add+update sigs straight to `selectedSystem` via `onBulkPaste`, gating behind a mismatch confirm when none of `viewerCharacterIds` are located in the selected system.
 - Mounts `TransitSignaturePrompt` inside the canvas wrapper (sibling of the "Remove N" button). It watches `useTraversals` for the viewer's own pilots (`viewerCharacterIds`); when one transits a non-gated hole it offers the source system's matching wormhole sigs (top-left overlay) and, on click, populates that sig's "Leads to" via `onSignaturePatch`. Silent for gate jumps, filaments, and unscanned sources.
+- `onSignatureDelete(signatureId)` fires the optimistic sig delete, then — if the sig had a populated "Leads to" (`mapConnectionId`) — computes the subchain behind that hole (head = the connection's far end; anchor = Home if set, else the sig's own system) and, when non-empty, opens the non-blocking `SubchainDeletePrompt` (bottom-left overlay). Confirm runs `deleteSubchainOnServer` + `onBulkPaste` via `onConfirmSubchainSig`; it deliberately does **not** highlight the doomed set (that would surface the "Remove N" button).
 - Threads `viewData.connections` and `viewData.systems` into `SignatureModule` so its `ConnectionSelect` can list connections incident to the active system without an API call. Also passes `onConnectionPatch` so the module can auto-set a linked connection's jump-mass size when a WH sig's type + leads-to are both known.
 
 ### Depends On
-- `@xyflow/react`, `./SystemNode`, `./ConnectionEdge`, `./MapContextMenu`, `./SubchainDeleteDialog`, `./MapPresenceContext`, `./MapTravelContext`, `./MapUnderglowContext`, `./MapUnderglowBridge`, `./SignaturePasteHotkey`, `./TransitSignaturePrompt`
+- `@xyflow/react`, `./SystemNode`, `./ConnectionEdge`, `./MapContextMenu`, `./SubchainDeleteDialog`, `./SubchainDeletePrompt`, `./MapPresenceContext`, `./MapTravelContext`, `./MapUnderglowContext`, `./MapUnderglowBridge`, `./SignaturePasteHotkey`, `./TransitSignaturePrompt`
 - `./layout/MapLayoutGrid` (`MapLayoutGrid`), `./layout/MapPanel` (`MapPanel`) — the free-form grid + per-panel chrome.
 - `@/lib/map/layout/panels` — `PANELS` (registry), `DEFAULT_MAP_LAYOUT` (fallback arrangement), `ensurePanelsPlaced` (forward-compat auto-place of newly shipped panels when seeding layout state).
 - `setMapLayoutAction` (`@/app/(app)/actions/account`) — debounced persistence of the layout.
@@ -87,6 +88,7 @@ A free-form dashboard (the page scrolls). A full-width toolbar row sits above a 
 - `selectedSystemIds: Set<string>` — the multi-select group (always replaced, never mutated). `size <= 1` is the legacy single-select regime. Drives each node's `selected` flag and the floating "Remove N" button.
 - `contextMenu: MapContextMenuTarget | null` — the active right-click target (kind + id + cursor x/y); `null` ⇒ no menu open. Independent of `selected`/`selectedSystemIds`.
 - `subchainPreview: { headId, anchorId, headName, names } | null` — the pending delete-subchain confirmation (drives `SubchainDeleteDialog`); the doomed systems are simultaneously highlighted via `selectedSystemIds`. `null` ⇒ no dialog.
+- `subchainSigPrompt: { headId, anchorId, headName, count } | null` — the pending non-blocking "also delete the subchain?" offer raised after deleting a "Leads to" wormhole sig (drives `SubchainDeletePrompt`). No canvas highlight. `null` ⇒ no prompt.
 - `mapInfoOpen: boolean` — whether the `MapInfoDialog` is open.
 - `settingsOpen: boolean` — whether the `MapSettingsDialog` is open.
 - `addSystemOpen: boolean` — whether the `AddSystemDialog` is open.
