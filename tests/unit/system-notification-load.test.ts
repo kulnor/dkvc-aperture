@@ -30,6 +30,15 @@ describe('systemNotificationLoadSchema', () => {
     expect(result.success).toBe(true);
   });
 
+  it('parses a ping notification (no extra body)', () => {
+    const result = systemNotificationLoadSchema.safeParse({
+      mapId: 42,
+      systemId: 31000005,
+      kind: 'ping',
+    });
+    expect(result.success).toBe(true);
+  });
+
   it('rejects an unknown kind', () => {
     const result = systemNotificationLoadSchema.safeParse({
       mapId: 42,

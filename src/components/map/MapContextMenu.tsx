@@ -2,7 +2,7 @@
 
 import { Menu as MenuPrimitive } from '@base-ui/react/menu';
 import { ContextMenu } from '@base-ui/react/context-menu';
-import { Plus, Scissors, Trash2, Unlink } from 'lucide-react';
+import { Plus, Radar, Scissors, Trash2, Unlink } from 'lucide-react';
 
 import type { MapContextMenuTarget, MapSystemNode, MapConnectionEdge } from '@/types';
 import type { UpdateSystemBody, UpdateConnectionBody } from '@/lib/map/client';
@@ -62,6 +62,7 @@ export function MapContextMenu({
   onDeleteSubchain,
   onDeleteSubchainPick,
   onDeleteDisconnected,
+  onPingSystem,
 }: {
   target: MapContextMenuTarget | null;
   onClose: () => void;
@@ -80,6 +81,8 @@ export function MapContextMenu({
   onDeleteSubchainPick: (headId: string, anchorId: string) => void;
   /** Pane action: delete every system disconnected from the Home. */
   onDeleteDisconnected: () => void;
+  /** Broadcast a transient attention "ping" pulse on this system to all viewers. */
+  onPingSystem: (id: string) => void;
 }) {
   // A zero-size virtual element at the cursor point; recreated per render so the
   // rect tracks the current target's coordinates.
@@ -141,6 +144,7 @@ export function MapContextMenu({
               onDeleteSubchain,
               onDeleteSubchainPick,
               onDeleteDisconnected,
+              onPingSystem,
             })}
           </MenuPrimitive.Popup>
         </MenuPrimitive.Positioner>
@@ -163,6 +167,7 @@ function renderItems({
   onDeleteSubchain,
   onDeleteSubchainPick,
   onDeleteDisconnected,
+  onPingSystem,
 }: {
   target: MapContextMenuTarget | null;
   onClose: () => void;
@@ -177,6 +182,7 @@ function renderItems({
   onDeleteSubchain: (headId: string) => void;
   onDeleteSubchainPick: (headId: string, anchorId: string) => void;
   onDeleteDisconnected: () => void;
+  onPingSystem: (id: string) => void;
 }) {
   if (!target) return null;
 
@@ -205,6 +211,10 @@ function renderItems({
           }}
           onDeleteSubchainPick={(anchorId) => {
             onDeleteSubchainPick(system.id, anchorId);
+            onClose();
+          }}
+          onPing={() => {
+            onPingSystem(system.id);
             onClose();
           }}
         />
@@ -273,6 +283,7 @@ function SystemItems({
   onRemove,
   onDeleteSubchain,
   onDeleteSubchainPick,
+  onPing,
 }: {
   system: MapSystemNode;
   systems: MapSystemNode[];
@@ -285,9 +296,14 @@ function SystemItems({
   onRemove: () => void;
   onDeleteSubchain: () => void;
   onDeleteSubchainPick: (anchorId: string) => void;
+  onPing: () => void;
 }) {
   return (
     <>
+      <MenuItem icon={<Radar className="size-3.5" />} onClick={onPing}>
+        Ping
+      </MenuItem>
+
       <MenuSubmenu>
         <MenuSubmenuTrigger inset>Status</MenuSubmenuTrigger>
         <MenuSubmenuContent>

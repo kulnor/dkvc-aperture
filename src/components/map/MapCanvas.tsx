@@ -48,6 +48,7 @@ import {
   deleteDisconnectedOnServer,
   deleteSignatureOnServer,
   deleteSubchainOnServer,
+  pingSystemOnServer,
   removeSystemOnServer,
   updateConnectionOnServer,
   updateSignatureOnServer,
@@ -821,6 +822,15 @@ export function MapCanvas({
     setSelectedSystemIds(new Set());
   }, [disconnectedPreview, mapId, onBulkPaste]);
 
+  // Ping: fire-and-forget broadcast. No optimistic apply — the underglow arrives
+  // over realtime for everyone (this client included) via `MapUnderglowBridge`.
+  const onPingSystem = useCallback(
+    (mapSystemId: string) => {
+      void pingSystemOnServer({ mapId, mapSystemId });
+    },
+    [mapId],
+  );
+
   const onMoveEnd = useCallback(
     (_: MouseEvent | TouchEvent | null, vp: Viewport) => {
       localStorage.setItem(`aperture:map:${mapId}:viewport`, JSON.stringify(vp));
@@ -1079,6 +1089,7 @@ export function MapCanvas({
               onDeleteSubchain={onDeleteSubchain}
               onDeleteSubchainPick={onDeleteSubchainPick}
               onDeleteDisconnected={onDeleteDisconnected}
+              onPingSystem={onPingSystem}
             />
           </div>
         );

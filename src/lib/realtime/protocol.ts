@@ -349,20 +349,34 @@ export type CharacterUpdateLoad = z.infer<typeof characterUpdateLoadSchema>;
  *
  * `kind` selects the notification flavour; the client owns the visual treatment
  * (`underglowPresets.ts`) so the wire stays lean. `systemId` is the EVE
- * solar-system id; the client resolves it to the on-screen node. Today the only
- * kind is `killmail`; the enum widens as new server notifications are added.
+ * solar-system id; the client resolves it to the on-screen node.
+ *
+ * Two kinds today, discriminated by `kind`:
+ * - `killmail` — server-observed (zKB feed), carries the kill detail.
+ * - `ping` — user-initiated attention pulse. The client POSTs `/api/map/[mapId]/ping`
+ *   (`src/lib/map/ping.ts`), which fans this out; it carries no extra body — the
+ *   look is the client's `ping` underglow preset. The initiator receives its own
+ *   ping echo (it's subscribed to the same channel), so every viewer pulses
+ *   identically via `MapUnderglowBridge`.
  */
-export const systemNotificationLoadSchema = z.object({
-  mapId: z.number().int().positive(),
-  systemId: z.number().int(),
-  kind: z.enum(['killmail']),
-  killmail: z.object({
-    killmailId: z.number().int(),
-    shipTypeId: z.number().int().nullable(),
-    totalValue: z.number().nullable(),
-    href: z.string(),
+export const systemNotificationLoadSchema = z.discriminatedUnion('kind', [
+  z.object({
+    mapId: z.number().int().positive(),
+    systemId: z.number().int(),
+    kind: z.literal('killmail'),
+    killmail: z.object({
+      killmailId: z.number().int(),
+      shipTypeId: z.number().int().nullable(),
+      totalValue: z.number().nullable(),
+      href: z.string(),
+    }),
   }),
-});
+  z.object({
+    mapId: z.number().int().positive(),
+    systemId: z.number().int(),
+    kind: z.literal('ping'),
+  }),
+]);
 
 export type SystemNotificationLoad = z.infer<typeof systemNotificationLoadSchema>;
 

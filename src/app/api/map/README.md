@@ -32,9 +32,14 @@ Every route in this tree obeys these invariants:
 | DELETE | `/api/map/[mapId]/signatures/[sigId]` | `deleteSignature` | `signature.delete` |
 | GET | `/api/map/[mapId]/wormhole-types?systemId=` | `wormholeTypesForSystem` | (read-only) |
 | GET | `/api/map/[mapId]/system-search?q=` | `searchSystems` | (read-only) |
+| POST | `/api/map/[mapId]/ping` | `pingSystem` | (transient broadcast — see below) |
 
 `[systemId]` = `ap_map_system.id` (the xyflow node id, not the EVE solar-system id).  
 `[sigId]` = `ap_map_signature.id` (the DB row id, not the in-game 3-char sig code).
+
+## Exception: transient broadcast routes (no `ap_map_event`)
+
+`POST /api/map/[mapId]/ping` is **not** a mutation and intentionally breaks invariant #1: it writes no row and emits no `ap_map_event`. A ping is a transient attention signal (a user drawing eyes to a system), so — like the server-observed `systemNotification` (zKB) and `connectionMassLog` events — it fans out with a direct `pg_notify` under the `systemNotification` task (kind `ping`) in `src/lib/map/ping.ts`. It still runs the session + access guard (`requireMapView` — the lowest bar, since it mutates nothing; tighten to `map_update` if a deployment needs to) and returns the minimal `{ ok }` shape rather than `{ ok, data, eventId }`. The initiator receives its own ping echo over realtime, so every viewer pulses identically via `MapUnderglowBridge`.
 
 ## Realtime propagation
 

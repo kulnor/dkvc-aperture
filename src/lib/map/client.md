@@ -48,6 +48,9 @@ POST `/api/map/{mapId}/subchain`. Delete a head system and everything orphaned f
 ### deleteDisconnectedOnServer({ mapId }): Promise<ActionResult<SubchainDeleteResult>>
 POST `/api/map/{mapId}/disconnected` (no body). Delete every visible system with no path back to the map's Home; the server recomputes the set authoritatively. Returns the same `{ summary, payloads }` shape as `deleteSubchainOnServer`. Used by `MapCanvas`'s delete-disconnected handler.
 
+### pingSystemOnServer({ mapId, mapSystemId }): Promise<{ ok: true } | { ok: false; error }>
+POST `/api/map/{mapId}/ping`. Broadcast a transient attention "ping" pulse on a system to every map viewer. **Not a mutation** — no `ap_map_event`, no `eventId`, no optimistic apply (returns the minimal `{ ok }` union via `requestJson`, not `ActionResult`). The server fans a `systemNotification` (kind `ping`); the initiator gets its own echo, so the underglow renders for everyone via `MapUnderglowBridge`. Wired to the system context menu's `Ping` item by `MapCanvas`.
+
 ### createSignatureOnServer({ mapId, body }) / updateSignatureOnServer({ mapId, signatureId, patch }) / deleteSignatureOnServer({ mapId, signatureId })
 POST / PATCH / DELETE on `/api/map/{mapId}/signatures[/{sigId}]`. Create awaits; update/delete are optimistic.
 

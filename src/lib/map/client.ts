@@ -259,6 +259,26 @@ export function deleteDisconnectedOnServer(args: {
 }
 
 // ---------------------------------------------------------------------------
+// System ping (transient attention pulse — not a mutation)
+// ---------------------------------------------------------------------------
+
+/**
+ * Ping a system: broadcast a short attention pulse to every client viewing the
+ * map. Not a mutation — no `ap_map_event`, no optimistic apply, no `eventId`.
+ * The server fans a `systemNotification` (kind `ping`) that the initiator also
+ * receives, so the underglow appears identically for everyone via
+ * `MapUnderglowBridge`. Errors toast through `requestJson`.
+ */
+export function pingSystemOnServer(args: {
+  mapId: string;
+  mapSystemId: string;
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+  return requestJson<{ ok: true }>('POST', `/api/map/${args.mapId}/ping`, {
+    mapSystemId: args.mapSystemId,
+  });
+}
+
+// ---------------------------------------------------------------------------
 // Signature mutations
 // ---------------------------------------------------------------------------
 
