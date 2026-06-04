@@ -18,8 +18,11 @@ Pinned build: **`SDE_BUILD = 3351823`** (released 2026-05-19), YAML variant. Sou
 | `mapSolarSystems.yaml` | `universe_system` | `security` via `deriveSecurityLabel`; `trueSec` = rounded status; `effect` from `SYSTEM_EFFECT_BY_ID` (vendored, not in SDE) |
 | `mapStargates.yaml` | `universe_stargate_edge` | edge `(solarSystemID → destination.solarSystemID)`, deduped, skips edges whose endpoint system is absent |
 | `scripts/data/system-static.csv` | `universe_system_static` | vendored community data (WH statics not in SDE); skipped with a warning if absent |
-| `scripts/data/wormhole-overrides.csv` | `universe_type_override` | `Id;Name;scanWormholeStrength`; resolves WH code → typeId, writes attr `3974` with `reason='esi-missing-3974'` |
-| `scripts/data/wormhole-classes.csv` | `universe_wormhole` | `code;sourceClass;targetClass` (anoik.is /wormholes); resolves WH code → typeId; empty class cell → null (K162 = any); skipped with a warning if absent |
+| `scripts/data/wormhole-overrides.csv` | `universe_type_override` | `Id;Name;scanWormholeStrength`; resolves WH code → typeId, writes attr `3974` with `reason='esi-missing-3974'`. Reseeds authoritatively (delete-by-reason then insert). |
+| `scripts/data/wormhole-classes.csv` | `universe_wormhole` | `code;sourceClass;targetClass` (anoik.is /wormholes); resolves WH code → typeId; empty class cell → null (K162 = any); skipped with a warning if absent. Reseeds authoritatively (full delete then insert). |
+
+### Wormhole code → typeId disambiguation
+The SDE ships duplicate `Wormhole <CODE>` types under group `988` (e.g. two "Wormhole J244", ids `30667` & `73748` — dogma-identical, both unpublished; ESI returns both and won't pick one). Because the catalog/override CSVs key on the WH code, a naive last-write-wins map can bind routing/overrides to a type id that **no `universe_system_static` row uses** — the static then silently drops from the UI (its `universe_wormhole` join finds nothing). `buildWormholeCodeToTypeId(entries, staticTypeIds)` resolves each collision toward the id present in `system-static.csv` (`readStaticTypeIds()`), and warns only if both colliding ids are referenced by statics.
 
 ---
 

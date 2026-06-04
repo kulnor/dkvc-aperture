@@ -5,7 +5,7 @@ import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import AdmZip from 'adm-zip';
 import { parse as parseCsv } from 'csv-parse/sync';
-import { sql, type SQL } from 'drizzle-orm';
+import { eq, sql, type SQL } from 'drizzle-orm';
 import type { PgTable } from 'drizzle-orm/pg-core';
 import { parse as parseYaml } from 'yaml';
 import { db } from '@/db/client';
@@ -184,21 +184,75 @@ async function ingestDogmaAttributes(zip: AdmZip): Promise<Set<number>> {
   return new Set(rows.map((r) => r.id));
 }
 
-/** Returns the set of ingested type ids and a wormhole-code → type id map. */
+/** Type ids referenced by system-static.csv — the actual static spawns. */
+async function readStaticTypeIds(): Promise<Set<number>> {
+  const path = join(DATA_DIR, 'system-static.csv');
+  const ids = new Set<number>();
+  if (!(await fileExists(path))) return ids;
+  const text = await readFile(path, 'utf-8');
+  const records = parseCsv(text, {
+    columns: true,
+    delimiter: ';',
+    skip_empty_lines: true,
+    trim: true,
+  }) as Record<string, string>[];
+  for (const r of records) {
+    const typeId = Number(r.typeID ?? r.type_id ?? r.typeId);
+    if (Number.isFinite(typeId)) ids.add(typeId);
+  }
+  return ids;
+}
+
+/**
+ * Build a WH-code → typeId map from `(code, typeId)` pairs. The SDE ships duplicate
+ * `Wormhole <CODE>` types in group 988 (e.g. two "Wormhole J244", ids 30667 & 73748,
+ * dogma-identical and both unpublished — ESI won't disambiguate them either). The
+ * vendored catalog/override CSVs key on the code, so a collision MUST resolve to the
+ * same typeId the statics use: otherwise the routing/override binds to an id no
+ * `universe_system_static` row references and the static silently drops from the UI.
+ * Prefer the id present in system-static.csv; warn only if both collide there.
+ */
+function buildWormholeCodeToTypeId(
+  entries: { code: string; typeId: number }[],
+  staticTypeIds: Set<number>,
+): Map<string, number> {
+  const map = new Map<string, number>();
+  for (const { code, typeId } of entries) {
+    const key = code.toUpperCase();
+    const existing = map.get(key);
+    if (existing == null || existing === typeId) {
+      map.set(key, typeId);
+      continue;
+    }
+    const existingStatic = staticTypeIds.has(existing);
+    const candidateStatic = staticTypeIds.has(typeId);
+    if (candidateStatic && existingStatic) {
+      console.warn(
+        `  WH code ${key}: duplicate types ${existing} & ${typeId} are both referenced by statics — keeping ${existing}.`,
+      );
+    } else if (candidateStatic && !existingStatic) {
+      map.set(key, typeId);
+    }
+    // else: keep existing — it is the static id, or neither id is (harmless, unused).
+  }
+  return map;
+}
+
+/** Returns the set of ingested type ids and the group-988 wormhole-code pairs. */
 async function ingestTypes(zip: AdmZip): Promise<{
   typeIds: Set<number>;
-  wormholeCodeToTypeId: Map<string, number>;
+  wormholeCodeEntries: { code: string; typeId: number }[];
 }> {
   const data = readYaml(zip, 'types.yaml');
   const typeIds = new Set<number>();
-  const wormholeCodeToTypeId = new Map<string, number>();
+  const wormholeCodeEntries: { code: string; typeId: number }[] = [];
   const rows = Object.entries(data).map(([id, t]) => {
     const numId = Number(id);
     typeIds.add(numId);
     const name = en(t.name as Loc) ?? '';
     if (t.groupID === WORMHOLE_GROUP_ID) {
       const code = name.split(' ').pop();
-      if (code) wormholeCodeToTypeId.set(code.toUpperCase(), numId);
+      if (code) wormholeCodeEntries.push({ code, typeId: numId });
     }
     return {
       id: numId,
@@ -238,7 +292,7 @@ async function ingestTypes(zip: AdmZip): Promise<{
         ]),
       });
   }
-  return { typeIds, wormholeCodeToTypeId };
+  return { typeIds, wormholeCodeEntries };
 }
 
 async function ingestTypeAttributes(zip: AdmZip, typeIds: Set<number>, attrIds: Set<number>) {
@@ -446,6 +500,9 @@ async function ingestTypeOverrides(wormholeCodeToTypeId: Map<string, number>) {
     if (typeId == null) continue;
     rows.push({ typeId, attrId: DOGMA_ATTR_SCAN_WORMHOLE_STRENGTH, value, reason: OVERRIDE_REASON });
   }
+  // Reseed authoritatively so a re-run after a code→typeId remap drops overrides
+  // left on a now-unused duplicate type id.
+  await db.delete(universeTypeOverride).where(eq(universeTypeOverride.reason, OVERRIDE_REASON));
   for (const c of chunk(rows)) {
     await db
       .insert(universeTypeOverride)
@@ -490,6 +547,9 @@ async function ingestWormholeCatalog(wormholeCodeToTypeId: Map<string, number>) 
       targetClass: r.targetClass ? r.targetClass : null,
     });
   }
+  // Reseed authoritatively (table is fully derived from this CSV) so a re-run after
+  // a code→typeId remap drops catalog rows left on a now-unused duplicate type id.
+  await db.delete(universeWormhole);
   for (const c of chunk(rows)) {
     await db
       .insert(universeWormhole)
@@ -520,13 +580,17 @@ export async function runCsvIngest(): Promise<IngestResult> {
     .select({ id: universeType.id, groupId: universeType.groupId, name: universeType.name })
     .from(universeType);
   const typeIds = new Set(typeRows.map((r) => r.id));
-  const wormholeCodeToTypeId = new Map<string, number>();
+  const wormholeCodeEntries: { code: string; typeId: number }[] = [];
   for (const r of typeRows) {
     if (r.groupId === WORMHOLE_GROUP_ID) {
       const code = r.name?.split(' ').pop();
-      if (code) wormholeCodeToTypeId.set(code.toUpperCase(), r.id);
+      if (code) wormholeCodeEntries.push({ code, typeId: r.id });
     }
   }
+  const wormholeCodeToTypeId = buildWormholeCodeToTypeId(
+    wormholeCodeEntries,
+    await readStaticTypeIds(),
+  );
 
   const counts: Record<string, number> = {};
   console.log('Ingesting vendored CSVs (system statics, overrides, wormhole catalog) ...');
@@ -554,9 +618,13 @@ export async function runIngest(): Promise<IngestResult> {
   counts.dogmaAttributes = attrIds.size;
 
   console.log('Ingesting types + type attributes ...');
-  const { typeIds, wormholeCodeToTypeId } = await ingestTypes(zip);
+  const { typeIds, wormholeCodeEntries } = await ingestTypes(zip);
   counts.types = typeIds.size;
   counts.typeAttributes = await ingestTypeAttributes(zip, typeIds, attrIds);
+  const wormholeCodeToTypeId = buildWormholeCodeToTypeId(
+    wormholeCodeEntries,
+    await readStaticTypeIds(),
+  );
 
   console.log('Ingesting regions, constellations, systems ...');
   counts.regions = await ingestRegions(zip);
