@@ -27,6 +27,15 @@ import { fetchWormholeTypes } from '@/lib/map/client';
 import { formatAgoFromMs, formatRelativeFromMs } from '@/lib/map/relativeTime';
 import { apertureConfig } from '../../../aperture.config';
 
+/**
+ * Recolors the cell's control border to `destructive` so an unfilled required
+ * field (group / type / leads-to) reads red at a glance — the Pathfinder cue
+ * for a not-yet-fully-scanned sig. Applied to the `<td>`; targets the inner
+ * select trigger or text input by their `data-slot`.
+ */
+const MISSING_CELL =
+  '[&_[data-slot=select-trigger]]:border-destructive [&_[data-slot=input]]:border-destructive';
+
 function defaultExpiry(): string {
   return new Date(Date.now() + apertureConfig.SIGNATURE_DEFAULT_TTL_MS).toISOString();
 }
@@ -313,10 +322,19 @@ function SignaturePanelBody({
                 </td>
               </tr>
             )}
-            {rows.map((sig) => (
+            {rows.map((sig) => {
+              // Fully scanned = sig + group + type (+ "leads to" for wormholes).
+              // Flag each still-empty required cell so it reads red on its own.
+              const groupMissing = sig.groupKey === null;
+              const typeMissing =
+                sig.groupKey !== null &&
+                (sig.groupKey === 'wormhole' ? sig.typeId === null : !sig.name);
+              const leadsToMissing =
+                sig.groupKey === 'wormhole' && sig.mapConnectionId === null;
+              return (
               <tr key={sig.id} className="border-t border-foreground/10 align-middle">
                 <td className="px-2 py-1 font-mono text-xs">{sig.sigId}</td>
-                <td className="px-1 py-0.5">
+                <td className={`px-1 py-0.5${groupMissing ? ` ${MISSING_CELL}` : ''}`}>
                   <SignatureGroupSelect
                     value={sig.groupKey}
                     onValueChange={(nextKey) => {
@@ -325,7 +343,7 @@ function SignaturePanelBody({
                     }}
                   />
                 </td>
-                <td className="px-1 py-0.5">
+                <td className={`px-1 py-0.5${typeMissing ? ` ${MISSING_CELL}` : ''}`}>
                   <TypeCell
                     mapId={mapId}
                     system={system}
@@ -342,7 +360,7 @@ function SignaturePanelBody({
                     placeholder="—"
                   />
                 </td>
-                <td className="px-1 py-0.5">
+                <td className={`px-1 py-0.5${leadsToMissing ? ` ${MISSING_CELL}` : ''}`}>
                   <ConnectionSelect
                     system={system}
                     connections={connections}
@@ -380,7 +398,8 @@ function SignaturePanelBody({
                   </Button>
                 </td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       </div>
