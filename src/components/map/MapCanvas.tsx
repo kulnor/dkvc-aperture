@@ -97,7 +97,6 @@ import { MapUnderglowProvider } from './MapUnderglowContext';
 import { MapUnderglowBridge } from './MapUnderglowBridge';
 import { SystemNode, type SystemNodeData } from './SystemNode';
 import { MapContextMenu } from './MapContextMenu';
-import { SubchainDeleteDialog } from './SubchainDeleteDialog';
 import { SubchainDeletePrompt } from './SubchainDeletePrompt';
 import { MapLayoutGrid } from './layout/MapLayoutGrid';
 import { MapPanel } from './layout/MapPanel';
@@ -169,12 +168,12 @@ export function MapCanvas({
   // not change `selected`/`selectedSystemIds`). `null` ⇒ no menu open.
   const [contextMenu, setContextMenu] = useState<MapContextMenuTarget | null>(null);
   // Pending delete-subchain confirmation. The doomed systems are also highlighted
-  // via `selectedSystemIds` while this is open. `null` ⇒ no dialog.
+  // via `selectedSystemIds` while this is open. `null` ⇒ no prompt.
   const [subchainPreview, setSubchainPreview] = useState<{
     headId: string;
     anchorId: string | null;
     headName: string;
-    names: string[];
+    count: number;
   } | null>(null);
   // Non-blocking "also delete the subchain?" prompt, offered after a wormhole
   // sig with a populated "Leads to" is deleted. `null` ⇒ no prompt.
@@ -731,18 +730,14 @@ export function MapCanvas({
         anchorId,
       });
       if (ids.size === 0) return;
-      const byId = new Map(viewData.systems.map((s) => [s.id, s]));
-      const nameOf = (id: string) => {
-        const s = byId.get(id);
-        return s ? s.alias?.trim() || s.name : id;
-      };
+      const head = viewData.systems.find((s) => s.id === headId);
       setSelected(null);
       setSelectedSystemIds(new Set(ids));
       setSubchainPreview({
         headId,
         anchorId,
-        headName: nameOf(headId),
-        names: [...ids].map(nameOf).sort((a, b) => a.localeCompare(b)),
+        headName: head ? head.alias?.trim() || head.name : headId,
+        count: ids.size,
       });
     },
     [viewData],
@@ -950,7 +945,7 @@ export function MapCanvas({
             ref={flowWrapperRef}
             className="relative h-full overflow-hidden rounded-lg ring-1 ring-foreground/10"
           >
-            {selectedSystemIds.size > 1 && (
+            {selectedSystemIds.size > 1 && !subchainPreview && (
               <Button
                 variant="destructive"
                 size="sm"
@@ -976,6 +971,15 @@ export function MapCanvas({
                 count={subchainSigPrompt.count}
                 onConfirm={onConfirmSubchainSig}
                 onDismiss={() => setSubchainSigPrompt(null)}
+              />
+            )}
+            {subchainPreview && (
+              <SubchainDeletePrompt
+                lead="Delete subchain beyond"
+                headName={subchainPreview.headName}
+                count={subchainPreview.count}
+                onConfirm={onConfirmSubchain}
+                onDismiss={onCancelSubchain}
               />
             )}
             <ReactFlow
@@ -1032,13 +1036,6 @@ export function MapCanvas({
               onAddSystemAt={onAddSystemAt}
               onDeleteSubchain={onDeleteSubchain}
               onDeleteSubchainPick={onDeleteSubchainPick}
-            />
-            <SubchainDeleteDialog
-              open={subchainPreview !== null}
-              headName={subchainPreview?.headName ?? ''}
-              systemNames={subchainPreview?.names ?? []}
-              onConfirm={onConfirmSubchain}
-              onCancel={onCancelSubchain}
             />
           </div>
         );

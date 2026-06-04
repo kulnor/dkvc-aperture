@@ -6,18 +6,20 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 
 /**
- * Non-blocking "also delete the subchain?" overlay, offered after a wormhole
- * signature with a populated "Leads to" is deleted. Mirrors the dismissible
- * `Card` pattern of `TransitSignaturePrompt` rather than the blocking
- * `SubchainDeleteDialog` the context menu uses. Visibility is controlled by the
- * parent (rendered only when a prompt is pending). Pinned bottom-left to clear
- * the transit prompt (top-left) and the "Remove N" button (top-right).
+ * Non-blocking "delete the subchain?" overlay. Mirrors the dismissible `Card`
+ * pattern of `TransitSignaturePrompt` — the standard for map-related dialogs,
+ * so the rest of the UI stays interactive. Used for both the sig-delete offer
+ * ("Also delete the subchain beyond …?") and the context-menu confirm ("Delete
+ * subchain beyond …?", via the `lead` override). Visibility is controlled by
+ * the parent (rendered only when a prompt is pending). Pinned bottom-left to
+ * clear the transit prompt (top-left) and the "Remove N" button (top-right).
  */
 export function SubchainDeletePrompt({
   headName,
   count,
   onConfirm,
   onDismiss,
+  lead = 'Also delete the subchain beyond',
 }: {
   /** Display name of the head system (the far end of the deleted sig's hole). */
   headName: string;
@@ -25,13 +27,14 @@ export function SubchainDeletePrompt({
   count: number;
   onConfirm: () => void;
   onDismiss: () => void;
+  /** Leading question text before the head name. Defaults to the sig-delete offer. */
+  lead?: string;
 }) {
   return (
     <Card className="nodrag nopan absolute bottom-2 left-2 z-10 max-w-xs gap-2 p-3 text-sm shadow-lg">
       <div className="flex items-start justify-between gap-2">
         <span className="font-medium">
-          Also delete the subchain beyond{' '}
-          <span className="text-foreground">{headName}</span>?
+          {lead} <span className="text-foreground">{headName}</span>?
         </span>
         <Button
           type="button"
