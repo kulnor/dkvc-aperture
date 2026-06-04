@@ -1,7 +1,38 @@
 import 'server-only';
 import { and, eq, isNull, or } from 'drizzle-orm';
 import { db } from '@/db/client';
-import { universeSystem, universeSystemStatic, universeWormhole } from '@/db/schema';
+import {
+  universeDogmaAttribute,
+  universeSystem,
+  universeSystemStatic,
+  universeTypeAttributeEffective,
+  universeWormhole,
+  whJumpMass,
+} from '@/db/schema';
+
+type WhJumpMass = (typeof whJumpMass.enumValues)[number];
+
+/** Dogma attribute carrying a wormhole's per-jump max mass (kg). */
+const JUMP_MASS_ATTR_NAME = 'wormholeMaxJumpMass';
+
+/**
+ * Bucket a wormhole's `wormholeMaxJumpMass` (kg) into the four community size
+ * bands the connection editor uses. The thresholds sit in the wide gaps between
+ * EVE's discrete jump-mass values (5M / 62M / 300M·375M / 1B+), so they're
+ * robust to which exact value a given WH carries:
+ *   - `s`  frigate holes (5,000,000)
+ *   - `m`  no battleships (≤ 62,000,000)
+ *   - `l`  battleships (300,000,000 / 375,000,000) — e.g. O477
+ *   - `xl` capitals (≥ 1,000,000,000)
+ * Returns `null` when the type has no jump-mass dogma value (can't infer).
+ */
+export function jumpMassBand(kg: number | null): WhJumpMass | null {
+  if (kg == null) return null;
+  if (kg <= 5_000_000) return 's';
+  if (kg <= 100_000_000) return 'm';
+  if (kg < 1_000_000_000) return 'l';
+  return 'xl';
+}
 
 /**
  * Wormhole-catalog lookups for the two SPEC §6.4 product use-cases:
@@ -23,6 +54,8 @@ export type WormholeTypeOption = {
   sourceClass: string | null;
   /** Class it leads into; null = resolved from the far side. */
   targetClass: string | null;
+  /** Inferred per-jump size band from `wormholeMaxJumpMass`; null = unknown (e.g. K162). */
+  jumpMassClass: WhJumpMass | null;
 };
 
 export type StaticMatch = {
@@ -53,16 +86,49 @@ export async function wormholeTypesForSystem(systemId: number): Promise<Wormhole
           eq(universeWormhole.sourceClass, system.security),
         );
 
-  return db
+  // The jump-mass band is derived from the `wormholeMaxJumpMass` dogma value,
+  // read through the effective view (so any override is honoured). Resolve the
+  // attribute id by name — an SDE renumber must surface as a null band, not a
+  // silently wrong join.
+  const [jumpMassAttr] = await db
+    .select({ id: universeDogmaAttribute.id })
+    .from(universeDogmaAttribute)
+    .where(eq(universeDogmaAttribute.name, JUMP_MASS_ATTR_NAME));
+
+  if (!jumpMassAttr) {
+    const rows = await db
+      .select({
+        typeId: universeWormhole.typeId,
+        name: universeWormhole.name,
+        sourceClass: universeWormhole.sourceClass,
+        targetClass: universeWormhole.targetClass,
+      })
+      .from(universeWormhole)
+      .where(where)
+      .orderBy(universeWormhole.name);
+    return rows.map((r) => ({ ...r, jumpMassClass: null }));
+  }
+
+  const rows = await db
     .select({
       typeId: universeWormhole.typeId,
       name: universeWormhole.name,
       sourceClass: universeWormhole.sourceClass,
       targetClass: universeWormhole.targetClass,
+      jumpMass: universeTypeAttributeEffective.value,
     })
     .from(universeWormhole)
+    .leftJoin(
+      universeTypeAttributeEffective,
+      and(
+        eq(universeTypeAttributeEffective.typeId, universeWormhole.typeId),
+        eq(universeTypeAttributeEffective.attrId, jumpMassAttr.id),
+      ),
+    )
     .where(where)
     .orderBy(universeWormhole.name);
+
+  return rows.map(({ jumpMass, ...r }) => ({ ...r, jumpMassClass: jumpMassBand(jumpMass) }));
 }
 
 /**

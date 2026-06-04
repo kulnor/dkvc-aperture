@@ -6,6 +6,6 @@
 ### GET
 **Query params:** `systemId` — the EVE solar-system id (`universe_system.id`) to filter by.
 
-**Response:** `{ ok: true, data: WormholeTypeOption[] }` — each option carries `{ typeId, name, sourceClass, targetClass }`. Returns the universal `K162` (null source class) plus every type whose `source_class` matches the system's security label. An unrecognised `systemId` returns an empty array.
+**Response:** `{ ok: true, data: WormholeTypeOption[] }` — each option carries `{ typeId, name, sourceClass, targetClass, jumpMassClass }`. `jumpMassClass` is the `s`/`m`/`l`/`xl` band inferred from the type's `wormholeMaxJumpMass` dogma value (null when unknown, e.g. K162); the signature module uses it to auto-set a linked connection's size. Returns the universal `K162` (null source class) plus every type whose `source_class` matches the system's security label. An unrecognised `systemId` returns an empty array.
 
 **Responses:** 200 ok, 400 missing/invalid systemId, 401 unauthenticated, 404 map not found.

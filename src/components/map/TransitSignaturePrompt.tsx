@@ -4,7 +4,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { fetchWormholeTypes } from '@/lib/map/client';
+import { fetchWormholeTypes, type UpdateConnectionBody } from '@/lib/map/client';
+import type { WhJumpMass } from '@/lib/map/enumLabels';
 import type { MapConnectionEdge, MapSignature, MapSystemNode } from '@/types';
 import { useTraversals } from './MapPresenceContext';
 
@@ -63,6 +64,7 @@ export function TransitSignaturePrompt({
   signatures,
   viewerCharacterIds,
   onPatchSignature,
+  onConnectionPatch,
 }: {
   mapId: string;
   systems: MapSystemNode[];
@@ -70,9 +72,16 @@ export function TransitSignaturePrompt({
   signatures: MapSignature[];
   viewerCharacterIds: number[];
   onPatchSignature: (signatureId: string, patch: { mapConnectionId: string }) => void;
+  onConnectionPatch: (connectionId: string, patch: UpdateConnectionBody) => void;
 }) {
   const [prompt, setPrompt] = useState<Prompt | null>(null);
   const [targetClassByTypeId, setTargetClassByTypeId] = useState<Map<number, string | null>>(
+    () => new Map(),
+  );
+  // Parallel `type_id → inferred jump-mass band` map (server-derived from
+  // `wormholeMaxJumpMass`), used to auto-set the connection's size when the
+  // picked sig already carries a type.
+  const [jumpMassByTypeId, setJumpMassByTypeId] = useState<Map<number, WhJumpMass | null>>(
     () => new Map(),
   );
 
@@ -119,6 +128,7 @@ export function TransitSignaturePrompt({
     fetchWormholeTypes({ mapId, universeSystemId: prompt.sourceUniverseSystemId }).then((result) => {
       if (cancelled || !result.ok) return;
       setTargetClassByTypeId(new Map(result.data.map((o) => [o.typeId, o.targetClass])));
+      setJumpMassByTypeId(new Map(result.data.map((o) => [o.typeId, o.jumpMassClass])));
     });
     return () => {
       cancelled = true;
@@ -165,6 +175,10 @@ export function TransitSignaturePrompt({
             className="justify-between gap-3"
             onClick={() => {
               onPatchSignature(sig.id, { mapConnectionId: prompt.connectionId });
+              // Carry the sig type's inferred jump-mass band onto the connection
+              // (e.g. B274 → M); skip when the type is unset or can't be inferred.
+              const band = sig.typeId == null ? null : jumpMassByTypeId.get(sig.typeId) ?? null;
+              if (band != null) onConnectionPatch(prompt.connectionId, { jumpMassClass: band });
               dismiss();
             }}
           >

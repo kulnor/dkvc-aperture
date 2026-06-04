@@ -923,6 +923,7 @@ export function MapCanvas({
               signatures={viewData.signatures}
               viewerCharacterIds={viewerCharacterIds}
               onPatchSignature={onSignaturePatch}
+              onConnectionPatch={onConnectionPatch}
             />
             <ReactFlow
               nodes={nodes}
@@ -1000,6 +1001,7 @@ export function MapCanvas({
             onPatch={onSignaturePatch}
             onDelete={onSignatureDelete}
             onBulkPaste={onBulkPaste}
+            onConnectionPatch={onConnectionPatch}
           />
         );
       case 'inspector':

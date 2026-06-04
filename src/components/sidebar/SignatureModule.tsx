@@ -19,8 +19,10 @@ import type {
 } from '@/types';
 import type {
   CreateSignatureBody,
+  UpdateConnectionBody,
   UpdateSignatureBody,
 } from '@/lib/map/client';
+import type { WhJumpMass } from '@/lib/map/enumLabels';
 import { fetchWormholeTypes } from '@/lib/map/client';
 import { formatAgoFromMs, formatRelativeFromMs } from '@/lib/map/relativeTime';
 import { apertureConfig } from '../../../aperture.config';
@@ -41,23 +43,38 @@ function formatAgoIso(iso: string): string {
   return formatAgoFromMs(Date.now() - ts);
 }
 
+type WormholeTypeMeta = {
+  /** Destination class label (e.g. U210 → `LS`); null = resolved from far side. */
+  targetClass: string | null;
+  /** Inferred per-jump connection size band; null = can't infer (e.g. K162). */
+  jumpMassClass: WhJumpMass | null;
+};
+
 /**
- * Resolves `universe_wormhole.type_id` → destination class label (e.g. U210 →
- * `LS`) for the host system, so the "Leads to" dropdown can filter to
- * connections the selected WH type could actually open onto. Reads from the
- * same per-(mapId, systemId) cache `WormholeTypeSelect` populates, so this is
- * usually a free in-memory hit rather than a second network round-trip.
+ * Resolves `universe_wormhole.type_id` → its destination class and inferred
+ * jump-mass band for the host system. The target class filters the "Leads to"
+ * dropdown to connections the WH type could open onto; the jump-mass band drives
+ * the auto-set of a linked connection's size. Reads from the same
+ * per-(mapId, systemId) cache `WormholeTypeSelect` populates, so this is usually
+ * a free in-memory hit rather than a second network round-trip.
  */
-function useWormholeTargetClasses(
+function useWormholeTypeMeta(
   mapId: string,
   universeSystemId: number,
-): Map<number, string | null> {
-  const [byTypeId, setByTypeId] = useState<Map<number, string | null>>(new Map());
+): Map<number, WormholeTypeMeta> {
+  const [byTypeId, setByTypeId] = useState<Map<number, WormholeTypeMeta>>(new Map());
   useEffect(() => {
     let cancelled = false;
     fetchWormholeTypes({ mapId, universeSystemId }).then((result) => {
       if (cancelled || !result.ok) return;
-      setByTypeId(new Map(result.data.map((o) => [o.typeId, o.targetClass])));
+      setByTypeId(
+        new Map(
+          result.data.map((o) => [
+            o.typeId,
+            { targetClass: o.targetClass, jumpMassClass: o.jumpMassClass },
+          ]),
+        ),
+      );
     });
     return () => {
       cancelled = true;
@@ -82,6 +99,7 @@ export function SignatureModule({
   onPatch,
   onDelete,
   onBulkPaste,
+  onConnectionPatch,
 }: {
   mapId: string;
   system: MapSystemNode | null;
@@ -92,6 +110,7 @@ export function SignatureModule({
   onPatch: (signatureId: string, patch: UpdateSignatureBody) => void;
   onDelete: (signatureId: string) => void;
   onBulkPaste: (payloads: MapEventPayload[]) => void;
+  onConnectionPatch: (connectionId: string, patch: UpdateConnectionBody) => void;
 }) {
   return (
     <Card>
@@ -124,6 +143,7 @@ export function SignatureModule({
             onCreate={onCreate}
             onPatch={onPatch}
             onDelete={onDelete}
+            onConnectionPatch={onConnectionPatch}
           />
         )}
       </CardContent>
@@ -180,6 +200,7 @@ function SignaturePanelBody({
   onCreate,
   onPatch,
   onDelete,
+  onConnectionPatch,
 }: {
   mapId: string;
   system: MapSystemNode;
@@ -189,13 +210,28 @@ function SignaturePanelBody({
   onCreate: (body: CreateSignatureBody) => void;
   onPatch: (signatureId: string, patch: UpdateSignatureBody) => void;
   onDelete: (signatureId: string) => void;
+  onConnectionPatch: (connectionId: string, patch: UpdateConnectionBody) => void;
 }) {
   const rows = useMemo(
     () => signatures.filter((s) => s.mapSystemId === system.id),
     [signatures, system.id],
   );
 
-  const targetClassByTypeId = useWormholeTargetClasses(mapId, system.systemId);
+  const metaByTypeId = useWormholeTypeMeta(mapId, system.systemId);
+
+  /**
+   * When a WH sig ends up with both a type and a linked connection, push the
+   * type's inferred jump-mass band onto that connection (e.g. O477 → L). A type
+   * whose band can't be inferred (K162 and friends) leaves the connection size
+   * untouched. Fired from both the type and the "Leads to" change handlers so
+   * setting either side last completes the inference.
+   */
+  function syncConnectionSize(typeId: number | null, connectionId: string | null) {
+    if (typeId == null || connectionId == null) return;
+    const band = metaByTypeId.get(typeId)?.jumpMassClass ?? null;
+    if (band == null) return;
+    onConnectionPatch(connectionId, { jumpMassClass: band });
+  }
 
   const [draftSigId, setDraftSigId] = useState('');
   const [draftGroupKey, setDraftGroupKey] = useState<SignatureGroupKey | null>(null);
@@ -215,6 +251,7 @@ function SignaturePanelBody({
       mapConnectionId: isWh ? draftConnectionId : null,
       expiresAt: defaultExpiry(),
     });
+    if (isWh) syncConnectionSize(draftTypeId, draftConnectionId);
     setDraftSigId('');
     setDraftGroupKey(null);
     setDraftName('');
@@ -285,6 +322,7 @@ function SignaturePanelBody({
                     system={system}
                     sig={sig}
                     onPatch={onPatch}
+                    onSyncConnectionSize={syncConnectionSize}
                   />
                 </td>
                 <td className="px-1 py-1.5">
@@ -301,12 +339,13 @@ function SignaturePanelBody({
                     connections={connections}
                     systems={systems}
                     value={sig.mapConnectionId}
-                    onValueChange={(next) =>
-                      onPatch(sig.id, { mapConnectionId: next })
-                    }
+                    onValueChange={(next) => {
+                      onPatch(sig.id, { mapConnectionId: next });
+                      syncConnectionSize(sig.typeId, next);
+                    }}
                     disabled={sig.groupKey !== 'wormhole'}
                     targetClass={
-                      sig.typeId == null ? null : targetClassByTypeId.get(sig.typeId) ?? null
+                      sig.typeId == null ? null : metaByTypeId.get(sig.typeId)?.targetClass ?? null
                     }
                   />
                 </td>
@@ -389,7 +428,7 @@ function SignaturePanelBody({
               value={draftConnectionId}
               onValueChange={setDraftConnectionId}
               targetClass={
-                draftTypeId == null ? null : targetClassByTypeId.get(draftTypeId) ?? null
+                draftTypeId == null ? null : metaByTypeId.get(draftTypeId)?.targetClass ?? null
               }
             />
           </div>
@@ -413,11 +452,13 @@ function TypeCell({
   system,
   sig,
   onPatch,
+  onSyncConnectionSize,
 }: {
   mapId: string;
   system: MapSystemNode;
   sig: MapSignature;
   onPatch: (signatureId: string, patch: UpdateSignatureBody) => void;
+  onSyncConnectionSize: (typeId: number | null, connectionId: string | null) => void;
 }) {
   if (sig.groupKey === null) {
     return (
@@ -430,12 +471,14 @@ function TypeCell({
         mapId={mapId}
         universeSystemId={system.systemId}
         value={sig.typeId}
-        onValueChange={(typeId) =>
+        onValueChange={(typeId) => {
           // Mirror the resolved WH code to `name` so the cell displays the
           // code even without a fresh load; loadMap re-derives it via the
           // `universe_wormhole` join (`wormholeCode`).
-          onPatch(sig.id, { typeId, name: null })
-        }
+          onPatch(sig.id, { typeId, name: null });
+          // Picking the type completes the inference when a connection is already linked.
+          onSyncConnectionSize(typeId, sig.mapConnectionId);
+        }}
       />
     );
   }
