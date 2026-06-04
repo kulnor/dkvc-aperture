@@ -210,6 +210,75 @@ describe.skipIf(!run)('bulk signature paste — diff / atomic commit (real Postg
       .where(eq(apMapSignature.mapSystemId, mapSystemIdA));
   });
 
+  it('fills a blank name on re-paste (low-strength scan → high-strength reveal) without clobbering a typed name', async () => {
+    // Row first added blind: group known from an early scan, site name not yet
+    // revealed. A second seed already carries a name and must be preserved.
+    const blind = await createSignature({
+      mapId,
+      mapSystemId: mapSystemIdA,
+      characterId: null,
+      sigId: 'BLN-001',
+      groupKey: 'gas',
+      typeId: null,
+      name: null,
+      expiresAt: new Date(Date.now() + 86_400_000),
+    });
+    expect(blind.ok).toBe(true);
+    const typed = await createSignature({
+      mapId,
+      mapSystemId: mapSystemIdA,
+      characterId: null,
+      sigId: 'TYP-002',
+      groupKey: 'gas',
+      typeId: null,
+      name: 'hand typed name',
+      expiresAt: new Date(Date.now() + 86_400_000),
+    });
+    expect(typed.ok).toBe(true);
+
+    const result = await pasteSignatures({
+      mapId,
+      mapSystemId: mapSystemIdA,
+      characterId: null,
+      rows: [
+        {
+          sigId: 'BLN-001',
+          name: 'Barren Reservoir',
+          groupName: 'Gas Site',
+          signal: '100.0%',
+          groupKey: 'gas',
+          typeId: null,
+        },
+        {
+          sigId: 'TYP-002',
+          name: 'Vast Frontier Reservoir',
+          groupName: 'Gas Site',
+          signal: '100.0%',
+          groupKey: 'gas',
+          typeId: null,
+        },
+      ],
+      options: {
+        addMissing: true,
+        updateExisting: true,
+        removeMissing: false,
+        removeOrphanedConnections: false,
+      },
+      defaultExpiresAt: new Date(Date.now() + 86_400_000),
+    });
+    expect(result.ok).toBe(true);
+
+    const sigs = await db
+      .select({ sigId: apMapSignature.sigId, name: apMapSignature.name })
+      .from(apMapSignature)
+      .where(eq(apMapSignature.mapSystemId, mapSystemIdA));
+    expect(sigs.find((s) => s.sigId === 'BLN-001')?.name).toBe('Barren Reservoir');
+    // Non-blank existing name is preserved — paste never clobbers typed input.
+    expect(sigs.find((s) => s.sigId === 'TYP-002')?.name).toBe('hand typed name');
+
+    await db.delete(apMapSignature).where(eq(apMapSignature.mapSystemId, mapSystemIdA));
+  });
+
   it('removeOrphanedConnections: also emits connection.delete for sigs bound to a connection', async () => {
     // Seed a connection from A to B and a sig on A bound to it.
     const conn = await createConnection({

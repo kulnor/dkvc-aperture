@@ -113,19 +113,26 @@ export async function pasteSignatures(
 
         // Only overwrite when the paste resolved to a real value that differs.
         // Treat incoming nulls as "unknown — don't clobber prior classification".
-        // For existing rows we never overwrite `name`: it's either user-typed
-        // (cosmic sigs) or the wormhole-code mirror set by the create path /
-        // the row-level type cell; preserving prior input matches the legacy
-        // "paste shouldn't clobber typed-in data" contract.
+        // For `name` we never overwrite a non-blank existing value (user-typed
+        // cosmic site, or the wormhole-code mirror), matching the legacy
+        // "paste shouldn't clobber typed-in data" contract — but we DO fill in a
+        // blank one, so a row first added from a low-strength scan (group known,
+        // site name not yet revealed) gets its Type populated by a later
+        // high-strength re-paste.
         const patch: {
           groupKey?: SignatureGroupKey | null;
           typeId?: number | null;
+          name?: string | null;
         } = {};
         if (incoming.groupKey !== null && incoming.groupKey !== existingRow.groupKey) {
           patch.groupKey = incoming.groupKey;
         }
         if (incoming.typeId !== null && incoming.typeId !== existingRow.typeId) {
           patch.typeId = incoming.typeId;
+        }
+        const existingNameBlank = (existingRow.name ?? '').trim().length === 0;
+        if (incoming.name !== null && existingNameBlank) {
+          patch.name = incoming.name;
         }
         const res = await updateSignature({
           mapId: input.mapId,
