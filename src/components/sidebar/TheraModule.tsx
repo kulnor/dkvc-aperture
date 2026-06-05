@@ -99,8 +99,6 @@ export function TheraModule({
     ].filter((g) => g.rows.length > 0);
   }, [annotated]);
 
-  const missing = useMemo(() => annotated.filter((c) => !c.onMap), [annotated]);
-
   const sync = useCallback(
     async (rows: TheraConnection[]) => {
       if (rows.length === 0) return;

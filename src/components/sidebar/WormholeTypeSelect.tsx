@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Pin } from 'lucide-react';
 import {
   Select,
   SelectContent,

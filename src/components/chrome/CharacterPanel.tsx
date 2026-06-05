@@ -62,25 +62,29 @@ export function CharacterPanel({
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   // Per-map tracking selection, lazy-loaded when the Sheet opens on a map.
-  // `loaded` gates the checkboxes until the server's selection arrives so we
-  // never render a stale all-on/all-off guess.
+  // `loaded` (derived) gates the checkboxes until the server's selection for the
+  // *current* map has arrived, so we never render a stale all-on/all-off guess —
+  // including when the map changes while the Sheet stays open.
   const [tracking, setTracking] = useState<Record<string, boolean>>({});
   const [mapName, setMapName] = useState<string | null>(null);
-  const [loaded, setLoaded] = useState(false);
+  const [loadedMapId, setLoadedMapId] = useState<number | null>(null);
+  const loaded = currentMapId !== null && loadedMapId === currentMapId;
+
+  // Re-gate on every open/close so a reopen always waits for a fresh fetch.
+  function handleOpenChange(next: boolean) {
+    setOpen(next);
+    setLoadedMapId(null);
+  }
 
   useEffect(() => {
-    if (!open || currentMapId === null) {
-      setLoaded(false);
-      return;
-    }
+    if (!open || currentMapId === null) return;
     let cancelled = false;
-    setLoaded(false);
     void getMapTrackingAction(currentMapId).then((res) => {
       if (cancelled) return;
       const tracked = new Set(res.trackedIds);
       setTracking(Object.fromEntries(characters.map((c) => [c.id, tracked.has(c.id)])));
       setMapName(res.mapName);
-      setLoaded(true);
+      setLoadedMapId(currentMapId);
     });
     return () => {
       cancelled = true;
@@ -100,7 +104,7 @@ export function CharacterPanel({
   }
 
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
+    <Sheet open={open} onOpenChange={handleOpenChange}>
       <SheetTrigger
         render={
           <Button variant="ghost" size="default" className="gap-2">

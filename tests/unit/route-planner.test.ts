@@ -53,9 +53,16 @@ function hopIds(plan: { hops: Array<{ systemId: number }> }): number[] {
   return plan.hops.map((h) => h.systemId);
 }
 
+/** Plan to a single destination and return its (always-present) first plan. */
+function planRoute(args: Parameters<typeof planRoutesOnGraph>[0]) {
+  const plan = planRoutesOnGraph(args)[0];
+  if (!plan) throw new Error('expected at least one route plan');
+  return plan;
+}
+
 describe('planRoutesOnGraph', () => {
   it('shortest mode takes the fewest jumps, even through lowsec', () => {
-    const [plan] = planRoutesOnGraph({
+    const plan = planRoute({
       adjacency: ADJ,
       trueSec: TRUE_SEC,
       overlay: [],
@@ -70,7 +77,7 @@ describe('planRoutesOnGraph', () => {
   });
 
   it('safer mode detours around lowsec when a highsec path exists', () => {
-    const [plan] = planRoutesOnGraph({
+    const plan = planRoute({
       adjacency: ADJ,
       trueSec: TRUE_SEC,
       overlay: [],
@@ -84,7 +91,7 @@ describe('planRoutesOnGraph', () => {
   });
 
   it('safer mode still routes through lowsec when that is the only path', () => {
-    const [plan] = planRoutesOnGraph({
+    const plan = planRoute({
       adjacency: ADJ,
       trueSec: TRUE_SEC,
       overlay: [],
@@ -156,7 +163,7 @@ describe('planRoutesOnGraph', () => {
     const overlay: RouteOverlayEdge[] = [
       { from: 1, to: 22, kind: 'eve_scout', connectionId: null, jumpMassClass: null, massStatus: null, eolStage: null },
     ];
-    const [plan] = planRoutesOnGraph({
+    const plan = planRoute({
       adjacency: ADJ,
       trueSec: TRUE_SEC,
       overlay,
@@ -170,7 +177,7 @@ describe('planRoutesOnGraph', () => {
   });
 
   it('reports an unreachable destination', () => {
-    const [plan] = planRoutesOnGraph({
+    const plan = planRoute({
       adjacency: ADJ,
       trueSec: TRUE_SEC,
       overlay: [],

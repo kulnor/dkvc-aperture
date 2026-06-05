@@ -524,10 +524,7 @@ function SearchResults({
   const [rect, setRect] = useState<DOMRect | null>(null);
 
   useLayoutEffect(() => {
-    if (results.length === 0) {
-      setRect(null);
-      return;
-    }
+    if (results.length === 0) return;
     const measure = () => {
       const el = anchorRef.current;
       if (el) setRect(el.getBoundingClientRect());
