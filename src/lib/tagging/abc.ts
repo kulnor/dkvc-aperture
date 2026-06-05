@@ -58,6 +58,7 @@ export function homeStaticExemptionChanges(
   const changes: { mapSystemId: bigint; tag: string | null }[] = [];
   for (const s of ctx.systems) {
     if (!isTaggableClass(s.securityClass)) continue;
+    if (ctx.homeMapSystemId != null && s.mapSystemId === ctx.homeMapSystemId) continue;
     if (exempt.has(s.mapSystemId)) {
       if (s.tag !== null) changes.push({ mapSystemId: s.mapSystemId, tag: null });
     } else if (s.tag == null) {
@@ -122,6 +123,7 @@ function lowestFreeLetters(used: Set<number>, count: number): string[] {
 export const abcStrategy: TagStrategy = {
   tagOnAdd(ctx: TagContext, subject: TagSystem): string | null {
     if (!isTaggableClass(subject.securityClass)) return null;
+    if (ctx.homeMapSystemId != null && subject.mapSystemId === ctx.homeMapSystemId) return null;
     const used = usedIndicesForClass(ctx, subject.securityClass);
     return lowestFreeLetters(used, 1)[0]!;
   },
