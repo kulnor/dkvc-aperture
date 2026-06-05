@@ -12,14 +12,9 @@ import {
 } from '@/components/ui/dialog';
 import { Tabs, TabsList, TabsPanel, TabsTab } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
+import { EmptyRow, ScrollTable, Td, Th } from '@/components/dialogs/infoTable';
 import { usePresenceForMap } from '@/components/map/MapPresenceContext';
-import { systemClassColor } from '@/components/map/styling';
-import type {
-  MapConnectionEdge,
-  MapPresenceEntry,
-  MapSystemNode,
-  MapViewData,
-} from '@/types';
+import type { MapConnectionEdge, MapSystemNode, MapViewData } from '@/types';
 
 /**
  * Map Info dialog — a four-tab live snapshot of the open map.
@@ -37,13 +32,7 @@ export function MapInfoDialog({
   viewData: MapViewData;
 }) {
   const presence = usePresenceForMap();
-  // EVE solar-system id → display name, for resolving connection endpoints and
-  // pilot locations without re-querying.
-  const systemNameById = useMemo(() => {
-    const m = new Map<number, MapSystemNode>();
-    for (const s of viewData.systems) m.set(s.systemId, s);
-    return m;
-  }, [viewData.systems]);
+  // ap_map_system id → node, for resolving connection endpoints to system names.
   const systemById = useMemo(() => {
     const m = new Map<string, MapSystemNode>();
     for (const s of viewData.systems) m.set(s.id, s);
@@ -65,7 +54,6 @@ export function MapInfoDialog({
             <TabsTab value="summary">Summary</TabsTab>
             <TabsTab value="systems">Systems ({viewData.systems.length})</TabsTab>
             <TabsTab value="connections">Connections ({viewData.connections.length})</TabsTab>
-            <TabsTab value="users">Pilots ({presence.length})</TabsTab>
           </TabsList>
 
           <TabsPanel value="summary">
@@ -76,9 +64,6 @@ export function MapInfoDialog({
           </TabsPanel>
           <TabsPanel value="connections">
             <ConnectionsPanel connections={viewData.connections} systemById={systemById} />
-          </TabsPanel>
-          <TabsPanel value="users">
-            <PilotsPanel presence={presence} systemNameById={systemNameById} />
           </TabsPanel>
         </Tabs>
       </DialogContent>
@@ -226,93 +211,3 @@ function ConnectionsPanel({
   );
 }
 
-/** System class label: the `C<n>`/sec rating, falling back to trueSec then `?`. */
-function classLabel(security: string | null, trueSec: number | null): string {
-  if (security) return security;
-  if (trueSec != null) return trueSec.toFixed(1);
-  return '?';
-}
-
-function PilotsPanel({
-  presence,
-  systemNameById,
-}: {
-  presence: readonly MapPresenceEntry[];
-  systemNameById: Map<number, MapSystemNode>;
-}) {
-  if (presence.length === 0) return <EmptyRow>No tracked pilots are online.</EmptyRow>;
-
-  return (
-    <ScrollTable>
-      <thead className="sticky top-0 bg-muted/60 text-[10px] uppercase text-muted-foreground">
-        <tr>
-          <Th>Pilot</Th>
-          <Th>Location</Th>
-          <Th>Ship</Th>
-        </tr>
-      </thead>
-      <tbody>
-        {presence.map((p) => {
-          // Name + class ride the presence entry (resolved server-side, so they
-          // work even when the pilot's system isn't placed on the map). The tag
-          // is map-specific, so it comes from the placed node when there is one.
-          const tag = systemNameById.get(p.systemId)?.tag ?? null;
-          return (
-            <tr key={p.characterId} className="border-t border-foreground/10">
-              <Td>{p.characterName}</Td>
-              <Td>
-                <span className="flex items-center gap-1.5">
-                  <span
-                    className="font-mono font-bold"
-                    style={{ color: systemClassColor(p.systemSecurity) }}
-                  >
-                    {classLabel(p.systemSecurity, p.systemTrueSec)}
-                  </span>
-                  <span>{p.systemName ?? p.systemId}</span>
-                  {tag && (
-                    <span className="rounded bg-primary/15 px-1 font-mono font-bold text-primary">
-                      {tag}
-                    </span>
-                  )}
-                </span>
-              </Td>
-              <Td className="text-muted-foreground">
-                {p.shipName ?? p.shipTypeName ?? '—'}
-                {/* Custom hull name and type both shown; the type line is omitted
-                    when the pilot never renamed the hull (ESI defaults ship_name
-                    to the type name). */}
-                {p.shipName && p.shipTypeName && p.shipName !== p.shipTypeName && (
-                  <span className="ml-1.5 text-[10px] text-muted-foreground/70">
-                    {p.shipTypeName}
-                  </span>
-                )}
-              </Td>
-            </tr>
-          );
-        })}
-      </tbody>
-    </ScrollTable>
-  );
-}
-
-// --- small table helpers ----------------------------------------------------
-
-function ScrollTable({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="max-h-[60vh] overflow-auto rounded-md ring-1 ring-foreground/10">
-      <table className="w-full text-xs">{children}</table>
-    </div>
-  );
-}
-
-function Th({ className, children }: { className?: string; children: React.ReactNode }) {
-  return <th className={`px-2 py-1.5 text-left font-medium ${className ?? ''}`}>{children}</th>;
-}
-
-function Td({ className, children }: { className?: string; children: React.ReactNode }) {
-  return <td className={`px-2 py-1.5 ${className ?? ''}`}>{children}</td>;
-}
-
-function EmptyRow({ children }: { children: React.ReactNode }) {
-  return <div className="px-3 py-8 text-center text-xs text-muted-foreground">{children}</div>;
-}

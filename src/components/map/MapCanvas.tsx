@@ -91,6 +91,7 @@ import {
   MenuTrigger,
 } from '@/components/ui/menu';
 import { MapInfoDialog } from '@/components/dialogs/MapInfoDialog';
+import { PilotRosterButton } from './PilotRosterButton';
 import { MapSettingsDialog } from '@/components/dialogs/MapSettingsDialog';
 import { AddSystemDialog } from './AddSystemDialog';
 import { ConnectionEdge, type ConnectionEdgeData } from './ConnectionEdge';
@@ -1246,6 +1247,7 @@ export function MapCanvas({
               </div>
             </div>
             <div className="flex shrink-0 items-center gap-1">
+              <PilotRosterButton viewData={viewData} />
               <Menu>
                 <MenuTrigger
                   render={
@@ -1275,6 +1277,7 @@ export function MapCanvas({
                 <Plus />
                 Add system
               </Button>
+
               <Button variant="ghost" size="sm" onClick={() => setMapInfoOpen(true)}>
                 <Info />
                 Map info
