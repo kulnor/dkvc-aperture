@@ -1,9 +1,9 @@
 ## wormholeTypes.ts
 
-**Purpose:** Wormhole-catalog lookups for SPEC §6.4 — class-filtered WH-type suggestion and connection "mark as static" matching.
+**Purpose:** Wormhole-catalog lookups — class-filtered WH-type suggestion and connection "mark as static" matching.
 **File:** `src/lib/map/wormholeTypes.ts`
 
-> **Class join key:** `universe_system.security` (the `C1`–`C6` / `HS` / `LS` / `NS` labels), **not** `universe_system.security_class`. SPEC §6.4 pins the catalog's `source_class`/`target_class` to "the same labels as `universe_system.security`", and the seeded catalog + the read-path tests use exactly those. (The Stage 9 plan text says `securityClass`; that is the unrelated SDE ore-spawn field and would never match the catalog — `security` is correct.)
+> **Class join key:** `universe_system.security` (the `C1`–`C6` / `HS` / `LS` / `NS` labels), **not** `universe_system.security_class`. The catalog's `source_class`/`target_class` use the same labels as `universe_system.security`, and the seeded catalog + the read-path tests use exactly those. `security_class` is the unrelated SDE ore-spawn field and would never match the catalog — `security` is correct.
 
 ---
 

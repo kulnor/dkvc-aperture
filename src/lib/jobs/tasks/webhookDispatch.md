@@ -1,6 +1,6 @@
 ## webhookDispatch.ts
 
-**Purpose:** Stage 14 graphile-worker task that runs the Discord webhook dispatcher. Two payload shapes — event-driven (from `commitMapEvent`) and Stage 16.4 admin test-fire (single-webhook synthetic message).
+**Purpose:** graphile-worker task that runs the Discord webhook dispatcher. Two payload shapes — event-driven (from `commitMapEvent`) and admin test-fire (single-webhook synthetic message).
 **File:** `src/lib/jobs/tasks/webhookDispatch.ts`
 
 ---
@@ -10,7 +10,7 @@
 Non-cron task. Two enqueue paths share the same task name and `ap_job_run` history:
 
 - **Event path** (`commitMapEvent`) — fires per `ap_map_event` insert when the map has at least one `ap_map_webhook` row. Handler decodes the BigInt/Date strings and delegates to `runWebhookDispatch`.
-- **Test-fire path** (Stage 16.4 admin Server Action) — fires per operator click. Handler decodes the webhook id + sent-at and delegates to `runTestWebhookDispatch`, which sends a `[test]` Discord message and writes back to the same observability columns a real dispatch would touch.
+- **Test-fire path** (admin Server Action) — fires per operator click. Handler decodes the webhook id + sent-at and delegates to `runTestWebhookDispatch`, which sends a `[test]` Discord message and writes back to the same observability columns a real dispatch would touch.
 
 Instrumented via `withInstrumentation`, so each call produces one `ap_job_run` row whose `notes` contains the `WebhookDispatchNotes` summary. The `test: true` flag in notes distinguishes test fires from real events when reading the job history.
 

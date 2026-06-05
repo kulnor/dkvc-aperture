@@ -1,6 +1,6 @@
 ## ConnectionMassLog
 
-**Purpose:** Read-only per-jump mass-log for the selected wormhole connection (Stage 17.11a).
+**Purpose:** Read-only per-jump mass-log for the selected wormhole connection.
 **File:** `src/components/sidebar/ConnectionMassLog.tsx`
 
 ### Props

@@ -7,8 +7,7 @@ import { apAccessGrant, apInstanceOwner } from '@/db/schema';
 import { resolveAuthzLevel } from '@/lib/auth/resolveAuthz';
 
 /**
- * Permissions-overhaul Stage 2 acceptance gate
- * (`docs/plans/permissions-overhaul.md` §"Stage 2 — Done when").
+ * Authz-resolution acceptance gate.
  *
  * Drives `resolveAuthzLevel` directly against real Postgres (the derivation is
  * the load-bearing part; this avoids mocking ESI). The headline guarantee:

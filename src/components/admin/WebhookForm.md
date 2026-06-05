@@ -1,6 +1,6 @@
 ## WebhookForm
 
-**Purpose:** Controlled form for creating or editing a single `ap_map_webhook` row in the Stage 16.4 admin webhook list.
+**Purpose:** Controlled form for creating or editing a single `ap_map_webhook` row in the admin webhook list.
 **File:** `src/components/admin/WebhookForm.tsx`
 
 ### Props (discriminated union)

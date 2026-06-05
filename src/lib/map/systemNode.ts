@@ -12,9 +12,9 @@ import type { MapEventPatch } from '@/lib/realtime/protocol';
 
 // No `import 'server-only'`: pure read-side helper, consumed by both the
 // user-driven mutation wrappers (`src/lib/map/mutations/systems.ts`, which DOES
-// carry the guard) and by Stage 12.2 job code (`src/lib/jobs/locationCommit.ts`)
+// carry the guard) and by job code (`src/lib/jobs/locationCommit.ts`)
 // that runs under plain Node and would crash on the `server-only/index.js`
-// throw. Same precedent as Stage 11.2's `commitMapEvent` extraction.
+// throw. Same precedent as `commitMapEvent`.
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 

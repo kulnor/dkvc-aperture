@@ -32,7 +32,7 @@ import { staticMatchForConnection, wormholeTypesForSystem } from '@/lib/map/worm
 import { mapEventPayloadSchema } from '@/lib/realtime/protocol';
 
 /**
- * Stage 9.2 gate. DB-gated like the rest:
+ * DB-gated like the rest:
  *   docker compose up -d && pnpm db:migrate && RUN_DB_TESTS=1 pnpm test
  *
  * Drives each system/connection helper against real Postgres and asserts row

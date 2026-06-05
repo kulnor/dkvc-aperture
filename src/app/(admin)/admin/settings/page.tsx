@@ -8,7 +8,7 @@ import { CorpPicker } from '@/components/admin/CorpPicker';
 import { StaleThresholdForm } from '@/components/admin/StaleThresholdForm';
 
 /**
- * Stage 16.5 — `/admin/settings` per-corp rights matrix editor.
+ * `/admin/settings` per-corp rights matrix editor.
  *
  * Admin: a corp picker (`?corp=<id>`) selects which corp's matrix is rendered.
  * Manager: auto-scoped to their own corp; the picker is hidden.

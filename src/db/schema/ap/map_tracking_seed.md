@@ -1,6 +1,6 @@
 ## map_tracking_seed.ts
 
-**Purpose:** The `ap_map_tracking_seed` marker table — "this account has already had its tracking auto-seeded on this map", so the per-map default (track all active characters) fires exactly once per `(map, account)`. Per-map-character-tracking plan, Stage 1.
+**Purpose:** The `ap_map_tracking_seed` marker table — "this account has already had its tracking auto-seeded on this map", so the per-map default (track all active characters) fires exactly once per `(map, account)`.
 **File:** `src/db/schema/ap/map_tracking_seed.ts`
 
 ---

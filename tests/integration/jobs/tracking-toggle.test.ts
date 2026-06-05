@@ -8,7 +8,7 @@ import { apCharacter, apMap, apMapCharacterTracking, apUser } from '@/db/schema'
 import { startTrackingCharacter, stopTrackingCharacter } from '@/lib/jobs/tracking';
 
 /**
- * Per-map-character-tracking plan, Stage 3. Tracking is now purely per-map: a
+ * Tracking is purely per-map: a
  * row in `ap_map_character_tracking` (map_id, character_id) is the single source
  * of truth, and there is no global `tracking_enabled` flag. The Characters panel
  * checkbox composes `startTrackingCharacter` / `stopTrackingCharacter` for ONE

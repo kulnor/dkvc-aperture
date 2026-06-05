@@ -8,7 +8,7 @@ import {
 import type { MapEventPayload } from '@/lib/realtime/protocol';
 
 /**
- * Stage 14 unit coverage for the pure formatters. The dispatcher tests
+ * Unit coverage for the pure formatters. The dispatcher tests
  * (DB-gated) cover end-to-end POST behaviour; here we just pin the rendered
  * Discord payload shape for each `MapEventPayload` variant.
  */

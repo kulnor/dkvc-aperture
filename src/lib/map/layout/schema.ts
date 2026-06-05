@@ -5,7 +5,7 @@ import { PANELS } from './panels';
 // System boundary: the layout config is user-supplied JSON (posted by the grid's
 // debounced save) before it lands in `ap_user.map_layout`. Validate the whole
 // shape with bounded numeric ranges; unknown item keys (RGL's `static`, `moved`,
-// `maxW`, …) are stripped — Stage 1 persists only the minimal geometry.
+// `maxW`, …) are stripped — only the minimal geometry is persisted.
 
 const panelId = z.enum(PANELS.map((p) => p.id) as [PanelId, ...PanelId[]]);
 

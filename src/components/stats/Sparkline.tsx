@@ -1,9 +1,8 @@
 'use client';
 
 /**
- * Tiny inline-SVG sparkline (Stage 17.7) — renders a normalized polyline over a
- * numeric series. No chart dependency; Stage 17.8 picks a real chart lib for the
- * larger system graphs. A flat or empty series degrades to a baseline.
+ * Tiny inline-SVG sparkline — renders a normalized polyline over a
+ * numeric series. No chart dependency. A flat or empty series degrades to a baseline.
  */
 export function Sparkline({
   data,

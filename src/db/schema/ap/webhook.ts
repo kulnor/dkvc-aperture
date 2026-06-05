@@ -11,18 +11,16 @@ import {
 import { apWebhookChannel, apWebhookEvent } from './enums';
 import { apMap } from './map';
 
-// SPEC §5/§6.5 + Stage 14. Normalised replacement for the legacy denormalised
-// webhook columns on `map` (`slackWebHookURL`, `discordWebHookURLHistory`, …).
-// One row per `(map, channel, event)`: a map opting into both history and rally
-// pings on Discord has two rows. Deleting a webhook = deleting the row; no
-// `active` flag per CLAUDE.md lifecycle rule.
+// One row per `(map, channel, event)` webhook subscription: a map opting into
+// both history and rally pings on Discord has two rows. Deleting a webhook =
+// deleting the row; no `active` flag per CLAUDE.md lifecycle rule.
 //
 // The failure-tracking columns (`last_status`, `last_error`, `last_attempted_at`,
 // `consecutive_failures`) are observability only — they never block the
-// underlying map mutation; the Stage 16 admin UI reads them to surface 404s /
+// underlying map mutation; the admin UI reads them to surface 404s /
 // rate-limits and decide whether to auto-disable a noisy webhook.
 //
-// URLs are stored plaintext (matches legacy behaviour); rotate the channel
+// URLs are stored plaintext; rotate the channel
 // webhook if the DB is compromised.
 export const apMapWebhook = pgTable(
   'ap_map_webhook',

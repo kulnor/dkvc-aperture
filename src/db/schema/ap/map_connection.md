@@ -13,7 +13,7 @@
 - `scope` — `connection_scope` enum, required.
 - `mass_status` — `wh_mass` enum, default `fresh`.
 - `jump_mass_class` — `wh_jump_mass` enum, nullable (only WH links set it).
-- `eol_stage` — `eol_stage` enum (`none`/`eol`/`critical`), default `none`. Replaces the legacy `is_eol` boolean (migration 0031); `eol` ≈ 4h warning, `critical` ≈ 1h final stage.
+- `eol_stage` — `eol_stage` enum (`none`/`eol`/`critical`), default `none`. Replaces the earlier `is_eol` boolean (migration 0031); `eol` ≈ 4h warning, `critical` ≈ 1h final stage.
 - `preserve_mass`, `is_rolling` — `boolean`, default `false`.
 - `is_static` — `boolean`, default `false` (migration 0032). User-designated "this wormhole is the source system's static". A free manual flag, not the read-time catalog match (`staticMatchForConnection`). Drives the ABC home-static exemption (`ap_map.exempt_home_static_from_tag`).
 - `eol_at` — `timestamptz`, nullable. Stamped when the *current* `eol_stage` is entered (re-stamped on each stage change); read by the EOL-expiry cron + the countdown.

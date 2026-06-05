@@ -1,19 +1,17 @@
 /**
- * Canonical opKey → swagger operationId map for the ESI client (Stage 4).
+ * Canonical opKey → swagger operationId map for the ESI client.
  *
- * "opKey" is Pathfinder's internal name for an ESI operation (e.g.
+ * "opKey" is our short internal name for an ESI operation (e.g.
  * `getCharacterLocation`). Each opKey resolves to a swagger `operationId`
  * (e.g. `get_characters_character_id_location`), and `src/lib/esi/swagger.json`
  * is authoritative for the HTTP method + path + params that operationId names.
  *
- * The opKey inventory is grepped from legacy call sites (docs/spec/05 §3.1).
- * The legacy vendor package (`monoliyoda/pathfinder_esi`) that dispatched
- * opKeys is not vendored here, so a few pairings are inferred from call-site
- * signatures — those carry `inferred: true`. The companion test
- * (`tests/esi/opkeys.test.ts`) asserts every operationId below exists in the
- * checked-in swagger so a typo or drift fails loudly.
+ * A few pairings could not be confirmed against an authoritative dispatcher and
+ * were inferred from call-site signatures — those carry `inferred: true`. The
+ * companion test (`tests/esi/opkeys.test.ts`) asserts every operationId below
+ * exists in the checked-in swagger so a typo or drift fails loudly.
  *
- * This module is data only — no request logic. The client is Stage 4.
+ * This module is data only — no request logic.
  */
 
 export interface OpDef {
@@ -22,9 +20,8 @@ export interface OpDef {
   /** Whether the call requires a character ESI access token. */
   auth: 'none' | 'character';
   /**
-   * True when the opKey→operationId pairing could not be confirmed against
-   * vendor source and was inferred from call-site signatures (docs/spec/05 Q1).
-   * The option-bag request shape for these should be re-confirmed in Stage 4.
+   * True when the opKey→operationId pairing could not be confirmed against an
+   * authoritative source and was inferred from call-site signatures.
    */
   inferred?: true;
 }
@@ -49,7 +46,7 @@ export const OP_KEYS = {
   getNpcCorporations: { operationId: 'get_corporations_npccorps', auth: 'none' },
   getAlliance: { operationId: 'get_alliances_alliance_id', auth: 'none' },
 
-  // UI mutations (option-bag arguments — inferred, re-confirm in Stage 4)
+  // UI mutations (option-bag arguments — inferred)
   setWaypoint: { operationId: 'post_ui_autopilot_waypoint', auth: 'character', inferred: true },
   openWindow: { operationId: 'post_ui_openwindow_information', auth: 'character', inferred: true },
 

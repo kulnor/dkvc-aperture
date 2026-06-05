@@ -1,10 +1,9 @@
 import type { MapConnectionEdge, MapSystemNode } from '@/lib/map/loadMap';
 import type { SystemEffectKey } from '@/lib/eve/systemEffects';
 
-// Legacy visual fidelity for the read-only map. Pathfinder encodes status and
-// connection state purely as colour/stroke; we mirror the semantics (not exact
-// legacy hex) with explicit values so the canvas is readable without Tailwind
-// tokens leaking into SVG.
+// The map encodes status and connection state purely as colour/stroke, with
+// explicit values so the canvas is readable without Tailwind tokens leaking
+// into SVG.
 
 // Covers universe_system.security labels: H, L, 0.0, C1–C6, P (Pochven), A (Abyssal).
 // C1–C6 progress from cool blue to orangy-red to signal increasing danger.
@@ -50,8 +49,7 @@ export function homeAccentColor(): string {
   return HOME_ACCENT;
 }
 
-// W-space anomaly-effect swatch colours, carried over from legacy Pathfinder's
-// `$wh-color-*` palette so the node indicator reads the same as the old app.
+// W-space anomaly-effect swatch colours for the node indicator.
 const SYSTEM_EFFECT_COLORS: Record<SystemEffectKey, string> = {
   magnetar: '#e06fdf',    // pink
   redGiant: '#d9534f',    // red

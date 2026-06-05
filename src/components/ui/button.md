@@ -1,6 +1,6 @@
 ## Button
 
-**Purpose:** shadcn primitive button. Default Stage-0 install — left in place so future stages can `import { Button } from '@/components/ui/button'` without re-running shadcn init.
+**Purpose:** shadcn primitive button. Default install — `import { Button } from '@/components/ui/button'`.
 **File:** `src/components/ui/button.tsx`
 
 ### Props

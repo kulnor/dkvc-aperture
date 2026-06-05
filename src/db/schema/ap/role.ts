@@ -4,7 +4,7 @@ import { apCorporation } from './corporation';
 import { roleSource } from './enums';
 import { apMap } from './map';
 
-// Stage 15. The three tag-role tables described in SPEC §6.5 lines 407–434.
+// The three tag-role tables.
 //
 // `ap_role` is the canonical role registry. Built-in roles live alongside
 // roles mirrored from EVE corporation titles (one per `(corp, title_id)`) and
@@ -62,7 +62,7 @@ export const apCharacterRole = pgTable(
     /**
      * Free-form provenance string. Conventions:
      *   `'corp-title-sync'` — written by `syncCharacterAuthz`.
-     *   `'<character_id>'`  — hand-granted by an admin via the Stage 16 UI.
+     *   `'<character_id>'`  — hand-granted by an admin via the admin UI.
      *   `'discord-sync'`    — written by the (future) Discord sync job.
      */
     grantedBy: text('granted_by'),

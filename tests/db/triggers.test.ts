@@ -8,7 +8,7 @@ import { apMap, apMapEvent } from '@/db/schema';
 import { env } from '@/lib/env';
 
 /**
- * Stage 6 gate (roadmap): the AFTER INSERT trigger on `ap_map_event` must fire
+ * The AFTER INSERT trigger on `ap_map_event` must fire
  * `pg_notify('map:'||map_id, payload)` for every insert — the single hook the
  * realtime layer depends on. Gated behind RUN_DB_TESTS so the default offline
  * `pnpm test` lane skips it:

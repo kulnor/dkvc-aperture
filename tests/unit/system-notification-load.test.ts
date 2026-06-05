@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { systemNotificationLoadSchema } from '@/lib/realtime/protocol';
 
-// The Stage 17.8 underglow bridge parses incoming `systemNotification` loads
+// The underglow bridge parses incoming `systemNotification` loads
 // with this schema (and the bus drops malformed ones via the same safeParse),
 // so the wire contract is pinned here.
 describe('systemNotificationLoadSchema', () => {

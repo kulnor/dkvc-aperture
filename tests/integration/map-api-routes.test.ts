@@ -28,7 +28,7 @@ import { guardMap, parseBigInt } from '@/app/api/map/utils';
 import { mapEventPayloadSchema } from '@/lib/realtime/protocol';
 
 /**
- * Stage 9.4 gate: signature CRUD helpers + broadcast-fire confirmation.
+ * Signature CRUD helpers + broadcast-fire confirmation.
  * Also validates the `guardMap` and `parseBigInt` helpers used by every route.
  *
  *   docker compose up -d && pnpm db:migrate && RUN_DB_TESTS=1 pnpm test

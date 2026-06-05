@@ -41,7 +41,7 @@ async function systemPos(mapId: bigint, systemId: number): Promise<{ x: number; 
 }
 
 /**
- * Stage 12.2 gates per the sub-stage plan:
+ * Coverage:
  *  - Gate jump (between two `universe_stargate_edge`-linked systems) writes
  *    nothing — `ap_map_event` row count for the map is unchanged.
  *  - Wormhole jump (no edge between the systems) writes exactly three events
@@ -277,7 +277,7 @@ describe.skipIf(!run)('Stage 12.2 location-poll jump classification + fan-out (r
       ]),
     );
 
-    // Stage 2 placement: the destination (C) lands on its own grid-aligned slot,
+    // Placement: the destination (C) lands on its own grid-aligned slot,
     // adjacent to the parent (B) it was reached through — not piled on top of it.
     const posB = await systemPos(mapA, SYS_B);
     const posC = await systemPos(mapA, SYS_C);

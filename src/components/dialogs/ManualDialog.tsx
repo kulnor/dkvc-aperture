@@ -12,7 +12,7 @@ import { cn } from '@/lib/utils';
 import { MANUAL_SECTIONS } from '@/lib/reference/manual';
 
 /**
- * Manual dialog (Stage 17.4) — a static user guide with a section nav and a
+ * Manual dialog — a static user guide with a section nav and a
  * scrollspy body. Clicking a nav link scrolls the section into view; scrolling
  * the body highlights the section currently in view. Content comes from the
  * typed `MANUAL_SECTIONS` constant — no server call.

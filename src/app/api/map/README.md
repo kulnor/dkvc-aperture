@@ -14,7 +14,7 @@ Every route in this tree obeys these invariants:
 
 4. **Session + rights guard.** Every mutation route calls `requireMapMutate(rawMapId, session, '<right>')` from `utils.ts` (which chains session check + bigint parse + `requireMapRight` from `@/lib/auth/rights`). Read endpoints (e.g. `wormhole-types`, signature paste resolver) call `requireMapView`. The tuple result is mapped straight into a 401/403/404 response. Existence is never leaked: missing maps and non-viewable maps both return 404.
 
-5. **Closes SPEC §11 Q8.** Stage 15 explicitly enforces `map_update` (mutations) and the owner-or-admin restriction on `map_delete` / `map_share`. There is no controller path that bypasses these checks; the static-analysis test in `tests/integration/permissions/` blocks regressions.
+5. **Per-map rights enforcement.** Routes explicitly enforce `map_update` (mutations) and the owner-or-admin restriction on `map_delete` / `map_share`. There is no controller path that bypasses these checks; the static-analysis test in `tests/integration/permissions/` blocks regressions.
 
 ## Routes
 

@@ -1,8 +1,8 @@
 # Aperture — Claude Code Working Notes
 
-Aperture is a collaborative wormhole-mapping web app for EVE Online. This repo is the **rebuild** of the legacy Pathfinder (F3 + jQuery/jsPlumb + MySQL) implementation onto Next.js + TypeScript + Drizzle + Postgres.
+Aperture is a collaborative, real-time wormhole-mapping web app for EVE Online, built on Next.js + TypeScript + Drizzle + Postgres. Corps and alliances chart short-lived wormhole chains together — shared maps update live across every viewer, signatures and D-Scan paste in from the in-game clients, and tracked characters move on the map as they jump.
 
-The behavior-level spec is in [docs/spec/](docs/spec/). The assembly document (start here) is [docs/spec/SPEC.md](docs/spec/SPEC.md).
+The companion `.md` files (see below) are the index of the codebase: read them first, open source only to modify it.
 
 ---
 
@@ -10,15 +10,13 @@ The behavior-level spec is in [docs/spec/](docs/spec/). The assembly document (s
 
 | I want to understand... | Start with... |
 |---|---|
-| The full rebuild blueprint | `docs/spec/SPEC.md` |
-| Behavior-level spec (legacy app, authoritative) | `docs/spec/00-overview.md` … `docs/spec/10-feature-matrix.md` |
 | Shared TS types | `src/types/index.md` |
 | Drizzle schema (tables, enums, FKs) | `src/db/schema.md` |
 | Database migrations | `src/db/migrations/` (Drizzle Kit) |
 | Auth.js EVE SSO provider + token rotation | `src/lib/auth.md` |
 | ESI client (circuit breakers, Zod decoders) | `src/lib/esi/client.md` |
-| Background jobs (graphile-worker) | `src/lib/jobs/index.md` |
-| Server-side character location tracking | `src/lib/jobs/locationPoll.md` |
+| Background jobs (graphile-worker) | `src/lib/jobs/runner.md`, `src/lib/jobs/registry.md` |
+| Server-side character location tracking | `src/lib/jobs/tasks/locationPoll.md` |
 | Realtime fanout (`pg_notify` ↔ WebSocket) | `src/lib/realtime/bus.md` |
 | WebSocket server (custom Node `server.ts` upgrade handler) | `src/lib/realtime/wsServer.md`, `server.md` |
 | Browser SharedWorker WebSocket client | `src/lib/realtime/sharedWorker.md` |
@@ -26,7 +24,7 @@ The behavior-level spec is in [docs/spec/](docs/spec/). The assembly document (s
 | Map engine (xyflow) | `src/components/map/MapCanvas.md` |
 | Map mutation pathways (Server Actions / API) | `src/app/api/map/README.md` |
 | Webhook fan-out (Slack / Discord) | `src/lib/webhooks/dispatcher.md` |
-| SDE / ESI static-data ingest | `src/lib/jobs/sdeIngest.md` |
+| SDE / ESI static-data ingest | `src/lib/sde/ingest.md`, `src/lib/jobs/tasks/sdeIngest.md` |
 
 ---
 
@@ -131,7 +129,7 @@ All shared domain types live in `src/types/index.ts`. Do not define project-doma
 
 ## Stack & Architectural Rules
 
-These rules come straight from [docs/spec/SPEC.md](docs/spec/SPEC.md) §§5–7. Treat them as load-bearing — deviations need an explicit reason recorded in a plan doc.
+Treat these as load-bearing — deviations need an explicit reason recorded in a plan doc.
 
 ### Stack
 - **Next.js 16+ App Router**, **React 19**, **TypeScript 6+**, **Drizzle ORM**, **Postgres 18**, **Auth.js v5**, **Node 24 LTS**.
@@ -139,14 +137,14 @@ These rules come straight from [docs/spec/SPEC.md](docs/spec/SPEC.md) §§5–7.
 - UI primitives: **shadcn/ui**, **TanStack Table**, **Tiptap**, **sonner** (toasts). Map canvas: **xyflow (react-flow)** — do **not** reach for jsPlumb or imperative DOM map libraries.
 
 ### Database
-- **Single Postgres database, single schema.** The legacy `pathfinder` / `eve_universe` split is gone.
+- **Single Postgres database, single schema.**
 - **Table-name prefixes are mandatory, no exceptions:** every user-data table starts with `ap_`; every static CCP-data table starts with `universe_`.
 - **Column casing:** `snake_case` in the DB, `camelCase` on the TS side via Drizzle's `name:` mapping.
 - **All time columns are `timestamptz`.** No naked `timestamp`.
 - **IDs:** `generated always as identity` (or `bigserial` where natural). EVE IDs are 64-bit — use `bigint`.
 - **JSON:** always `jsonb`, never `json`.
 - **Small lookup tables become `pgEnum`s** (e.g. `map_scope`, `system_status`, `connection_scope`, `wh_mass`, `authz_level`). Don't introduce a lookup table when an enum will do.
-- **Real foreign keys across former schema boundaries.** `ap_map_system.system_id → universe_system.id` is a normal FK with `ON DELETE RESTRICT`. No application-level joins for what should be SQL.
+- **Real foreign keys across the `ap_` / `universe_` boundary.** `ap_map_system.system_id → universe_system.id` is a normal FK with `ON DELETE RESTRICT`. No application-level joins for what should be SQL.
 - **Audit `character_id` is `ON DELETE SET NULL`.** Erasing a character must not cascade-wipe their map/system/connection history.
 
 ### Mutation pathways (one canonical commit point per change)
@@ -167,31 +165,33 @@ There are exactly three pathways. Pick the right one; do not invent a fourth.
 - **Native WebSocket served by the same Next.js deployment.** Not a separate process.
 - **Postgres `LISTEN/NOTIFY`** is the only fanout mechanism. The channel the `ap_map_event` trigger publishes to is the channel the WS handler subscribes to. Job dispatch uses the same mechanism.
 - **SharedWorker** on the browser — one character with many tabs holds exactly **one** socket.
-- Task vocabulary is fixed: `mapUpdate`, `mapAccess`, `mapConnectionAccess`, `mapDeleted`, `characterUpdate`, `characterLogout`, `healthCheck`, `logData`, `systemNotification`, `connectionMassLog`, plus client→server `subscribe` / `unsubscribe`. Don't invent new task names without updating the spec. `systemNotification` (Stage 17.8) is a transient server-observed system event (e.g. a zKillboard kill in an on-map system) — like `characterUpdate` it is broadcast by a direct `pg_notify` that bypasses `ap_map_event`. `connectionMassLog` (Stage 17.11a) is the same pattern for a server-derived per-jump connection mass-log entry — broadcast by a direct `pg_notify` bypassing `ap_map_event`.
+- Task vocabulary is fixed: `mapUpdate`, `mapAccess`, `mapConnectionAccess`, `mapDeleted`, `characterUpdate`, `characterLogout`, `healthCheck`, `logData`, `systemNotification`, `connectionMassLog`, plus client→server `subscribe` / `unsubscribe`. Don't invent new task names. `systemNotification` is a transient server-observed system event (e.g. a zKillboard kill in an on-map system) — like `characterUpdate` it is broadcast by a direct `pg_notify` that bypasses `ap_map_event`. `connectionMassLog` is the same pattern for a server-derived per-jump connection mass-log entry.
 - If realtime is unhealthy, the UI **must** surface a degraded-mode banner — never silently render stale state.
 
 ### Background jobs
 - Single Node job runner backed by **`graphile-worker`**. No Redis.
 - **Character location tracking runs server-side**, one job per tracked character — never coupled to a tab being open.
-- Polling cadence is adaptive on `online` state; intervals are **hard-coded constants** (`LOCATION_POLL_ONLINE_MS`, `LOCATION_POLL_OFFLINE_MS`). No `pathfinder.ini`-style runtime knob.
+- Polling cadence is adaptive on `online` state; intervals are **hard-coded constants** (`LOCATION_POLL_ONLINE_MS`, `LOCATION_POLL_OFFLINE_MS`), not a runtime knob.
 
 ### Auth & ESI
 - **Auth.js v5** with a custom **EVE SSO** OAuth2 provider.
 - **ESI tokens live on `ap_character`** (`esi_access_token`, `esi_refresh_token`, `esi_access_token_expires`, `esi_scopes`). Tokens are **encrypted at rest** (pgcrypto or app-layer AEAD).
-- **Refresh-token rotation is persisted on every token exchange**, *before* the new access token is consumed by any caller. This closes the highest-priority latent bug from the legacy app. Cover it with an integration test.
+- **Refresh-token rotation is persisted on every token exchange**, *before* the new access token is consumed by any caller. Cover it with an integration test.
 - **JWK cache:** fetch on cold start, refresh on signature failure, capped at one re-fetch per 10s.
 - **Per-endpoint circuit breakers** on ESI. Treat the CCP downtime window (`±8m` around `CCP_SSO_DOWNTIME`) as expected.
 - **All ESI responses go through Zod decoders.** ESI schema drift must surface as a decoder error, not a silent `undefined` cascade.
-- **Admin gating** uses the `ap_character.authz_level` enum, not a second Auth.js provider.
-- **Kick / ban orphaning (SPEC §11 Q10):** kick/ban status lives on `ap_character.status` and is cascade-removed with the account (`ap_character` → `ap_user` is `ON DELETE CASCADE`). A player returning under a new account on the same character lands with `status='active'`; the prior kick/ban does not revive. See `docs/spec/09-permissions-and-admin.md` Q7 for the canonical record.
-- **`/setup` ops console (Stage 16.6):** bypasses EVE SSO and is gated by `SETUP_PASSWORD` (`.env`) + a signed short-TTL `ap_setup` cookie (`src/lib/auth/setup-cookie.ts`). Operators may layer proxy auth in front for defense in depth. Production deploys with empty `SETUP_PASSWORD` fail fast at import.
+- **Access control is opt-in.** Login is restricted-by-default: a character may sign in only if it (or its corp/alliance) is on the allowlist (`ap_access_grant` rows, `scope='instance'`, `capability='login'`), or it belongs to an `ap_instance_owner` entity (you can't lock yourself out of your own deployment).
+- **Director ⇒ corp manager, never global admin.** Any EVE corp Director resolves to `authz_level='manager'` — a **corp-scoped** admin over their own corp's maps only — regardless of instance ownership. Global `admin` comes **only** from an explicit hand-granted `ap_access_grant` (`capability='admin'`); nothing derives it. `ap_character.authz_level` is a recomputed cache: `syncCharacterAuthz` writes the max of (explicit grants, Director⇒manager, else member) every pass. See `src/lib/auth/rights.md` and `resolveAuthz.md`.
+- **Admin gating** reads the `ap_character.authz_level` enum, not a second Auth.js provider.
+- **Kick / ban orphaning:** kick/ban status lives on `ap_character.status` and is cascade-removed with the account (`ap_character` → `ap_user` is `ON DELETE CASCADE`). A player returning under a new account on the same character lands with `status='active'`; the prior kick/ban does not revive.
+- **`/setup` ops console:** bypasses EVE SSO and is gated by `SETUP_PASSWORD` (`.env`) + a signed short-TTL `ap_setup` cookie (`src/lib/auth/setup-cookie.ts`). Operators may layer proxy auth in front for defense in depth. Production deploys with empty `SETUP_PASSWORD` fail fast at import.
 
 ### Config
-- Env vars + a typed `aperture.config.ts` for app constants. Do not reintroduce `.ini` files.
+- Env vars + a typed `aperture.config.ts` for app constants. No `.ini`-style config files.
 - Do not gate behavior on runtime config that should be a hard-coded constant (see job cadences above).
 
 ### Lifecycle patterns
-- **Do not add a generic `active` boolean** to operational tables. The legacy mistake. Pick the right mechanism per case:
+- **Do not add a generic `active` boolean** to operational tables. Pick the right mechanism per case:
   - `ap_map_system.visible` for "currently shown on the map" (rows persist across invisibility cycles).
   - `ap_map.deleted_at` for two-phase map deletion (30-day grace, then purge).
   - **Hard-delete** for `ap_map_connection` — wormholes collapse and don't come back.
@@ -202,7 +202,7 @@ There are exactly three pathways. Pick the right one; do not invent a fourth.
 - Don't add features, refactor, or introduce abstractions beyond what the task requires.
 - Don't write comments that explain *what* the code does — naming should carry that. Comments are for non-obvious *why*: a constraint, an invariant, a workaround for a specific bug.
 - Trust internal code and framework guarantees; validate only at system boundaries (user input, external APIs / ESI).
-- No backwards-compatibility shims for legacy URL shapes, cookie formats, or DB columns. The one exception is the documented "Remember me" cookie migration window (spec §7).
+- No backwards-compatibility shims for old URL shapes, cookie formats, or DB columns.
 
 ---
 
@@ -225,7 +225,7 @@ Plan files follow this shape:
 # <Feature Name>
 
 **Goal:** One sentence.
-**Spec references:** Links into `docs/spec/`.
+**References:** Relevant companion `.md` files and CLAUDE.md rules.
 
 ## Stage 1 — <short name>
 **Mode:** Plan mode

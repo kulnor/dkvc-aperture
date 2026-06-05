@@ -12,7 +12,7 @@ import { fetchWormholeJumpInfo } from '@/lib/reference/client';
 import type { WormholeJumpInfoRow } from '@/types';
 
 /**
- * Static reference dialog for wormhole jump data (Stage 17.3). Two sections: a
+ * Static reference dialog for wormhole jump data. Two sections: a
  * mass/lifetime/sig table for every WH code, and a statics overview grouped by
  * source class. Data is lazy-loaded on first open from `/api/reference/wormholes`
  * and memoised by the client helper, so reopens are instant.

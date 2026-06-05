@@ -9,7 +9,7 @@ import { listViewableMaps } from '@/lib/map/loadMap';
 import { mapEventPayloadSchema } from '@/lib/realtime/protocol';
 
 /**
- * Stage 9.3 gate. The Server Actions (`createMapAction`/`deleteMapAction`/
+ * The Server Actions (`createMapAction`/`deleteMapAction`/
  * `updateMapSettingsAction`) wrap `requireSession` + `commitMapEvent` + a
  * `revalidatePath`; the session/redirect layer can't run headless, so this
  * drives the same DB pipeline the actions use and asserts the user-visible
@@ -21,7 +21,7 @@ import { mapEventPayloadSchema } from '@/lib/realtime/protocol';
 const run = process.env.RUN_DB_TESTS === '1';
 
 let mapId = 0n;
-// Stage 15: `listViewableMaps` now requires a viewer. Use a synthetic admin so
+// `listViewableMaps` requires a viewer. Use a synthetic admin so
 // the test still asserts "the row appears in the viewer-scoped query".
 const TEST_VIEWER_ID = 98030001n;
 let testUserId = 0;

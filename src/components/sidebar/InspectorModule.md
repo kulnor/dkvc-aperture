@@ -17,7 +17,7 @@
 ### Renders
 One of three sub-views:
 - **`SystemInspector`** — status select, alias / tag inputs (per-keystroke commit), intel notes textarea (committed on blur), locked checkbox, rally toggle button (label reads "Set rally" / "Clear rally" depending on current state), "Remove from map" button. Signatures are now a separate full-width panel below the map (see `SignatureModule`).
-- **`ConnectionInspector`** — scope / mass / jump-mass / EOL-stage selects (EOL stage is `None` / `EOL (~4h)` / `Critical (~1h)`), Preserve / Rolling checkboxes, a live "Expires in X" / "EOL expires in X" hint (`ConnectionExpiryHint`, derived from `connectionTimeLeftMs` + `formatRelativeFromMs`, hidden for non-wormhole scopes), the read-only per-jump `ConnectionMassLog` (Stage 17.11a — server-derived cumulative mass), then the "Delete connection" button. Receives `mapId` (from `viewData.map.id`) to feed the mass-log fetch; remounted via `key={connection.id}`.
+- **`ConnectionInspector`** — scope / mass / jump-mass / EOL-stage selects (EOL stage is `None` / `EOL (~4h)` / `Critical (~1h)`), Preserve / Rolling checkboxes, a live "Expires in X" / "EOL expires in X" hint (`ConnectionExpiryHint`, derived from `connectionTimeLeftMs` + `formatRelativeFromMs`, hidden for non-wormhole scopes), the read-only per-jump `ConnectionMassLog` (server-derived cumulative mass), then the "Delete connection" button. Receives `mapId` (from `viewData.map.id`) to feed the mass-log fetch; remounted via `key={connection.id}`.
 - **`EmptyInspector`** — placeholder card prompting the user to select something.
 
 ### Behaviour & Interactions

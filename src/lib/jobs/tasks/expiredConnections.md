@@ -1,13 +1,13 @@
 ## expiredConnections.ts
 
-**Purpose:** Cron task that hard-deletes wormhole connections older than the practical lifetime cap (`scope = 'wh' AND created_at < now() - WORMHOLE_DEFAULT_LIFETIME_MS`) on maps that opt in via `ap_map.delete_expired_connections`. Stage 11.2.
+**Purpose:** Cron task that hard-deletes wormhole connections older than the practical lifetime cap (`scope = 'wh' AND created_at < now() - WORMHOLE_DEFAULT_LIFETIME_MS`) on maps that opt in via `ap_map.delete_expired_connections`.
 **File:** `src/lib/jobs/tasks/expiredConnections.ts`
 
 ---
 
 ### expiredConnections: JobModule
 - `name`: `'expired-connections'`
-- `cron`: `'0 * * * *'` (hourly; matches legacy `@hourly`).
+- `cron`: `'0 * * * *'` (hourly).
 - `run`: `withInstrumentation('expired-connections', expire)`.
 
 ### expire(): { scanned, deleted, failed }

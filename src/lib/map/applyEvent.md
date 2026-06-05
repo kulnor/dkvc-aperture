@@ -26,7 +26,7 @@ Dispatches on `payload.kind` and returns a new `MapViewData` without mutating th
 - `signature.create` — upserts the full signature body into `state.signatures`.
 - `signature.update` — merges the patch into the matching signature by id; only present keys overwrite. Includes `groupKey`, `typeId`, the display-only `wormholeCode` (resolved server-side from `universe_wormhole.name` when `typeId` changes), and `updatedAt`.
 - `signature.delete` — removes the signature by id.
-- `map.create`, `map.delete`, `map.restore`, `map.purge` — return `state` unchanged. The last two are Stage 16.2 admin-only events; non-admin viewers never see a soft-deleted map open, so there is no canvas state to reconcile.
+- `map.create`, `map.delete`, `map.restore`, `map.purge` — return `state` unchanged. The last two are admin-only events; non-admin viewers never see a soft-deleted map open, so there is no canvas state to reconcile.
 
 ### Depends On
 - `MapViewData`, `MapSystemNode`, `MapConnectionEdge`, `MapSignature` — types from `@/types`

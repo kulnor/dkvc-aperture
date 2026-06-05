@@ -15,13 +15,13 @@ import { accessMode, accessPrincipal } from './enums';
 // `ap_instance` is a singleton config row (enforced `id = 1`) carrying the
 // instance-wide `access_mode`. `restricted` (default) gates login behind the
 // allowlist + owner membership (see `src/lib/auth/loginGate.ts`); `open`
-// restores the legacy "any EVE account may log in" behaviour.
+// allows any EVE account to log in.
 //
 // `ap_instance_owner` names the corp(s)/alliance(s) that own this deployment.
 // Two semantics ride on ownership: members of an owner entity are implicitly
 // allowed to log in (you can never lock yourself out), and a character with the
 // in-game Director role in an owner entity resolves to global `admin` (see
-// `resolveAuthzLevel` in the Stage 2 work). Owner designation is a DB setting
+// `resolveAuthzLevel`). Owner designation is a DB setting
 // so it is reachable from the password-gated `/setup` console before anyone can
 // log in.
 export const apInstance = pgTable(

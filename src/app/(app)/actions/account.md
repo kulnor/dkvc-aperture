@@ -1,6 +1,6 @@
 ## account.ts
 
-**Purpose:** Account self-service Server Actions over `ap_user` (Stage 17.5) — set the main character, toggle preferences (travel animation, signature indicators), save the map layout, and delete the account.
+**Purpose:** Account self-service Server Actions over `ap_user` — set the main character, toggle preferences (travel animation, signature indicators), save the map layout, and delete the account.
 **File:** `src/app/(app)/actions/account.ts`
 
 ---

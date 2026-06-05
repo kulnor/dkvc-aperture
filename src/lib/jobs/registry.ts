@@ -14,7 +14,7 @@ import { systemStatsRefresh } from './tasks/systemStatsRefresh';
 import { webhookDispatch } from './tasks/webhookDispatch';
 
 /**
- * The registry every Stage-11 task module is bound to. Each `JobModule` exports
+ * The registry every task module is bound to. Each `JobModule` exports
  * `{ name, cron?, run }`; this file imports them and indexes:
  *
  *   - `tasks`     — graphile-worker `TaskList` (`{ [name]: run }`)
@@ -39,29 +39,27 @@ export interface JobModule {
 }
 
 const modules: readonly JobModule[] = [
-  // Stage 11.2 — map housekeeping (signature reap, EOL/expired connections, map purge).
+  // Map housekeeping (signature reap, EOL/expired connections, map purge).
   signatureReap,
   eolExpiry,
   expiredConnections,
   mapPurge,
-  // Stage 11.3 — per-system stats refresh from ESI.
+  // Per-system stats refresh from ESI.
   systemStatsRefresh,
   sovFwRefresh,
-  // Stage 11.4 — activity-log materialized-view refresh.
+  // Activity-log materialized-view refresh.
   activityRollupRefresh,
-  // Stage 11.5 — pg_partman maintenance (premake + retention).
+  // pg_partman maintenance (premake + retention).
   partitionMaintenance,
-  // Stage 11.6 registered a `structure-resolve` ESI stub; Stage 17.1 retired it.
   // ESI cannot return other corps' structures, so structure intel is manual
-  // entry (`ap_structure`) with no recurring resolve work. See
-  // docs/plans/stage-17-ui-catchup.md.
-  // Stage 12.1 — per-character location poll (no cron; self-re-enqueueing).
+  // entry (`ap_structure`) with no recurring resolve work.
+  // Per-character location poll (no cron; self-re-enqueueing).
   locationPoll,
-  // Stage 14 — per-event Discord webhook dispatch (no cron; enqueued by commitMapEvent).
+  // Per-event Discord webhook dispatch (no cron; enqueued by commitMapEvent).
   webhookDispatch,
-  // Stage 15.6 — kick expiry + periodic authz resync (replaces legacy cleanUpCharacterData).
+  // Kick expiry + periodic authz resync.
   characterCleanup,
-  // Stage 16.6 — on-demand SDE refresh, enqueued by the setup wizard.
+  // On-demand SDE refresh, enqueued by the setup wizard.
   sdeIngest,
   // On-demand vendored-CSV refresh, enqueued by the setup wizard's dedicated card.
   csvIngest,

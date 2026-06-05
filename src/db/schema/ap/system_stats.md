@@ -1,6 +1,6 @@
 ## system_stats.ts
 
-**Purpose:** Narrow per-system stats time-series (`ap_system_stats`) replacing the legacy 24-column circular buffers; one row per (system, hour).
+**Purpose:** Narrow per-system stats time-series (`ap_system_stats`); one row per (system, hour).
 **File:** `src/db/schema/ap/system_stats.ts`
 
 ---
@@ -16,4 +16,4 @@ Drizzle table `ap_system_stats`. Daily-partitioned by `hour_bucket` via pg_partm
 - `podKills` (`pod_kills`, integer, default 0) — pod kills.
 - `factionKills` (`faction_kills`, integer, default 0) — NPC/faction kills.
 
-**Notes:** Populated by the Stage 11 stats-refresh job — empty until then. Rolling 24h windows: `WHERE hour_bucket > now() - interval '24 hours'`. Rolloff is `DETACH/DROP PARTITION`, not `DELETE`.
+**Notes:** Populated by the stats-refresh job — empty until then. Rolling 24h windows: `WHERE hour_bucket > now() - interval '24 hours'`. Rolloff is `DETACH/DROP PARTITION`, not `DELETE`.

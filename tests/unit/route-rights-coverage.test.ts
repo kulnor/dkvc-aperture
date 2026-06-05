@@ -3,9 +3,9 @@ import { resolve, join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 /**
- * Stage 15.7 regression guard for SPEC §11 Q8.
+ * Regression guard for per-map rights enforcement.
  *
- * Every route file under `src/app/api/map/**` must enforce Stage 15 rights:
+ * Every route file under `src/app/api/map/**` must enforce per-map rights:
  *   - mutation handlers (POST/PATCH/DELETE) call `requireMapMutate(...)`.
  *   - read handlers (GET) call `requireMapView(...)` or `requireMapMutate(...)`.
  *   - no route file may contain the historical `INTERIM ACCESS` comment marker

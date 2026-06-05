@@ -1,6 +1,6 @@
 ## eve-provider.ts
 
-**Purpose:** The Auth.js v5 custom EVE SSO OAuth2 provider plus the persisted refresh-token rotation function (SPEC §7).
+**Purpose:** The Auth.js v5 custom EVE SSO OAuth2 provider plus the persisted refresh-token rotation function.
 **File:** `src/lib/auth/eve-provider.ts`
 
 ---

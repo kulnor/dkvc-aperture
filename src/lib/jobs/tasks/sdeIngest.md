@@ -1,6 +1,6 @@
 ## sdeIngest task
 
-**Purpose:** graphile-worker wrapper around `runIngest` so the Stage 16.6 setup wizard can trigger an on-demand SDE refresh without shelling into the container.
+**Purpose:** graphile-worker wrapper around `runIngest` so the setup wizard can trigger an on-demand SDE refresh without shelling into the container.
 **File:** `src/lib/jobs/tasks/sdeIngest.ts`
 
 ---
@@ -13,4 +13,4 @@ Registered task `'sde-ingest'`. No cron — enqueued only via the setup wizard's
 ### Notes
 - Long-running (downloads the SDE zip, bulk-inserts ~tens of thousands of rows). Don't block a request thread on this; the wizard enqueues and returns immediately.
 - Idempotent — `runIngest` upserts everything via `onConflictDoUpdate`; re-running against the same pinned `SDE_BUILD` is a no-op write-wise.
-- Scheduled SDE-delta refresh (using CCP's `changes/<build>.jsonl` automation feed) lands in a later stage; this module is the operator-driven path.
+- Scheduled SDE-delta refresh (using CCP's `changes/<build>.jsonl` automation feed) is not yet built; this module is the operator-driven path.

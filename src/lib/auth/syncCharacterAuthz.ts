@@ -24,7 +24,7 @@ import {
 } from '@/lib/esi/decoders';
 
 /**
- * Stage 15. Reconcile one character's derived authority state against ESI in
+ * Reconcile one character's derived authority state against ESI in
  * a single transactional pass. Three pieces of state are touched:
  *
  *   1. `ap_character.authz_level`         — recomputed via `resolveAuthzLevel`:
@@ -50,7 +50,7 @@ import {
  *
  * Called from:
  *   - The Auth.js JWT callback on initial sign-in (`src/lib/auth.ts`).
- *   - The Stage 15.6 `character-cleanup` job on its periodic resync pass.
+ *   - The `character-cleanup` job on its periodic resync pass.
  *
  * ESI-failure modes are caught by the caller's choice of policy; this helper
  * propagates them as-is (`EsiBreakerOpenError`, `EsiDowntimeError`,

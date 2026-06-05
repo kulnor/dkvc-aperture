@@ -2,10 +2,8 @@ import { bigint, pgTable, primaryKey } from 'drizzle-orm/pg-core';
 import { apCorporation } from './corporation';
 import { authzLevel, mapRight } from './enums';
 
-// Stage 15. Per-corp rights matrix per SPEC §6.5 lines 396–405.
-//
-// Flattens the legacy three-way `corporation_right(corp, role, right)` join
-// onto a two-column key plus a single `min_authz_level` threshold. Reading
+// Per-corp rights matrix: a two-column key plus a single `min_authz_level`
+// threshold. Reading
 // rule: a character with corp X may exercise `right` Y if there exists a row
 // `(X, Y)` AND the character's `authz_level` ordinal is `>= min_authz_level`.
 //

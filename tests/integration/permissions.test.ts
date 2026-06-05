@@ -23,7 +23,7 @@ import { listViewableMaps } from '@/lib/map/loadMap';
 import { characterCleanup } from '@/lib/jobs/tasks/characterCleanup';
 
 /**
- * Stage 15.7 acceptance gate (`docs/plans/rebuild-roadmap.md` §15 "Done when").
+ * Permissions acceptance gate.
  *
  * Drives the rights matrix end-to-end against real Postgres:
  *   - Owner-by-scope (private/corp/alliance) view + mutate truth table.

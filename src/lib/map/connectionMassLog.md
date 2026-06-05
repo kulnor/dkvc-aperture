@@ -1,6 +1,6 @@
 ## connectionMassLog.ts
 
-**Purpose:** Server-side writer for the per-jump connection mass-log (Stage 17.11a) — insert + broadcast.
+**Purpose:** Server-side writer for the per-jump connection mass-log — insert + broadcast.
 **File:** `src/lib/map/connectionMassLog.ts`
 
 Server-only by usage (no `import 'server-only'` — it's reached by the location-poll job chain that the

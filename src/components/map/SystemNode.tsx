@@ -25,10 +25,10 @@ import { RALLY_UNDERGLOW } from './underglowPresets';
 // double-click-to-edit; all other edits (status, intel, rally, locked) live in
 // the sidebar inspector. The presence badge shows the count of online tracked
 // pilots currently in this system, with a hover panel listing each pilot and
-// their ship (legacy Pathfinder parity).
+// their ship.
 
 export type SystemNodeData = MapSystemNode & {
-  /** Wired by `MapCanvas`; absent on the (now legacy) read-only path. */
+  /** Wired by `MapCanvas`; absent on the read-only path. */
   onAliasOrTagCommit?: (mapSystemId: string, field: 'alias' | 'tag', next: string | null) => void;
   /** Derived in `MapCanvas` from the map's `homeMapSystemId`; marks this tile as the Home system. */
   isHome?: boolean;

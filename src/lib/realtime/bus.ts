@@ -21,8 +21,8 @@ import {
  * and wraps each notification into a broadcast-only `mapUpdate` envelope.
  *
  * The WebSocket server (wsServer.ts) is the only consumer; clients never reach
- * this directly. Channel naming and the envelope shape come from the rebuild's
- * operational need (protocol.ts), not legacy payload shapes.
+ * this directly. Channel naming and the envelope shape come from Aperture's
+ * operational need (protocol.ts).
  */
 
 type Listener = (message: ServerToClientMessage) => void;
@@ -161,9 +161,9 @@ class RealtimeBus {
       data = {};
     }
 
-    // Discriminator: the Stage 12.3 location-poll wraps its broadcasts as
-    // `{ task: 'characterUpdate', load: {...} }`; the Stage 17.8 zKB feed wraps
-    // its as `{ task: 'systemNotification', load: {...} }`; the Stage 17.11a
+    // Discriminator: the location-poll wraps its broadcasts as
+    // `{ task: 'characterUpdate', load: {...} }`; the zKB feed wraps
+    // its as `{ task: 'systemNotification', load: {...} }`; the
     // mass-log wraps its as `{ task: 'connectionMassLog', load: {...} }`.
     // `commitMapEvent` payloads have no top-level `task` field (the trigger
     // forwards the raw event payload, which discriminates internally on `kind`).

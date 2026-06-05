@@ -3,7 +3,7 @@
 import { useRealtime } from '@/lib/realtime/useRealtime';
 
 /**
- * Degraded-mode banner (SPEC §71 NFR / CLAUDE.md "Realtime"): when the realtime
+ * Degraded-mode banner: when the realtime
  * socket is anything other than `open`, the UI must say so rather than silently
  * rendering stale state. Renders nothing while healthy.
  */

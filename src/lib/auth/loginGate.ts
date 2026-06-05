@@ -6,7 +6,7 @@ import { db } from '@/db/client';
 import { apAccessGrant, apCharacter, apInstance, apInstanceOwner } from '@/db/schema';
 
 /**
- * Permissions-overhaul Stage 3. The login gate that the Auth.js `signIn`
+ * The login gate that the Auth.js `signIn`
  * callback consults to decide — **before any session/JWT is issued** — whether a
  * character may sign in.
  *
@@ -15,8 +15,6 @@ import { apAccessGrant, apCharacter, apInstance, apInstanceOwner } from '@/db/sc
  * fails the caller passes `null` for both, degrading the gate to character-level
  * checks (a known character with a direct grant, or the bootstrap path, still
  * gets in; an owner/corp/alliance-only entitlement is denied until ESI recovers).
- *
- * See `docs/plans/permissions-overhaul.md` (Stage 3).
  */
 
 export interface LoginPrincipals {

@@ -2,19 +2,18 @@ import { bigint, index, pgTable, primaryKey, timestamp } from 'drizzle-orm/pg-co
 import { apCharacter } from './character';
 import { apMap } from './map';
 
-// SPEC §5.3. Join table backing the server-side per-character location-poll
-// (Stage 12). A row means "the location-poll job for this character should
+// Join table backing the server-side per-character location-poll.
+// A row means "the location-poll job for this character should
 // fold its detected jumps onto this map". A character may have rows on
-// multiple maps simultaneously — matches the legacy `mapIds[]` semantic of
-// `updateUserData` (docs/spec/03-backend-api.md §`updateUserData`).
+// multiple maps simultaneously.
 //
 // Cascade behavior: deleting the map or the character removes the tracking
 // row. The character row itself is rarely hard-deleted (kick/ban use the
 // `character_status` enum); map soft-delete (`ap_map.deleted_at`) does NOT
 // touch tracking rows — that's only cleared by the 30-day hard-purge cascade
-// (Stage 11.2 `map-purge`).
+// (`map-purge`).
 //
-// The location-poll handler (Stage 12.1) starts at "for this character, list
+// The location-poll handler starts at "for this character, list
 // every tracked map" — the `tracking_character_idx` index covers that path.
 export const apMapCharacterTracking = pgTable(
   'ap_map_character_tracking',

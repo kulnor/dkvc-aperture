@@ -13,7 +13,7 @@ import {
 /**
  * Wire contracts for the Aperture realtime WebSocket transport.
  *
- * Architecture (SPEC §§5–6, CLAUDE.md "Realtime"): the WebSocket is
+ * Architecture (CLAUDE.md "Realtime"): the WebSocket is
  * broadcast-only. A map mutation lands as one `INSERT INTO ap_map_event`; an
  * AFTER INSERT trigger fires `pg_notify('map:'||map_id, …)`; the WS server's
  * Postgres LISTEN handler picks it up and fans the envelope to subscribed
@@ -25,10 +25,8 @@ import {
  * access. There is no token handshake on the wire.
  *
  * Fidelity: the envelope and control-plane messages are pinned here. The
- * data-bearing bodies (mapUpdate/characterUpdate/etc.) are intentionally
- * forward-declared and tightened in Stage 6 once the `ap_map_*` row schemas
- * exist — they are derived from the rebuild's operational need, not legacy
- * payload shapes.
+ * data-bearing bodies (mapUpdate/characterUpdate/etc.) are derived from
+ * Aperture's operational need.
  */
 
 // ---------------------------------------------------------------------------
@@ -99,7 +97,7 @@ export const mapAccessLoadSchema = z.object({
 });
 
 // ---------------------------------------------------------------------------
-// Map-event payload contract (Stage 9.1). The jsonb `ap_map_event.payload` *is*
+// Map-event payload contract. The jsonb `ap_map_event.payload` *is*
 // this body: the `tg_map_event_notify` trigger forwards it verbatim and `bus.ts`
 // re-wraps it as the `mapUpdate.load.data`. Convention: every payload is
 // `{ kind, eventId, ...patch }` — `kind` selects the variant, `eventId` is the
@@ -244,9 +242,9 @@ export const mapEventPayloadSchema = z.discriminatedUnion('kind', [
     id: z.string(),
     deletedAt: z.string().nullable().optional(),
   }),
-  // Stage 16.2: admin clears `ap_map.deleted_at` (un-soft-deletes).
+  // Admin clears `ap_map.deleted_at` (un-soft-deletes).
   z.object({ kind: z.literal('map.restore'), eventId, id: z.string() }),
-  // Stage 16.2: admin hard-deletes a soft-deleted map immediately (skips the
+  // Admin hard-deletes a soft-deleted map immediately (skips the
   // 30-day map-purge cron grace). Emitted inside the same transaction as the
   // row delete, BEFORE the DELETE; pg_notify buffers the notification until
   // COMMIT, so subscribers receive it even though the source event row is
@@ -258,7 +256,7 @@ export type MapEventPayload = z.infer<typeof mapEventPayloadSchema>;
 
 /**
  * Seeded `ap_event_kind` values (migrations 0004 + 0014). The discriminator set.
- * Stage 16.2 added `map.restore` and `map.purge` for the admin maps panel.
+ * Includes `map.restore` and `map.purge` for the admin maps panel.
  */
 export const MAP_EVENT_KINDS = [
   'system.added',
@@ -299,12 +297,12 @@ export const mapUpdateLoadSchema = z.object({
 
 export const mapConnectionAccessLoadSchema = z.object({
   mapId: z.number().int().positive(),
-  // tightened in Stage 6: per-connection access body.
+  // per-connection access body.
   data: z.unknown().optional(),
 });
 
 /**
- * `characterUpdate` envelope load. Emitted by the Stage 12 location-poll on
+ * `characterUpdate` envelope load. Emitted by the location-poll on
  * every tick that changes the character's persisted state — broadcast on the
  * same `map:<id>` LISTEN channels as `mapUpdate` (one notification per tracked
  * map). The bus discriminates by the `task` discriminator in the pg_notify
@@ -341,7 +339,7 @@ export const characterUpdateLoadSchema = z.object({
 export type CharacterUpdateLoad = z.infer<typeof characterUpdateLoadSchema>;
 
 /**
- * `systemNotification` envelope load (Stage 17.8 follow-up). A *transient*
+ * `systemNotification` envelope load. A *transient*
  * server-observed event about a solar system on a map — it carries no map state
  * and so, like `characterUpdate`, is broadcast by a direct `pg_notify` that
  * bypasses `ap_map_event` (see `src/lib/integrations/zkbFeed.ts`). The bus
@@ -381,7 +379,7 @@ export const systemNotificationLoadSchema = z.discriminatedUnion('kind', [
 export type SystemNotificationLoad = z.infer<typeof systemNotificationLoadSchema>;
 
 /**
- * `connectionMassLog` envelope load (Stage 17.11a). A *transient*
+ * `connectionMassLog` envelope load. A *transient*
  * server-observed event: the location-poll logged a ship's jump across a
  * wormhole connection. Like `characterUpdate` / `systemNotification` it carries
  * no `MapViewData` state and is broadcast by a direct `pg_notify` that bypasses
@@ -408,7 +406,7 @@ export type ConnectionMassLogLoad = z.infer<typeof connectionMassLogLoadSchema>;
 
 export const logDataLoadSchema = z.object({
   mapId: z.number().int().positive(),
-  // tightened in Stage 6/10: the ap_map_event history record.
+  // the ap_map_event history record.
   data: z.unknown().optional(),
 });
 

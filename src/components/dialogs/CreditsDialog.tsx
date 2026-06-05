@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/dialog';
 
 /**
- * Static credits / about dialog (Stage 17.3). Self-contained: renders its own
+ * Static credits / about dialog. Self-contained: renders its own
  * footer-styled trigger plus the dialog, so the server `AppFooter` can drop it in
  * without becoming a client component. No server call.
  */

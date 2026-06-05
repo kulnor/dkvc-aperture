@@ -1,10 +1,9 @@
 import { bigserial, boolean, index, jsonb, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
 
-// SPEC §5.3. Per-invocation telemetry for the graphile-worker tasks introduced
-// in Stage 11. Written by `withInstrumentation` (src/lib/jobs/withInstrumentation.ts)
+// Per-invocation telemetry for the graphile-worker tasks. Written by
+// `withInstrumentation` (src/lib/jobs/withInstrumentation.ts)
 // around every handler call: one row inserted at start, finalised at end with
-// success/error/notes. The roadmap's "All cron jobs run on schedule for one
-// full week with success metrics visible" gate is read off this table.
+// success/error/notes. Surfaces per-job success metrics.
 //
 // graphile-worker's own tables live in the `graphile_worker` schema and are
 // managed by its `runMigrations` API on first boot — those track queued/locked

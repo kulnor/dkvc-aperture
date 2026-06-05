@@ -1,6 +1,6 @@
 ## locationPoll.ts
 
-**Purpose:** Per-character location-poll graphile-worker task. Scheduled via `addJob` only (no cron); the handler re-enqueues itself with an adaptive delay (5s online, 60s offline). Stage 12.1 + 12.2 + 12.3.
+**Purpose:** Per-character location-poll graphile-worker task. Scheduled via `addJob` only (no cron); the handler re-enqueues itself with an adaptive delay (5s online, 60s offline).
 **File:** `src/lib/jobs/tasks/locationPoll.ts`
 
 ---
@@ -22,12 +22,12 @@ Algorithm:
 4. **Load active tracked map ids** — one query, used by both branches' broadcasts and the wormhole fold.
 5. **Offline tick** — stamp `last_online = false`, re-enqueue at `LOCATION_POLL_OFFLINE_MS`, broadcast `characterUpdate(online: false, …)` on every tracked map channel using the *last-known* `lastSystemId` / `lastShipTypeId` / `lastShipName` / `lastLocationAt` from step 2. Return.
 6. **Online tick** — `Promise.all([getCharacterLocation, getCharacterShip])`, persist `last_system_id` / `last_ship_type_id` / `last_ship_name` (`ship.ship_name`) / `last_online = true` / `last_location_at = now()`, re-enqueue at `LOCATION_POLL_ONLINE_MS`.
-7. **Classify + fan-out** (Stage 12.2) — if the previous and current system ids differ and both are non-null, call `classifyJump`. On `'wormhole'`, resolve the jumping ship's mass once via `shipMass(ship.ship_type_id)` (Stage 17.11a), then for each tracked map call `foldWormholeJumpOntoMap` and `logConnectionJump({ connectionId: fold.connectionId, … })` to write the per-jump mass-log. Per-map outcomes land in `notes.folds[]`. The mass-log write is a direct `pg_notify` (`connectionMassLog` task), separate from `ap_map_event`; a null mass skips that jump's log.
+7. **Classify + fan-out** — if the previous and current system ids differ and both are non-null, call `classifyJump`. On `'wormhole'`, resolve the jumping ship's mass once via `shipMass(ship.ship_type_id)`, then for each tracked map call `foldWormholeJumpOntoMap` and `logConnectionJump({ connectionId: fold.connectionId, … })` to write the per-jump mass-log. Per-map outcomes land in `notes.folds[]`. The mass-log write is a direct `pg_notify` (`connectionMassLog` task), separate from `ap_map_event`; a null mass skips that jump's log.
 8. **Broadcast** — emit `characterUpdate(online: true, systemId, shipTypeId, shipName, locationAt)` on every tracked map channel. Goes out *after* the fold so the client receives `system.added` / `connection.create` first and the breadcrumb lands on a canvas that already knows the new system.
 
 Returns `PollNotes` with whichever subset of `{ stopped, online, previousSystemId, currentSystemId, reenqueuedInMs, jumpClass, folds }` applied. `stopped` is one of `'no-payload' | 'no-tracking' | 'character-inactive' | 'character-missing' | 'token-loss'`.
 
-### Failure handling (Stage 12.3)
+### Failure handling
 A single `try/catch` wraps steps 3–8:
 
 - **`EsiTokenError`** — token-loss: `DELETE FROM ap_map_character_tracking WHERE character_id = $1`, return `{ stopped: 'token-loss' }`. The success row carries the stop reason; no re-enqueue. Re-enabling tracking later requires the user to re-authenticate and call `startTrackingCharacter` again.
@@ -35,7 +35,7 @@ A single `try/catch` wraps steps 3–8:
 - Other errors propagate untouched; graphile-worker handles retry per its own `max_attempts`. The boot re-arm (`runner.md`) revives a loop that ever exhausts those attempts.
 
 ### `characterUpdate` broadcast
-The poll emits its breadcrumb via `pg_notify('map:<id>', envelope)` where the envelope is JSON of the form `{ task: 'characterUpdate', load: { characterId, characterName, online, systemId, shipTypeId, shipTypeName, shipName, locationAt } }`. `bus.ts` (Stage 12.3-tightened) discriminates by the top-level `task` field — payloads without it stay on the `mapUpdate` path. The WS server forwards the resulting `ServerToClientMessage` unchanged.
+The poll emits its breadcrumb via `pg_notify('map:<id>', envelope)` where the envelope is JSON of the form `{ task: 'characterUpdate', load: { characterId, characterName, online, systemId, shipTypeId, shipTypeName, shipName, locationAt } }`. `bus.ts` discriminates by the top-level `task` field — payloads without it stay on the `mapUpdate` path. The WS server forwards the resulting `ServerToClientMessage` unchanged.
 
 `characterName` reads from the row already loaded in step 2 (`apCharacter.name`). `shipTypeName` is resolved per tick with one `SELECT name FROM universe_type WHERE id = $shipTypeId` lookup; null when `shipTypeId` is null or the row is missing. `shipName` is the pilot's custom hull name (`ship.ship_name` on an online tick, `lastShipName` on an offline tick); null before the first online tick. All three ride every broadcast so the client renders the presence-badge hover panel without a separate roster fetch.
 

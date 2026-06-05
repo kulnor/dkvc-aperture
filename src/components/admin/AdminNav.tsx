@@ -4,8 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
-// Pages for /admin/maps, /admin/members, /admin/settings land in sub-stages
-// 16.2 / 16.3 / 16.5 — until then they 404 by design. UrlObject href bypasses
+// Targets that don't yet exist 404 by design. UrlObject href bypasses
 // `typedRoutes` for the not-yet-existent paths without an `as` cast.
 const ITEMS = [
   { path: '/admin', label: 'Dashboard' },

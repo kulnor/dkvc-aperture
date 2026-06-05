@@ -1,6 +1,6 @@
 ## Sparkline
 
-**Purpose:** Minimal inline-SVG sparkline rendering a normalized polyline over a numeric series (Stage 17.7).
+**Purpose:** Minimal inline-SVG sparkline rendering a normalized polyline over a numeric series.
 **File:** `src/components/stats/Sparkline.tsx`
 
 ### Props

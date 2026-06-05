@@ -1,6 +1,6 @@
 ## WebhookHealthBadge
 
-**Purpose:** Compact status pill for a single `ap_map_webhook` row, rendered in the Stage 16.4 admin webhook list.
+**Purpose:** Compact status pill for a single `ap_map_webhook` row, rendered in the admin webhook list.
 **File:** `src/components/admin/WebhookHealthBadge.tsx`
 
 ### Props

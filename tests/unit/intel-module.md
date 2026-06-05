@@ -1,6 +1,6 @@
 ## intel-module.test.tsx
 
-**Purpose:** Server-render smoke tests for the Stage 13 `IntelModule`.
+**Purpose:** Server-render smoke tests for the `IntelModule`.
 **File:** `tests/unit/intel-module.test.tsx`
 
 ---

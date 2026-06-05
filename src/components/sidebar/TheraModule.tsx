@@ -9,10 +9,10 @@ import { fetchTheraConnections, syncTheraConnectionsOnServer } from '@/lib/map/c
 import type { MapViewData } from '@/lib/map/loadMap';
 import type { MapEventPayload, TheraConnection, TheraSyncInput } from '@/types';
 
-// Stage 17.9 global Thera module. Lists EVE-Scout's published Thera + Turnur
+// Global Thera module. Lists EVE-Scout's published Thera + Turnur
 // connections and folds chosen ones onto the open map. Unlike the system-scoped
-// sidebar modules this is always-on (not gated on a selected system) — the
-// legacy `global_thera.js` was global scope. Per-row sync status is computed
+// sidebar modules this is always-on (not gated on a selected system) — Thera
+// connections are global scope. Per-row sync status is computed
 // client-side from live `viewData`, so it re-derives for free as systems/edges
 // arrive (own sync or a peer's realtime echo).
 

@@ -10,12 +10,12 @@ import { bus } from './bus';
 import { clientToServerMessageSchema, type ServerToClientMessage } from './protocol';
 
 /**
- * Node-runtime WebSocket server attached to the same HTTP server as Next.js
- * (SPEC §5.5). Broadcast-only: clients send `subscribe` / `unsubscribe`; the
+ * Node-runtime WebSocket server attached to the same HTTP server as Next.js.
+ * Broadcast-only: clients send `subscribe` / `unsubscribe`; the
  * server fans `mapUpdate` envelopes sourced from the Postgres LISTEN bus.
  *
  * Authorization is the Auth.js session, read off the upgrade request's cookies.
- * Stage 15: subscriptions are gated by `canViewMap` — a request for a map the
+ * Subscriptions are gated by `canViewMap` — a request for a map the
  * actor can't see is silently dropped (no acknowledgement; we don't leak
  * existence over realtime any more than we do over HTTP).
  */
@@ -72,7 +72,7 @@ function send(socket: WebSocket, message: ServerToClientMessage): void {
   if (socket.readyState === socket.OPEN) socket.send(JSON.stringify(message));
 }
 
-/** Map ids the actor can view (existence + soft-delete + Stage 15 rights). */
+/** Map ids the actor can view (existence + soft-delete + view rights). */
 async function viewableMapIds(
   characterId: bigint,
   mapIds: number[],

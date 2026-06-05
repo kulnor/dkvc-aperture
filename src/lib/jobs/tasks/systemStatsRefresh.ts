@@ -7,7 +7,7 @@ import { withInstrumentation } from '../withInstrumentation';
 import type { JobModule } from '../registry';
 
 /**
- * Stage 11.3. Per-system stats refresh cron. Fetches `getUniverseJumps` and
+ * Per-system stats refresh cron. Fetches `getUniverseJumps` and
  * `getUniverseKills` in parallel each hour, bucket-aligns them at the current
  * hour boundary (`date_trunc('hour', now())` in Postgres so we avoid Node↔PG
  * clock skew), and upserts one `ap_system_stats` row per system the ESI
@@ -23,8 +23,7 @@ import type { JobModule } from '../registry';
  * `withInstrumentation` records `ap_job_run.success = false` and graphile-worker
  * retries per its own policy.
  *
- * Replaces legacy `Cron\CcpSystemsUpdate::importSystemData`. The legacy
- * 24-column circular buffer is gone (SPEC §6.5); rolling 24h windows are now
+ * Rolling 24h windows are read as
  * `WHERE hour_bucket > now() - interval '24 hours'`.
  */
 

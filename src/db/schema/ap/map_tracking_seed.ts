@@ -2,8 +2,8 @@ import { bigint, integer, pgTable, primaryKey, timestamp } from 'drizzle-orm/pg-
 import { apMap } from './map';
 import { apUser } from './user';
 
-// Per-(map, account) "have we auto-seeded tracking here yet?" marker
-// (per-map-character-tracking plan, Stage 1). With the global
+// Per-(map, account) "have we auto-seeded tracking here yet?" marker.
+// With the global
 // `ap_character.tracking_enabled` flag gone and presence in
 // `ap_map_character_tracking` meaning "tracked", an empty selection is
 // ambiguous: a never-configured map (should auto-add all the account's active

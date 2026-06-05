@@ -1,9 +1,7 @@
 // Dev-only seed: inserts one demo map ("Demo Chain") with a handful of systems
-// and connections so the read-only map view (Stage 7) can be eyeballed in the
-// browser before any mutation pathway exists. Idempotent — deletes the map by
-// name first. Requires the SDE to have been ingested (`pnpm sde:bootstrap`).
-//
-// SUPERSEDED once Stage 9 lands real map creation; safe to delete then.
+// and connections so the map view can be eyeballed in the browser. Idempotent —
+// deletes the map by name first. Requires the SDE to have been ingested
+// (`pnpm sde:bootstrap`).
 import { eq, inArray, like } from 'drizzle-orm';
 import { db, pool } from '@/db/client';
 import { apMap, apMapConnection, apMapSystem, universeSystem } from '@/db/schema';

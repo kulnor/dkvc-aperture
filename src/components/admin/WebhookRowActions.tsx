@@ -36,7 +36,7 @@ export type WebhookRowActionsProps = {
 };
 
 /**
- * Per-row action cluster for the Stage 16.4 webhook list: test-fire, reset
+ * Per-row action cluster for the webhook list: test-fire, reset
  * failure counter (only when failing), edit (dialog wrapping `WebhookForm`),
  * and delete (confirm dialog).
  */

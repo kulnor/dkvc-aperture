@@ -1,6 +1,6 @@
 ## syncCharacterAuthz.ts
 
-**Purpose:** Reconcile one character's derived authority state (`authz_level`, affiliations, corp-title role memberships) against ESI in a single transactional pass. Called from the Auth.js JWT callback on initial sign-in and the Stage 15.6 `character-cleanup` job's periodic resync.
+**Purpose:** Reconcile one character's derived authority state (`authz_level`, affiliations, corp-title role memberships) against ESI in a single transactional pass. Called from the Auth.js JWT callback on initial sign-in and the `character-cleanup` job's periodic resync.
 **File:** `src/lib/auth/syncCharacterAuthz.ts`
 
 ---

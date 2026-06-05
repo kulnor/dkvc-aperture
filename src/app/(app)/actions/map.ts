@@ -18,7 +18,7 @@ import { canCreateMap, isMapOwnerOrAdmin, requireMapRight } from '@/lib/auth/rig
  * the natural next step). Each one validates input, lands exactly one
  * `ap_map_event` through `commitMapEvent`, and revalidates the maps list.
  *
- * Stage 15 access:
+ * Access:
  *   - `createMapAction`         requires `canCreateMap` (corp-right grant or admin).
  *                               Sets the owner FK that matches the chosen `type`.
  *   - `updateMapSettingsAction` requires `map_update` right.
@@ -43,7 +43,7 @@ const updateMapSettingsSchema = z.object({
   deleteEolConnections: z.boolean().optional(),
   trackAbyssalJumps: z.boolean().optional(),
   logActivity: z.boolean().optional(),
-  // Stage 17.10 auto-tagging (owner/admin-gated; see the action body).
+  // Auto-tagging (owner/admin-gated; see the action body).
   tagScheme: z.enum(tagScheme.enumValues).optional(),
   homeMapSystemId: z.string().regex(/^\d+$/, 'Invalid system id.').nullable().optional(),
   exemptHomeStaticFromTag: z.boolean().optional(),

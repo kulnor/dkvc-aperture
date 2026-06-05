@@ -1,6 +1,6 @@
 ## runner.ts
 
-**Purpose:** graphile-worker boot, shutdown, and one-shot helpers. Owns the long-lived `Runner` for the embedded worker process (SPEC §5.3).
+**Purpose:** graphile-worker boot, shutdown, and one-shot helpers. Owns the long-lived `Runner` for the embedded worker process.
 **File:** `src/lib/jobs/runner.ts`
 
 ---

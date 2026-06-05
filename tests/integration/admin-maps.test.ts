@@ -7,7 +7,7 @@ import { db, pool } from '@/db/client';
 import { apCharacter, apCorporation, apMap, apUser } from '@/db/schema';
 
 /**
- * Stage 16.2 — admin map actions (real Postgres).
+ * Admin map actions (real Postgres).
  *
  * Drives `adminSoftDeleteMap` / `adminRestoreMap` / `adminPurgeMap` end to end
  * against a live Postgres + asserts:

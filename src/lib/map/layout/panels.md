@@ -21,7 +21,7 @@
 `Record<PanelId, { minW: number; minH: number }>` — the resize floors derived from `PANELS`. Authoritative: `MapLayoutGrid` re-applies these over each stored layout item at render time, so lowering a floor takes effect for already-saved per-account layouts without disturbing their persisted positions.
 
 ### DEFAULT_MAP_LAYOUT
-`MapLayoutConfig` — the fallback used when `ap_user.map_layout` is NULL. Reproduces the legacy fixed layout: a tall `canvas` top-left, full-width `signatures` beneath it, and the info modules stacked in a right column. Built per breakpoint — `lg`/`md` via `wideLayout(cols)` (left canvas+signatures, right module stack), `sm` via a single-column stack in registry order. `hidden: []`.
+`MapLayoutConfig` — the fallback used when `ap_user.map_layout` is NULL. The built-in fixed layout: a tall `canvas` top-left, full-width `signatures` beneath it, and the info modules stacked in a right column. Built per breakpoint — `lg`/`md` via `wideLayout(cols)` (left canvas+signatures, right module stack), `sm` via a single-column stack in registry order. `hidden: []`.
 
 ### ensurePanelsPlaced(config: MapLayoutConfig): MapLayoutConfig
 Forward-compat normaliser run when seeding layout state on load. Ensures every panel in `PANELS` has a layout item in every breakpoint; a panel that shipped after the user last saved (so it's absent from their stored `layouts[bp]`) is appended below the existing items at `x: 0`, stacked by its `minH`, sized `Math.min(cols, max(minW, 4)) × max(minH, 4)`. No data migration needed for future panels.

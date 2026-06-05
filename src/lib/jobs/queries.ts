@@ -3,7 +3,7 @@ import { db } from '@/db/client';
 import { apJobRun } from '@/db/schema';
 
 /**
- * Read-only helpers over `ap_job_run` for the Stage 11.6 operability sweep
+ * Read-only helpers over `ap_job_run` for the operability sweep
  * (CLI `pnpm jobs:status`). All inserts/updates to `ap_job_run` happen in
  * `withInstrumentation.ts`; these are the readers.
  */

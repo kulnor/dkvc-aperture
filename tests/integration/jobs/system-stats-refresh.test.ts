@@ -24,7 +24,7 @@ import { esiCall, EsiBreakerOpenError } from '@/lib/esi/client';
 import { systemStatsRefresh } from '@/lib/jobs/tasks/systemStatsRefresh';
 
 /**
- * Stage 11.3 gates per sub-stage plan:
+ * Coverage:
  *   - With a mocked ESI response, the job produces the expected
  *     `ap_system_stats` rows for that hour bucket; a re-run with new values
  *     updates in-place.

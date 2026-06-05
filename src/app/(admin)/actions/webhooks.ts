@@ -14,7 +14,7 @@ import {
 } from '@/lib/auth/rights';
 
 /**
- * Stage 16.4 admin actions on `ap_map_webhook` rows. Five operations exposed
+ * Admin actions on `ap_map_webhook` rows. Five operations exposed
  * at `/admin/maps/[mapId]/webhooks`: create, update, delete, reset failures,
  * test fire. All gated by `isManagerOrAdmin` + a per-map scope check via
  * `mapScopeFilterFor` — a manager can only edit webhooks for maps within their
@@ -22,7 +22,7 @@ import {
  *
  * No `ap_map_event` row is written for webhook config changes — webhook
  * subscriptions are infrastructure, not map state, and `ap_map_event` is
- * map-state-only (see Stage 16 plan, "What is intentionally NOT in scope").
+ * map-state-only, so webhook config is intentionally out of its scope.
  * `revalidatePath` is enough to keep the panel fresh after every edit.
  */
 

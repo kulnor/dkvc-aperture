@@ -35,13 +35,13 @@ export function jumpMassBand(kg: number | null): WhJumpMass | null {
 }
 
 /**
- * Wormhole-catalog lookups for the two SPEC §6.4 product use-cases:
+ * Wormhole-catalog lookups for two use-cases:
  *   1. class-filtered WH-type suggestion when marking a signature as a wormhole;
  *   2. "mark as static" — identifying which of a system's statics a connection is.
  *
  * Class join key: `universe_system.security` (the C1–C6 / HS / LS / NS labels),
- * NOT `universe_system.security_class`. SPEC §6.4 pins `universe_wormhole`'s
- * `source_class`/`target_class` to "the same labels as universe_system.security",
+ * NOT `universe_system.security_class`. `universe_wormhole`'s
+ * `source_class`/`target_class` use the same labels as `universe_system.security`,
  * and the seeded catalog uses exactly those (e.g. a C3 static carries
  * `source_class = 'C3'`). `security_class` is the unrelated SDE ore-spawn field.
  */

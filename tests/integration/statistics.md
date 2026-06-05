@@ -1,6 +1,6 @@
 ## statistics.test.ts
 
-**Purpose:** Stage 17.7 acceptance gate — drives `src/lib/stats/activity.ts` against real Postgres.
+**Purpose:** Drives `src/lib/stats/activity.ts` against real Postgres.
 **File:** `tests/integration/statistics.test.ts`
 
 Gated on `RUN_DB_TESTS=1` (skipped otherwise). Run:

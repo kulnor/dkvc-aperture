@@ -15,8 +15,8 @@ import { StatsTable } from '@/components/stats/StatsTable';
 import type { ActivityStatPeriod, ActivityStatScope, ActivityStatsResponse } from '@/types';
 
 /**
- * Statistics dialog (Stage 17.7) — global, header-launched per-character activity
- * ranking. Faithful to the legacy `stats.js`: Private / Corp / Alliance scope
+ * Statistics dialog — global, header-launched per-character activity
+ * ranking: Private / Corp / Alliance scope
  * tabs (only those the account qualifies for, resolved server-side), week / month
  * / year period navigation with prev/next, and a `StatsTable` per scope. All
  * activity is rolled up to account mains. Reads `GET /api/statistics`.

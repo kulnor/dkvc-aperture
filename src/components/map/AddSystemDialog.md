@@ -1,6 +1,6 @@
 ## AddSystemDialog
 
-**Purpose:** Search the EVE universe by name and place a solar system on the map manually — without a tracked character jumping a wormhole into it (SPEC §6.5).
+**Purpose:** Search the EVE universe by name and place a solar system on the map manually — without a tracked character jumping a wormhole into it.
 **File:** `src/components/map/AddSystemDialog.tsx`
 
 ### Props

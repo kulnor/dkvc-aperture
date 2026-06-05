@@ -12,7 +12,7 @@ import { apMapConnection } from './map_connection';
 import { apMapSystem } from './map_system';
 import { signatureGroupKey } from './enums';
 
-// SPEC §6.5. An in-game scan signature inside a system, optionally bound to the
+// An in-game scan signature inside a system, optionally bound to the
 // connection it resolves to (the wormhole itself). Reaped by the signature-reap
 // cron on `expires_at`. Sigs bound to a connection cascade-delete when it
 // collapses; unattached sigs (gas/ore/data/relic) survive system invisibility.

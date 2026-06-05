@@ -4,7 +4,7 @@ import { db } from '@/db/client';
 import { universeConstellation, universeRegion, universeSystem } from '@/db/schema';
 
 /**
- * Solar-system name search for the "add system manually" flow (SPEC §6.5) — the
+ * Solar-system name search for the "add system manually" flow — the
  * way a system lands on a map without a tracked character physically jumping a
  * wormhole into it. Pure read-side helper; the route layer carries the map-view
  * guard.

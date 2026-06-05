@@ -5,9 +5,9 @@ import { apertureConfig } from '../../../aperture.config';
  *
  * ESI is expected to fail around CCP's daily server restart. Failures inside
  * this window are not counted against the circuit breakers and are surfaced as
- * an expected `EsiDowntimeError` rather than a real fault. Mirrors the legacy
- * `Lib\Config::inDownTimeRange` (SPEC §01): the window is `CCP_SSO_DOWNTIME` ±
- * `CCP_SSO_DOWNTIME_WINDOW_MIN`, padded by `CCP_SSO_DOWNTIME_BUFFER_MIN` on each
+ * an expected `EsiDowntimeError` rather than a real fault. The window is
+ * `CCP_SSO_DOWNTIME` ± `CCP_SSO_DOWNTIME_WINDOW_MIN`, padded by
+ * `CCP_SSO_DOWNTIME_BUFFER_MIN` on each
  * side. All arithmetic is in UTC.
  */
 

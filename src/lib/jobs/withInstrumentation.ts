@@ -6,7 +6,7 @@ import { apJobRun } from '@/db/schema';
 
 /**
  * Wrap a graphile-worker task handler so every invocation is recorded in
- * `ap_job_run` (Stage 11 observability). The row is inserted at the start of
+ * `ap_job_run` (observability). The row is inserted at the start of
  * the run (so an in-flight handler is visible as `ended_at IS NULL`), then
  * finalised on completion with `success`, optional `errorText`, and any
  * `notes` the handler returned.

@@ -17,14 +17,14 @@ import { addInstanceGrant } from '@/lib/auth/instanceConfig';
 import { syncCharacterAuthz } from '@/lib/auth/syncCharacterAuthz';
 
 /**
- * Stage 16.3 admin actions on `ap_character` rows: moderation
+ * Admin actions on `ap_character` rows: moderation
  * (`kick` / `ban` / `activate`) and authz toggle
  * (`grantManager` / `revokeManager`). Gated by `isManagerOrAdmin` +
  * `adminVisibilityScope`; the two authz actions further require `isAdmin`
  * (managers may moderate within their corp but cannot mint other managers).
  *
  * Moderation actions write directly to `ap_character`. The manager toggle does
- * NOT — per the permissions overhaul (Stage 5) it writes an `ap_access_grant`
+ * NOT — it writes an `ap_access_grant`
  * (`scope='instance', capability='manage'`) and re-resyncs the target so the
  * recomputed `ap_character.authz_level` cache reflects it. The grant row is the
  * source of truth; `authz_level` is just its cache (see
@@ -32,7 +32,7 @@ import { syncCharacterAuthz } from '@/lib/auth/syncCharacterAuthz';
  * grant-toggled here — it is a `/setup` concern.
  *
  * No `ap_map_event` audit row is written for any of these (`ap_map_event` is
- * map-scoped — see Stage 16 plan, "What is intentionally NOT in scope"). The
+ * map-scoped, so character-moderation changes are intentionally out of its scope). The
  * dashboard counts in `/admin` reflect the new state on next load via
  * `revalidatePath`.
  */
@@ -120,7 +120,7 @@ async function resyncCachedLevel(characterId: bigint): Promise<void> {
 /**
  * Set `status='kicked'` with a fixed-minutes timeout. The `character-cleanup`
  * cron flips the row back to `'active'` on expiry (`src/lib/jobs/tasks/characterCleanup.ts`).
- * Three durations only — 5, 60, 1440 minutes — per the Stage 16 plan.
+ * Three durations only — 5, 60, 1440 minutes.
  */
 export async function adminKickCharacter(
   characterId: string,

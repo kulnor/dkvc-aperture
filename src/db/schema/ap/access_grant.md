@@ -27,7 +27,7 @@
 
 **What each row means now:**
 - `scope='instance', capability='login'` — allowlist entry.
-- `scope='instance', capability='admin' | 'manage'` — explicit super-admin / manager hand-grant on a character (read by `resolveAuthzLevel`, Stage 2).
+- `scope='instance', capability='admin' | 'manage'` — explicit super-admin / manager hand-grant on a character (read by `resolveAuthzLevel`).
 
-**Reserved for the later sharing feature** (table exists now; read-path consult added with that feature):
+**Reserved for the sharing feature** (table exists; read-path consult added with that feature):
 - `scope='map', capability='view' | 'edit'` — a named-entity map share; non-null `expires_at` ⇒ temporary, auto-revoked.

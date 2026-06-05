@@ -8,7 +8,7 @@ import { apAccessGrant, apInstance, apInstanceOwner } from '@/db/schema';
 import type { AccessMode } from '@/types';
 
 /**
- * Permissions-overhaul Stage 4. Read/write helper for the per-deployment access
+ * Read/write helper for the per-deployment access
  * configuration the `/setup` ops console drives: the `ap_instance` singleton's
  * `access_mode`, the `ap_instance_owner` entries, and the instance-scoped
  * `ap_access_grant` allowlist (login / admin / manage).
@@ -17,8 +17,6 @@ import type { AccessMode } from '@/types';
  * gates on the `ap_setup` cookie). Writes take effect immediately for the
  * live-read paths (login gating in `loginGate.ts`); the cached
  * `ap_character.authz_level` updates on the affected character's next resync.
- *
- * See `docs/plans/permissions-overhaul.md` (Stage 4).
  */
 
 /** `ap_instance_owner` is constrained to organisations by a CHECK. */

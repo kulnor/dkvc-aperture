@@ -1,6 +1,6 @@
 ## client.test.ts
 
-**Purpose:** Exercises the Stage 4 ESI client substrate end-to-end with a stubbed `fetch` (no real network) and a mocked DB/crypto for token resolution. Mirrors the `vi.stubGlobal('fetch', …)` posture of `tests/integration/auth-rotation.test.ts`.
+**Purpose:** Exercises the ESI client substrate end-to-end with a stubbed `fetch` (no real network) and a mocked DB/crypto for token resolution. Mirrors the `vi.stubGlobal('fetch', …)` posture of `tests/integration/auth-rotation.test.ts`.
 **File:** `tests/esi/client.test.ts`
 
 `@/db/client` and `@/lib/crypto` are `vi.mock`ed so the character-auth path is deterministic and DB-free; `tokenRow` (via `vi.hoisted`) drives the seeded character row. Fake timers + `setSystemTime` pin the clock outside (`00:00Z`) or inside (`11:00Z`) the downtime window.

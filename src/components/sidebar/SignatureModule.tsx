@@ -41,7 +41,7 @@ type ScanFilter = 'all' | 'scanned' | 'unscanned';
 
 /**
  * Recolors the cell's control border to `destructive` so an unfilled required
- * field (group / type / leads-to) reads red at a glance — the Pathfinder cue
+ * field (group / type / leads-to) reads red at a glance — the cue
  * for a not-yet-fully-scanned sig. Applied to the cell wrapper `<div>`; targets
  * the inner select trigger or text input by their `data-slot`.
  */

@@ -7,7 +7,7 @@ import type { TagContext } from '@/lib/tagging/types';
 import type { MapViewData } from '@/lib/map/loadMap';
 
 /**
- * Auto-tagging "next available" side panel (Stage 17.10). Reuses the pure
+ * Auto-tagging "next available" side panel. Reuses the pure
  * `availableTags` strategy over the live `viewData`, so it updates as discovery
  * events fold onto the canvas. Hidden entirely when the map runs no scheme. The
  * active scheme comes from `viewData.map.tagScheme` (config is load-time, not

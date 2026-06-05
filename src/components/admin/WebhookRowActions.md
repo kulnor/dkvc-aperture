@@ -1,6 +1,6 @@
 ## WebhookRowActions
 
-**Purpose:** Per-row action cluster (test-fire, reset failures, edit, delete) for the Stage 16.4 webhook list.
+**Purpose:** Per-row action cluster (test-fire, reset failures, edit, delete) for the webhook list.
 **File:** `src/components/admin/WebhookRowActions.tsx`
 
 ### Props

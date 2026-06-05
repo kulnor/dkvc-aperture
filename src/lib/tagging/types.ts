@@ -1,4 +1,4 @@
-// Stage 17.10 auto-tagging. The strategy contract every scheme implements, plus
+// Auto-tagging. The strategy contract every scheme implements, plus
 // the read-only context the schemes operate over. Everything here is PURE and
 // db-free: the same functions run server-side (assignment, inside a mutation
 // transaction) and client-side (the `TagsModule` panel, over `viewData`). The

@@ -1,6 +1,6 @@
 /**
- * User-guide content for the Manual dialog (Stage 17.4). Authored as a typed
- * constant rather than ported from the legacy HTML template — sections drive
+ * User-guide content for the Manual dialog. Authored as a typed
+ * constant — sections drive
  * both the scrollspy nav and the rendered body. Keep prose concise; this is a
  * quick-reference, not exhaustive docs.
  */

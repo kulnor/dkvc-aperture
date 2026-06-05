@@ -1,6 +1,6 @@
 ## AdminMapWebhooksPage
 
-**Purpose:** Stage 16.4 per-map webhook subscription editor. Lists `ap_map_webhook` rows for one map with health badges, per-row actions, and an add-webhook form.
+**Purpose:** Per-map webhook subscription editor. Lists `ap_map_webhook` rows for one map with health badges, per-row actions, and an add-webhook form.
 **File:** `src/app/(admin)/admin/maps/[mapId]/webhooks/page.tsx`
 
 ### Route

@@ -20,7 +20,7 @@ import { listConnectionMassLog, logConnectionJump } from '@/lib/map/connectionMa
 import { shipMass } from '@/lib/eve/shipMass';
 
 /**
- * Stage 17.11a gate. DB-gated like the rest:
+ * DB-gated like the rest:
  *   docker compose up -d && pnpm db:migrate && RUN_DB_TESTS=1 pnpm test
  *
  * Covers the server-derived connection mass-log: base `universe_type.mass`

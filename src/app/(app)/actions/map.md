@@ -3,8 +3,6 @@
 **Purpose:** Low-frequency, user-initiated map mutations (create / soft-delete / settings) as Next.js Server Actions. Each validates input, lands one `ap_map_event` via `commitMapEvent`, and `revalidatePath('/maps')`.
 **File:** `src/app/(app)/actions/map.ts`
 
-> INTERIM ACCESS (Stage 7 mirror): any logged-in character may mutate any non-soft-deleted map. Per-map rights land in Stage 15.
-
 ---
 
 ### createMapAction(input: CreateMapInput): Promise<ActionResult<MapEventPayload>>
@@ -14,7 +12,7 @@ Validates `{ name, scope, type, icon? }` (Zod). Pre-allocates the `ap_map.id` fr
 Two-phase soft-delete: sets `deleted_at = now()` (cron purges later — never a hard delete here) on the matching non-deleted map. Throws (→ `{ ok: false }`) if the map is missing or already deleted. Emits `map.delete` → `{ id, deletedAt }`. Revalidates `/maps`.
 
 ### updateMapSettingsAction(input: UpdateMapSettingsInput): Promise<ActionResult<MapEventPayload>>
-Validates `{ mapId, name?, icon?, deleteExpiredConnections?, deleteEolConnections?, trackAbyssalJumps?, logActivity?, tagScheme?, homeMapSystemId?, exemptHomeStaticFromTag? }`. Base fields gate on `map_update`. **Stage 17.10:** when `tagScheme`/`homeMapSystemId`/`exemptHomeStaticFromTag` are present they additionally require `isMapOwnerOrAdmin` (owner/admin only, tighter than the corp-grantable `map_update`); a non-null `homeMapSystemId` is validated to be a visible system on the map. Tagging fields persist but are **not** echoed in the `map.update` payload (config propagates on next load). Updates only the keys present (presence via `in`, so `false` is honored). Emits `map.update` → `{ id, ...changed }`. After a tagging-touching save it runs `applyHomeStaticExemption` (reconciles the ABC home-static exemption as separate `system.update` events; no-op for non-ABC maps). Revalidates `/maps`.
+Validates `{ mapId, name?, icon?, deleteExpiredConnections?, deleteEolConnections?, trackAbyssalJumps?, logActivity?, tagScheme?, homeMapSystemId?, exemptHomeStaticFromTag? }`. Base fields gate on `map_update`. When `tagScheme`/`homeMapSystemId`/`exemptHomeStaticFromTag` are present they additionally require `isMapOwnerOrAdmin` (owner/admin only, tighter than the corp-grantable `map_update`); a non-null `homeMapSystemId` is validated to be a visible system on the map. Tagging fields persist but are **not** echoed in the `map.update` payload (config propagates on next load). Updates only the keys present (presence via `in`, so `false` is honored). Emits `map.update` → `{ id, ...changed }`. After a tagging-touching save it runs `applyHomeStaticExemption` (reconciles the ABC home-static exemption as separate `system.update` events; no-op for non-ABC maps). Revalidates `/maps`.
 
 ---
 

@@ -1,6 +1,6 @@
 ## map-api-routes.test.ts
 
-**Purpose:** Stage 9.4 integration gate — signature CRUD helpers, `guardMap`/`parseBigInt` guards, and LISTEN-based broadcast confirmation.
+**Purpose:** Integration coverage for signature CRUD helpers, `guardMap`/`parseBigInt` guards, and LISTEN-based broadcast confirmation.
 **File:** `tests/integration/map-api-routes.test.ts`
 
 ### Coverage

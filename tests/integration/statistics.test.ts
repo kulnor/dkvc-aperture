@@ -8,7 +8,7 @@ import { apCharacter, apMap, apMapEvent, apUser } from '@/db/schema';
 import { loadActivityStats, resolveStatsAccess } from '@/lib/stats/activity';
 
 /**
- * Stage 17.7 gate: activity statistics over `ap_activity_rollup`.
+ * Activity statistics over `ap_activity_rollup`.
  *
  * Verifies, against real Postgres, that the reader: rolls an account's alts up
  * to its main, excludes `map.*` kinds, respects map-scope visibility, places

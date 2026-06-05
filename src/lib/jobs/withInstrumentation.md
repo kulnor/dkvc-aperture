@@ -1,6 +1,6 @@
 ## withInstrumentation.ts
 
-**Purpose:** Higher-order wrapper that records every graphile-worker task handler invocation in `ap_job_run` (Stage 11 observability).
+**Purpose:** Higher-order wrapper that records every graphile-worker task handler invocation in `ap_job_run` (observability).
 **File:** `src/lib/jobs/withInstrumentation.ts`
 
 ---
@@ -27,4 +27,4 @@ Wraps a raw handler so each invocation:
 
 ### Notes
 - The row write uses the app's drizzle `db` client, **not** `helpers.withPgClient` — the run row is intentionally outside the graphile-worker job transaction so it survives a handler crash mid-transaction.
-- Operators inspecting `ap_job_run` see in-flight handlers as `ended_at IS NULL`. A worker that dies mid-handler will leave such a row; the operability sweep in Stage 11.6 reports those as "abandoned".
+- Operators inspecting `ap_job_run` see in-flight handlers as `ended_at IS NULL`. A worker that dies mid-handler will leave such a row; the operability sweep reports those as "abandoned".

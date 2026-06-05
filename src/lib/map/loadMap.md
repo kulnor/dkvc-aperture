@@ -6,7 +6,7 @@
 ---
 
 ### loadMapForView(mapId: bigint, viewerCharacterId: bigint): Promise<MapViewData | null>
-Loads one map for rendering. Returns `null` if the map is missing, soft-deleted, or the viewer is not allowed to see it (Stage 15 `canViewMap`). The viewer-id is required — passing the wrong one is an access-control bug the type system catches. Joins visible `ap_map_system` rows to `universe_system` / constellation / region, attaches wormhole static codes, loads all `ap_map_connection` rows, and loads `ap_map_signature` rows for every visible system (LEFT JOIN to `universe_wormhole` to surface the WH code as `wormholeCode`). Also calls `loadMapPresence(mapId)` so the returned `MapViewData` carries the initial roster of online tracked pilots. All `bigint` ids and `timestamptz`s are stringified (ISO for dates) so the result is serialisable across the Server→Client boundary.
+Loads one map for rendering. Returns `null` if the map is missing, soft-deleted, or the viewer is not allowed to see it (`canViewMap`). The viewer-id is required — passing the wrong one is an access-control bug the type system catches. Joins visible `ap_map_system` rows to `universe_system` / constellation / region, attaches wormhole static codes, loads all `ap_map_connection` rows, and loads `ap_map_signature` rows for every visible system (LEFT JOIN to `universe_wormhole` to surface the WH code as `wormholeCode`). Also calls `loadMapPresence(mapId)` so the returned `MapViewData` carries the initial roster of online tracked pilots. All `bigint` ids and `timestamptz`s are stringified (ISO for dates) so the result is serialisable across the Server→Client boundary.
 
 ---
 
@@ -16,17 +16,17 @@ Online tracked pilots currently in a known system on this map. Joins `ap_map_cha
 ---
 
 ### loadMapSettings(viewerCharacterId: bigint, mapId: bigint): Promise<MapSettings | null>
-Stage 17.6. Loads a map's editable metadata + behaviour toggles for the settings dialog. Gated by `canViewMap` (mirrors `loadMapForView`); returns null when the map is missing, soft-deleted, or not viewable. Pre-fill only — the dialog's Save re-checks `map_update` server-side.
+Loads a map's editable metadata + behaviour toggles for the settings dialog. Gated by `canViewMap` (mirrors `loadMapForView`); returns null when the map is missing, soft-deleted, or not viewable. Pre-fill only — the dialog's Save re-checks `map_update` server-side.
 
 ---
 
 ### listViewableMaps(viewerCharacterId: bigint): Promise<MapListItem[]>
-Maps the viewer can see, ordered by name. Feeds the `/maps` list. Stage 15 filters server-side via `viewableMapPredicate` — admins see every non-soft-deleted map; members see maps where they are the owner (by scope) or where one of their roles appears in `ap_map_role_access`.
+Maps the viewer can see, ordered by name. Feeds the `/maps` list. Filtered server-side via `viewableMapPredicate` — admins see every non-soft-deleted map; members see maps where they are the owner (by scope) or where one of their roles appears in `ap_map_role_access`.
 
 ---
 
 ### listAdminMaps(scope: AdminVisibilityScope): Promise<AdminMapListItem[]>
-Stage 16.2. Maps an admin / manager can act on, **including soft-deleted rows** (which `listViewableMaps` filters out). Distinct from the user-facing listing because the admin row shape carries the full owner FKs + `deleted_at` so the admin UI can render ownership and offer restore / purge-now actions. Scoping is delegated to `mapScopeFilterFor` — global for admin, corp-scoped (owner_corporation / owner_alliance / owner_character∈corp-members) for manager. Soft-deleted rows are ordered first, then by name. Feeds `/admin/maps`.
+Maps an admin / manager can act on, **including soft-deleted rows** (which `listViewableMaps` filters out). Distinct from the user-facing listing because the admin row shape carries the full owner FKs + `deleted_at` so the admin UI can render ownership and offer restore / purge-now actions. Scoping is delegated to `mapScopeFilterFor` — global for admin, corp-scoped (owner_corporation / owner_alliance / owner_character∈corp-members) for manager. Soft-deleted rows are ordered first, then by name. Feeds `/admin/maps`.
 
 ---
 
@@ -35,9 +35,9 @@ Stage 16.2. Maps an admin / manager can act on, **including soft-deleted rows** 
 - `MapConnectionEdge` — a connection with scope/mass/EOL/flag fields; endpoints are `ap_map_system.id` strings. `isStatic` is the user-designated "source system's static" flag (free manual toggle). `eolAt` (ISO or null) and `createdAt` (ISO) flow through so the canvas can compute the EOL countdown.
 - `MapSignature` — a scan signature inside a placed system. `groupKey` is one of the seven scanner-level keys (or null). `typeId` is non-null only when `groupKey === 'wormhole'` and points at a `universe_type` row also present in `universe_wormhole`; `wormholeCode` is the LEFT JOIN of `universe_wormhole.name` for display ("B274", "K162", …). `name` carries the user-typed site name for cosmic sigs, or a mirror of the wormhole code for wormhole sigs. `expiresAt`, `createdAt`, and `updatedAt` are ISO strings.
 - `MapPresenceEntry` — one online tracked pilot: `{ characterId, characterName, systemId, shipTypeId, shipTypeName, locationAt }`. `systemId` is the EVE solar-system id; `locationAt` is ISO.
-- `MapViewData` — `{ map, systems, connections, signatures, presence }`, the page's full payload. `map` carries `tagScheme` + `homeMapSystemId` (Stage 17.10) so the Tags panel knows the active scheme at load time (auto-tagging config propagates on next load, not via realtime).
+- `MapViewData` — `{ map, systems, connections, signatures, presence }`, the page's full payload. `map` carries `tagScheme` + `homeMapSystemId` so the Tags panel knows the active scheme at load time (auto-tagging config propagates on next load, not via realtime).
 - `MapListItem` — a map row for the user-facing list.
-- `MapSettings` — editable map metadata + behaviour toggles for the settings dialog; `scope`/`type` are immutable post-create (shown read-only). Stage 17.10 adds `tagScheme` + `homeMapSystemId` (owner/admin-gated on save); `exemptHomeStaticFromTag` opts the map into leaving the Home static target untagged (ABC only).
+- `MapSettings` — editable map metadata + behaviour toggles for the settings dialog; `scope`/`type` are immutable post-create (shown read-only). Includes `tagScheme` + `homeMapSystemId` (owner/admin-gated on save); `exemptHomeStaticFromTag` opts the map into leaving the Home static target untagged (ABC only).
 - `AdminMapListItem` — a map row for `/admin/maps`: includes owner FKs (`ownerCharacterId`/`ownerCorporationId`/`ownerAllianceId` as nullable strings), `createdAt`/`updatedAt`/`deletedAt` ISO strings, and the same identity fields as `MapListItem`.
 
 These are re-exported from `src/types/index.ts`.

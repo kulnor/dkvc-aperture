@@ -3,7 +3,7 @@
 **Purpose:** Read/write helper for the per-deployment access configuration the `/setup` ops console drives — `ap_instance.access_mode`, `ap_instance_owner` entries, and the instance-scoped `ap_access_grant` allowlist (login/admin/manage).
 **File:** `src/lib/auth/instanceConfig.ts`
 
-Pure DB layer — no auth gating (the caller, `(setup)/actions.ts`, gates on the `ap_setup` cookie). No `import 'server-only'`, mirroring [[loginGate]] / [[resolveAuthz]] so it loads under plain Node for tests. Writes affect live-read paths (login gating in [[loginGate]]) immediately; the cached `ap_character.authz_level` updates on the affected character's next resync (Stage 2 / Stage 5).
+Pure DB layer — no auth gating (the caller, `(setup)/actions.ts`, gates on the `ap_setup` cookie). No `import 'server-only'`, mirroring [[loginGate]] / [[resolveAuthz]] so it loads under plain Node for tests. Writes affect live-read paths (login gating in [[loginGate]]) immediately; the cached `ap_character.authz_level` updates on the affected character's next resync.
 
 ---
 

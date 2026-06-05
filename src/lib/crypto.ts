@@ -3,7 +3,7 @@ import { env } from '@/lib/env';
 
 // AES-256-GCM AEAD for the ESI tokens stored on `ap_character`. This is the
 // only place tokens are wrapped/unwrapped; the DB holds the ciphertext blob.
-// SPEC §7 ("encrypted at rest, pgcrypto or app-layer AEAD").
+// Tokens are encrypted at rest.
 
 const ALGO = 'aes-256-gcm';
 const IV_LENGTH = 12; // 96-bit nonce, the GCM standard

@@ -1,10 +1,9 @@
 /**
- * Static W-space system-effect reference data, ported from the legacy
- * `docs/spec/system_effect.js`. Each anomaly effect (Magnetar, Pulsar, …) scales
- * its bonuses by the system's class. The legacy module stored per-strength tables
- * (strength 1–6) plus a `getMultiplierByAreaId` map that resolved each class to a
- * strength; this port resolves that at module load so `SYSTEM_EFFECTS` carries the
- * final values, with no multiplier logic left for consumers.
+ * Static W-space system-effect reference data. Each anomaly effect (Magnetar,
+ * Pulsar, …) scales its bonuses by the system's class. The underlying data is
+ * per-strength tables (strength 1–6) plus a class→strength map; this module
+ * resolves that at load so `SYSTEM_EFFECTS` carries the final values, with no
+ * multiplier logic left for consumers.
  */
 
 export type SystemEffectBonus = { effect: string; value: string };
@@ -40,8 +39,8 @@ export const EFFECT_CLASS_LABELS: Record<number, string> = {
   18: 'C18 (Redoubt)',
 };
 
-// Legacy `getMultiplierByAreaId`: maps a class/area id to the strength tier (1–6)
-// whose bonus table applies. C1–C6 use their own number; shattered frigate holes
+// Maps a class/area id to the strength tier (1–6) whose bonus table applies.
+// C1–C6 use their own number; shattered frigate holes
 // (13) read as C6 strength; Drifter space (14–18) reads as C2 strength.
 function strengthForClassId(classId: number): number {
   if (classId >= 1 && classId <= 6) return classId;
@@ -367,7 +366,7 @@ export function systemEffectName(key: SystemEffectKey): string {
 
 /**
  * Bonuses for an effect as they apply in a given system class. Resolves the
- * class→strength tier (legacy `getMultiplierByAreaId`) directly, so it works for
+ * class→strength tier directly, so it works for
  * every class an effect can occur in — including shattered/Drifter holes that
  * aren't enumerated in `SYSTEM_EFFECTS[].classes`.
  */

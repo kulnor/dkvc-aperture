@@ -1,4 +1,4 @@
-// Stage 17.10. The scheme → strategy lookup. Adding a third scheme is purely
+// The scheme → strategy lookup. Adding a third scheme is purely
 // additive: write a new module implementing `TagStrategy`, add its enum value in
 // `src/db/schema/ap/enums.ts` (`tag_scheme`), and add one line here. The existing
 // strategies are never touched.

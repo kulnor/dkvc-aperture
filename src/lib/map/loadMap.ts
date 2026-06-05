@@ -140,7 +140,7 @@ export type MapViewData = {
     name: string;
     scope: MapScope;
     type: MapType;
-    /** Stage 17.10 auto-tagging scheme; drives the Tags panel. Config is load-time (not realtime). */
+    /** Auto-tagging scheme; drives the Tags panel. Config is load-time (not realtime). */
     tagScheme: TagScheme;
     /** `ap_map_system.id` of the designated Home (the 0121 root), or null. */
     homeMapSystemId: string | null;
@@ -161,7 +161,7 @@ export type MapListItem = {
   icon: string | null;
 };
 
-/** Editable map metadata + behaviour toggles, for the Stage 17.6 settings dialog. */
+/** Editable map metadata + behaviour toggles, for the settings dialog. */
 export type MapSettings = {
   name: string;
   icon: string | null;
@@ -173,7 +173,7 @@ export type MapSettings = {
   deleteEolConnections: boolean;
   trackAbyssalJumps: boolean;
   logActivity: boolean;
-  /** Stage 17.10 auto-tagging scheme (owner/admin-gated). */
+  /** Auto-tagging scheme (owner/admin-gated). */
   tagScheme: TagScheme;
   /** `ap_map_system.id` of the designated Home, or null. */
   homeMapSystemId: string | null;
@@ -206,8 +206,8 @@ export type AdminMapListItem = {
 
 /**
  * Load one map for the read-only view. Returns `null` when the map does not
- * exist, is soft-deleted, or the viewer is not allowed to see it (Stage 15
- * `canViewMap`). The viewer-id parameter is required — passing the wrong id
+ * exist, is soft-deleted, or the viewer is not allowed to see it
+ * (`canViewMap`). The viewer-id parameter is required — passing the wrong id
  * is an access-control bug that the type system should catch.
  */
 export async function loadMapForView(
@@ -361,7 +361,7 @@ export async function loadMapForView(
 
 /**
  * Load a map's editable settings (name / icon / scope / type + behaviour
- * toggles) for the Stage 17.6 settings dialog. Gated by `canViewMap` to mirror
+ * toggles) for the settings dialog. Gated by `canViewMap` to mirror
  * `loadMapForView`; returns null when the map is missing, soft-deleted, or the
  * viewer can't see it. The dialog's Save still re-checks `map_update`
  * server-side — this read only pre-fills the form.
@@ -443,7 +443,7 @@ export async function loadMapPresence(mapId: bigint): Promise<MapPresenceEntry[]
 
 /**
  * Maps the viewer is allowed to see, ordered by name. Feeds the maps list.
- * Stage 15: filtered server-side by `viewableMapPredicate` — admins see every
+ * Filtered server-side by `viewableMapPredicate` — admins see every
  * non-soft-deleted map; members see maps where they are the owner (by scope)
  * or where any of their roles appear in `ap_map_role_access`.
  */
@@ -470,7 +470,7 @@ export async function listViewableMaps(
 }
 
 /**
- * Stage 16.2. Maps an admin / manager can act on, including soft-deleted rows.
+ * Maps an admin / manager can act on, including soft-deleted rows.
  * Distinct from `listViewableMaps`, which applies the per-character view rule
  * and filters out `deleted_at IS NOT NULL`.
  *

@@ -7,7 +7,7 @@ import type { SystemNotificationLoad } from '@/lib/realtime/protocol';
 import { zkbKillSchema, type ZkbKill } from './zkb';
 
 /**
- * Server-side zKillboard live-feed consumer (Stage 17.8 follow-up). A single
+ * Server-side zKillboard live-feed consumer. A single
  * long-lived loop — booted from `server.ts`, not graphile-worker (this is one
  * global feed, not per-entity work) — polls zKillboard's **R2Z2** ephemeral
  * sequence feed and, for every kill in a solar system that is currently on an

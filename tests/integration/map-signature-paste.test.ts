@@ -24,7 +24,7 @@ import { pasteSignatures } from '@/lib/map/mutations/bulkSignatures';
 import { resolveSignatureRows, type ResolvedSigRow } from '@/lib/map/signatureReader';
 
 /**
- * Stage 10.2 gate: bulk signature-paste orchestrator.
+ * Bulk signature-paste orchestrator.
  * Verifies the diff/atomic-commit contract end-to-end against real Postgres.
  *
  *   docker compose up -d && pnpm db:migrate && RUN_DB_TESTS=1 pnpm test

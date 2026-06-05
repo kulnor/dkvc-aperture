@@ -28,7 +28,7 @@ import {
 } from './locationPollSuiteLock';
 
 /**
- * Stage 12.3 gates per sub-stage plan:
+ * Coverage:
  *   - Character status flip → handler exits cleanly without re-enqueue.
  *   - EsiTokenError → tracking rows for this character are removed; clean
  *     stop reason in `ap_job_run.notes`; no re-enqueue.

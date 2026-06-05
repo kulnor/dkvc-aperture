@@ -13,7 +13,7 @@ import { apCharacter, apInstance, apUser } from '@/db/schema';
 
 // Server-only account/session helpers. Everything map- and chrome-level reads
 // the active character and the account's character roster through here so the
-// ownership rule lives in exactly one place. SPEC §7 (stateless JWT sessions).
+// ownership rule lives in exactly one place. Sessions are stateless JWT.
 
 export type AccountCharacter = {
   id: string;
@@ -29,8 +29,8 @@ export async function getSession(): Promise<Session | null> {
 
 /**
  * The current session; `redirect('/')` to the public splash when absent **or**
- * when the active character's `status !== 'active'` (Stage 16.3 — kicked /
- * banned characters lose every gated route on their next request, not just
+ * when the active character's `status !== 'active'` (kicked / banned
+ * characters lose every gated route on their next request, not just
  * the next sign-in).
  */
 export async function requireSession(): Promise<Session> {
@@ -75,7 +75,7 @@ export async function getAccountCharacters(userId: number): Promise<AccountChara
 
 /**
  * The account's main character id as a string (bigint isn't JSON-safe), or
- * `null` when unset. Drives the Account Settings "main" selector (Stage 17.5).
+ * `null` when unset. Drives the Account Settings "main" selector.
  */
 export async function getMainCharacterId(userId: number): Promise<string | null> {
   const [row] = await db

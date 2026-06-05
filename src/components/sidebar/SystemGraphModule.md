@@ -1,6 +1,6 @@
 ## SystemGraphModule
 
-**Purpose:** Dotlan-style activity graphs for the selected K-space system (Stage 17.8) — small-multiple area charts over `ap_system_stats`.
+**Purpose:** Dotlan-style activity graphs for the selected K-space system — small-multiple area charts over `ap_system_stats`.
 **File:** `src/components/sidebar/SystemGraphModule.tsx`
 
 ### Props

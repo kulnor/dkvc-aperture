@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { StatisticsDialog } from '@/components/dialogs/StatisticsDialog';
 
 /**
- * Header entry point for the Stage 17.7 Statistics dialog. Owns the dialog's
+ * Header entry point for the Statistics dialog. Owns the dialog's
  * open-state; sits beside `ReferenceMenu` in `AppHeader`.
  */
 export function StatisticsButton() {

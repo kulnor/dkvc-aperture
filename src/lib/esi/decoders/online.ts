@@ -6,7 +6,7 @@ import { z } from 'zod';
  * timestamps and the lifetime `logins` counter are present when CCP knows
  * them (so they are optional here per the swagger schema).
  *
- * Stage 12.1 location-poll reads this every tick to decide between the online
+ * The location-poll reads this every tick to decide between the online
  * and offline polling cadences.
  */
 export const characterOnlineSchema = z.object({

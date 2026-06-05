@@ -13,7 +13,7 @@ import {
 } from '@/db/schema';
 import { apertureConfig } from '../../../aperture.config';
 
-// Mock the ESI client before any importer touches it (same pattern as Stage 11.3).
+// Mock the ESI client before any importer touches it.
 vi.mock('@/lib/esi/client', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/esi/client')>();
   return { ...actual, esiCall: vi.fn() };
@@ -27,7 +27,7 @@ import {
 } from './locationPollSuiteLock';
 
 /**
- * Stage 12.1 gates per sub-stage plan:
+ * Coverage:
  *  - Handler persists last-known state from ESI mock.
  *  - Re-enqueues at the adaptive interval driven by the online flag.
  *  - Stops cleanly when tracking rows go away or the character isn't active.

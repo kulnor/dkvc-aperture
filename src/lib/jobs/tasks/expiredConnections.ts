@@ -7,21 +7,18 @@ import { withInstrumentation } from '../withInstrumentation';
 import type { JobModule } from '../registry';
 
 /**
- * Stage 11.2. Expired-wormhole-connection cron: delete `ap_map_connection` rows
- * with `scope = 'wh'` older than `WORMHOLE_DEFAULT_LIFETIME_MS` (48h, legacy
- * `EXPIRE_CONNECTIONS_WH` — the practical wormhole lifetime cap), but only on
+ * Expired-wormhole-connection cron: delete `ap_map_connection` rows
+ * with `scope = 'wh'` older than `WORMHOLE_DEFAULT_LIFETIME_MS` (48h — the
+ * practical wormhole lifetime cap), but only on
  * maps where `ap_map.delete_expired_connections = true`. Each delete fires
  * through `commitMapEvent` so it becomes a `connection.delete` event.
  *
- * Shares the Stage 10 ms constant with the canvas "expires in X" hint so the
+ * Shares the ms constant with the canvas "expires in X" hint so the
  * displayed lifetime and the actual reap threshold can't drift; the SQL
  * `make_interval(secs => …)` site converts ms → seconds.
  *
  * Non-WH scopes (`stargate`, `jumpbridge`, `abyssal`) are stable and never
  * expire on age alone.
- *
- * Replaces legacy `Cron\MapUpdate::deleteExpiredConnections` (`@hourly`).
- * SPEC §6.5.
  */
 
 const NAME = 'expired-connections';

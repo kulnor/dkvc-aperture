@@ -1,9 +1,9 @@
 /**
- * Derives Pathfinder's denormalized `security` label for a solar system from
+ * Derives the denormalized `security` label for a solar system from
  * the static data available in the SDE: region id, the system's constellation
  * `wormholeClassID`, and raw `securityStatus`.
  *
- * Label set (legacy parity): `A` (Abyssal), `P` (Pochven), `C1`–`Cn` (wormhole
+ * Label set: `A` (Abyssal), `P` (Pochven), `C1`–`Cn` (wormhole
  * space, where n is the constellation's wormhole class), and `H`/`L`/`0.0` for
  * known k-space derived from rounded security status.
  *

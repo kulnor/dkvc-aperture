@@ -11,7 +11,7 @@ import {
 } from '@/db/schema';
 
 /**
- * Stage 12.0 gate: the new `ap_map_character_tracking` join table applies
+ * The `ap_map_character_tracking` join table applies
  * cleanly, holds a (map, character) row, and cascades cleanly from both sides.
  *
  * DB-gated like the rest:

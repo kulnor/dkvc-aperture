@@ -7,7 +7,7 @@ import { requireMapView } from '../../utils';
 /**
  * GET /api/map/[mapId]/wormhole-types?systemId=<universeSystemId>
  * Returns wormhole type options filtered to the given system's class — fed by
- * the wormhole-type dropdown in the signature inspector (SPEC §6.4).
+ * the wormhole-type dropdown in the signature inspector.
  *
  * Access: view-only — anyone who can see the map may read the WH catalog.
  */

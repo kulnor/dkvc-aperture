@@ -1,6 +1,6 @@
 ## activity_rollup.sql
 
-**Purpose:** SQL source of the `ap_activity_rollup` materialized view — a weekly per-(character, map, event-kind) counter over `ap_map_event`, replacing the legacy `activity_log` table. Stage 11.4.
+**Purpose:** SQL source of the `ap_activity_rollup` materialized view — a weekly per-(character, map, event-kind) counter over `ap_map_event`.
 **File:** `src/db/views/activity_rollup.sql`
 
 ---
@@ -19,12 +19,12 @@
 `ap_activity_rollup_pk_idx (iso_year, iso_week, character_id, map_id, kind)`. Required by `REFRESH MATERIALIZED VIEW CONCURRENTLY` (PG requires a unique index on **plain columns** — no expressions in the index, which is why the `COALESCE` lives in the view definition rather than the index).
 
 ### Created `WITH NO DATA`
-The MV is populated by the first `REFRESH MATERIALIZED VIEW CONCURRENTLY` run from `activityRollupRefresh.ts` (Stage 11.4). Until then, `SELECT * FROM ap_activity_rollup` returns zero rows — that's the intended cold-start state, not a bug.
+The MV is populated by the first `REFRESH MATERIALIZED VIEW CONCURRENTLY` run from `activityRollupRefresh.ts`. Until then, `SELECT * FROM ap_activity_rollup` returns zero rows — that's the intended cold-start state, not a bug.
 
 ### Applied by
-`src/db/migrations/0007_activity_rollup.sql` creates it; `0023_activity_rollup_moves.sql` (Stage 17.7) drops + recreates it with the `system.moved` re-bucketing. Each has a hand-run `.rollback.sql`.
+`src/db/migrations/0007_activity_rollup.sql` creates it; `0023_activity_rollup_moves.sql` drops + recreates it with the `system.moved` re-bucketing. Each has a hand-run `.rollback.sql`.
 
 ### Notes
-- The MV intentionally **does not** join `ap_event_kind` to bring `category` along — keeping the grouping shape identical to the spec's tuple. Admin UI joins to `ap_event_kind` at read time.
+- The MV intentionally **does not** join `ap_event_kind` to bring `category` along — keeping the grouping shape narrow. Admin UI joins to `ap_event_kind` at read time.
 - `system.moved` is a **derived** bucket (a `CASE` on the `system.updated` payload), not a value written to `ap_map_event` — so it is deliberately absent from the `ap_event_kind` catalog. A re-create migration is required to change the `CASE` because materialized views can't be `ALTER`ed in place.
 - The materialized view sits outside the Drizzle schema graph (there is no `apActivityRollup` table in `src/db/schema/`). Reads from app code use raw SQL via `db.execute(sql\`...\`)`, the same pattern as `universe_type_attribute_effective` (`0001_type_attribute_effective_view.sql`).

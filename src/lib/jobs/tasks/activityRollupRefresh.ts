@@ -4,7 +4,7 @@ import { withInstrumentation } from '../withInstrumentation';
 import type { JobModule } from '../registry';
 
 /**
- * Stage 11.4. Hourly refresh of the `ap_activity_rollup` materialized view
+ * Hourly refresh of the `ap_activity_rollup` materialized view
  * (`src/db/views/activity_rollup.sql`). Runs at `:15 past` to stay clear of
  * the `:30` stats-refresh slot — the two are the only ESI-shaped contention
  * points in the cron schedule and don't need to share a queue slot.
@@ -12,7 +12,7 @@ import type { JobModule } from '../registry';
  * `REFRESH ... CONCURRENTLY` requires the MV to have a unique index covering
  * every row (`ap_activity_rollup_pk_idx`); it takes a row-level lock instead of
  * an `ACCESS EXCLUSIVE` table lock, so admin reads of the rollup stay
- * available while the refresh runs. SPEC §6.5.
+ * available while the refresh runs.
  *
  * Cold-start contract: the MV is created `WITH NO DATA` (migration 0007), so
  * the very first invocation populates it. The first run may take longer than

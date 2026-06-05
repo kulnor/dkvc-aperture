@@ -73,7 +73,7 @@ const markdownComponents: Components = {
 };
 
 /**
- * Changelog dialog (Stage 17 "What's new"). Renders the GitHub releases
+ * Changelog dialog ("What's new"). Renders the GitHub releases
  * timeline. Releases are fetched server-side (cached) in `AppHeader` and passed
  * in as a prop — no client call, so a busy instance never fans out to GitHub's
  * unauthenticated quota. Controlled open-state; mounted from `VersionChip`.

@@ -1,6 +1,6 @@
 ## admin-maps.test.ts
 
-**Purpose:** Stage 16.2 acceptance gate. Drives the three admin map Server Actions end-to-end against a real Postgres and asserts: soft-delete flips `deleted_at` + emits one `map.delete`; restore clears `deleted_at` + emits one `map.restore`; purge hard-deletes the row and cascades its events; admin-only purge gate; manager scope leak; member/anon denial.
+**Purpose:** Drives the three admin map Server Actions end-to-end against a real Postgres and asserts: soft-delete flips `deleted_at` + emits one `map.delete`; restore clears `deleted_at` + emits one `map.restore`; purge hard-deletes the row and cascades its events; admin-only purge gate; manager scope leak; member/anon denial.
 
 **File:** `tests/integration/admin-maps.test.ts`
 

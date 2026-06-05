@@ -3,7 +3,7 @@ import { db } from '@/db/client';
 import { universeStargateEdge } from '@/db/schema';
 
 /**
- * Pure jump classifier consumed by the Stage 12.2 location-poll. Decides
+ * Pure jump classifier consumed by the location-poll. Decides
  * whether a transition between two systems is a gate jump (ignore — gates are
  * already on every map by virtue of `universe_stargate_edge`) or a wormhole
  * jump (fold onto the character's tracked maps as `system.added` /

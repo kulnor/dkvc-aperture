@@ -105,7 +105,7 @@ export function addSystem(input: AddSystemInput): Promise<ActionResult<MapEventP
         })
         .returning({ id: apMapSystem.id });
 
-      // Auto-tagging (Stage 17.10). ABC assigns here so the tag rides in the
+      // Auto-tagging. ABC assigns here so the tag rides in the
       // `system.added` payload; 0121 clears any tag preserved by the upsert and
       // re-tags later on reconnect. No-op when the map runs no scheme.
       await assignTagOnAdd(tx, input.mapId, row!.id);
@@ -123,7 +123,7 @@ export function removeSystem(input: RemoveSystemInput): Promise<ActionResult<Map
     kind: 'system.removed',
     tx: input.tx,
     mutate: async (tx) => {
-      // Home-system delete guard (Stage 17.10): the auto-tagging Home is the
+      // Home-system delete guard: the auto-tagging Home is the
       // node both schemes calculate from and must not be removable while
       // designated. Clear it in map settings first.
       const [map] = await tx
@@ -291,6 +291,6 @@ export async function addSystemWithStargateLinks(
   }
 }
 
-// `buildSystemNode` moved to `../systemNode.ts` so the Stage 12.2 location-poll
+// `buildSystemNode` moved to `../systemNode.ts` so the location-poll
 // fold (`src/lib/jobs/locationCommit.ts`) can share the same payload builder
 // without inheriting this file's `'server-only'` guard.

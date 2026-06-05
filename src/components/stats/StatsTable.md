@@ -1,6 +1,6 @@
 ## StatsTable
 
-**Purpose:** Ranks characters by activity for one scope/period — the rebuild's first `@tanstack/react-table` use (Stage 17.7).
+**Purpose:** Ranks characters by activity for one scope/period using `@tanstack/react-table`.
 **File:** `src/components/stats/StatsTable.tsx`
 
 ### Props

@@ -4,9 +4,9 @@ import { connectionScope, eolStage, whJumpMass, whMass } from './enums';
 import { apMap } from './map';
 import { apMapSystem } from './map_system';
 
-// SPEC §6.5. A link between two systems on a map. The legacy JSON `type` flag
-// bag is split into typed columns + enums. Connections are hard-deleted on
-// collapse (wormholes don't come back); attached signatures cascade.
+// A link between two systems on a map, modelled as typed columns + enums.
+// Connections are hard-deleted on collapse (wormholes don't come back);
+// attached signatures cascade.
 export const apMapConnection = pgTable(
   'ap_map_connection',
   {

@@ -4,7 +4,7 @@ import { withInstrumentation } from '../withInstrumentation';
 import type { JobModule } from '../registry';
 
 /**
- * Stage 11.5. Daily `partman.run_maintenance(p_analyze := false)` keeping the
+ * Daily `partman.run_maintenance(p_analyze := false)` keeping the
  * partitioned tables happy:
  *
  *   - `ap_map_event` (monthly partitions, no retention) — pre-creates upcoming
@@ -15,7 +15,7 @@ import type { JobModule } from '../registry';
  *     range is older than the retention window.
  *
  * Cron slot `'5 4 * * *'` (04:05 UTC) is well outside the 11:00 EVE downtime
- * window and avoids the :00/:15/:30 contention with the other Stage-11 jobs.
+ * window and avoids the :00/:15/:30 contention with the other jobs.
  * Calling `run_maintenance` with no parent argument runs maintenance across
  * every row in `partman.part_config`; we keep the call boundary that simple so
  * future partitioned tables (sov, intel) are picked up automatically when their

@@ -8,7 +8,7 @@ import { parseBigInt, requireMapView } from '../../../../utils';
  * GET /api/map/[mapId]/connections/[connId]/mass-log — list a connection's
  * per-jump mass-log (oldest first, with running cumulative mass).
  *
- * Read-only: the log is server-derived from the location-poll (Stage 17.11a);
+ * Read-only: the log is server-derived from the location-poll;
  * there is no POST/DELETE. Access: view right on the target map.
  */
 

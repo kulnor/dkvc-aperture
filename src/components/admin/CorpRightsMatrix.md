@@ -1,6 +1,6 @@
 ## CorpRightsMatrix
 
-**Purpose:** Stage 16.5 client component that renders the 6 rights × 4-column radio matrix (none / member / manager / admin) for a single corporation. Each radio click runs an optimistic-with-rollback Server Action against `ap_corporation_right`.
+**Purpose:** Client component that renders the 6 rights × 4-column radio matrix (none / member / manager / admin) for a single corporation. Each radio click runs an optimistic-with-rollback Server Action against `ap_corporation_right`.
 **File:** `src/components/admin/CorpRightsMatrix.tsx`
 
 ### Props

@@ -1,6 +1,6 @@
 ## role.ts
 
-**Purpose:** The three Stage-15 role tables — `ap_role` (registry), `ap_character_role` (membership), `ap_map_role_access` (per-map grant). Together they support corp-title-driven and external (Discord, etc.) per-map access overlays on top of `ap_map.type` + owner FKs.
+**Purpose:** The three role tables — `ap_role` (registry), `ap_character_role` (membership), `ap_map_role_access` (per-map grant). Together they support corp-title-driven and external (Discord, etc.) per-map access overlays on top of `ap_map.type` + owner FKs.
 **File:** `src/db/schema/ap/role.ts`
 
 ---
@@ -17,7 +17,7 @@
 
 **Constraints:**
 - `ap_role_source_external_ref_uq` — unique `(source, external_ref)`. Each upstream identity maps to exactly one role row.
-- `ap_role_corporation_id_idx` — btree on `(corporation_id)`. Backs the corp-title picker query (Stage 17).
+- `ap_role_corporation_id_idx` — btree on `(corporation_id)`. Backs the corp-title picker query.
 
 ### apCharacterRole
 `pgTable('ap_character_role', …)`:

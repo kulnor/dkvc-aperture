@@ -13,7 +13,7 @@ import { universeSystem } from '../universe/geography';
 import { systemStatus } from './enums';
 import { apMap } from './map';
 
-// SPEC §6.5. A node on a map referencing the static `universe_system`. The
+// A node on a map referencing the static `universe_system`. The
 // `visible` flag controls display without deleting history: removing a system
 // flips `visible = false` and stamps `last_visible_at`; re-adding it upserts
 // `visible = true` while prior intel/tags/status persist. `MAX_SYSTEMS` counts

@@ -1,6 +1,6 @@
 ## webhooks.ts (admin server actions)
 
-**Purpose:** Stage 16.4 admin actions on `ap_map_webhook` rows. Five operations exposed at `/admin/maps/[mapId]/webhooks`: create, update, delete, reset failure counter, and test-fire. All gated by `isManagerOrAdmin` + per-map scope check via `mapScopeFilterFor`.
+**Purpose:** Admin actions on `ap_map_webhook` rows. Five operations exposed at `/admin/maps/[mapId]/webhooks`: create, update, delete, reset failure counter, and test-fire. All gated by `isManagerOrAdmin` + per-map scope check via `mapScopeFilterFor`.
 **File:** `src/app/(admin)/actions/webhooks.ts`
 
 ---
@@ -32,5 +32,5 @@ Enqueues a synthetic `webhook-dispatch` job with payload `{ test: true, webhookI
 - `graphile_worker.add_job` (SQL helper) — same enqueue pattern as `src/lib/jobs/tracking.ts`.
 
 ### Notes
-- No `ap_map_event` row is written for webhook config changes; webhook subscriptions are infrastructure, not map state. The audit gap is documented in the Stage 16 plan ("What is intentionally NOT in scope").
+- No `ap_map_event` row is written for webhook config changes; webhook subscriptions are infrastructure, not map state, so they are intentionally out of `ap_map_event` scope.
 - Manager scope check returns `"Map not found."` / `"Webhook not found."` instead of `"Forbidden."` to avoid leaking the existence of out-of-scope rows.

@@ -1,13 +1,13 @@
 ## eolExpiry.ts
 
-**Purpose:** Cron task that hard-deletes wormhole connections whose end-of-life timer has elapsed (`eol_stage <> 'none' AND eol_at < now() - <per-stage lifetime>`) on maps that opt in via `ap_map.delete_eol_connections`. Stage 11.2.
+**Purpose:** Cron task that hard-deletes wormhole connections whose end-of-life timer has elapsed (`eol_stage <> 'none' AND eol_at < now() - <per-stage lifetime>`) on maps that opt in via `ap_map.delete_eol_connections`.
 **File:** `src/lib/jobs/tasks/eolExpiry.ts`
 
 ---
 
 ### eolExpiry: JobModule
 - `name`: `'eol-expiry'`
-- `cron`: `'*/5 * * * *'` (every 5 minutes; matches legacy `@fiveMinutes`).
+- `cron`: `'*/5 * * * *'` (every 5 minutes).
 - `run`: `withInstrumentation('eol-expiry', expireEol)`.
 
 ### expireEol(): { scanned, deleted, failed }
@@ -17,4 +17,4 @@ Counts land in `ap_job_run.notes`.
 
 ### Notes
 - The `eol_at IS NOT NULL` guard skips the race where a writer leaves the `none` stage but is mid-transaction on `eol_at`. The mutation core stamps both together (`connections.ts` `updateConnection`), so this is purely defensive.
-- Replaces legacy `Cron\MapUpdate::deleteEolConnections`. The legacy job's per-row erase wrote a `connection_log` row — the rebuild's equivalent is the `ap_map_event` insert from `commitMapEvent`.
+- Each per-row erase is recorded as an `ap_map_event` insert from `commitMapEvent`.

@@ -9,10 +9,10 @@ import { buildSystemNode } from './systemNode';
 import type { MapEventPayload } from '@/lib/realtime/protocol';
 
 /**
- * Stage 17.9 Thera module backend.
+ * Thera module backend.
  *
  * `loadTheraConnections` reads EVE-Scout's public Thera/Turnur signature feed
- * (via the Stage 13 client), orients each row so the shattered hub is the
+ * (via the EVE-Scout client), orients each row so the shattered hub is the
  * "source" and the connected system is the "target", and enriches the target
  * with its `universe_system.security` class label. A short module-level TTL
  * cache fronts the EVE-Scout fetch so many open maps/tabs don't hammer the
@@ -23,7 +23,7 @@ import type { MapEventPayload } from '@/lib/realtime/protocol';
  * the `tx`, returning `MapEventPayload[]` for the initiating client to fold +
  * dedupe) and the `locationCommit` idempotency rules (ensure-visible system,
  * skip the edge if one already links the pair in either direction). Auto-tagging
- * (Stage 17.10) is wired in the same way as the other add/connect pathways: ABC
+ * is wired in the same way as the other add/connect pathways: ABC
  * tags ride in `system.added` (via `assignTagOnAdd`), and the 0121 child tag is
  * emitted as a follow-up `system.updated` after the transaction commits (so
  * `assignTagOnConnect` reads the committed topology).

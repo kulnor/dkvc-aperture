@@ -13,7 +13,7 @@ import {
 import { canCreateMap } from '@/lib/auth/rights';
 
 /**
- * Stage 16.5 — admin corp-rights matrix (real Postgres).
+ * Admin corp-rights matrix (real Postgres).
  *
  * Drives `adminUpsertCorpRight` / `adminDeleteCorpRight` end-to-end and
  * asserts:

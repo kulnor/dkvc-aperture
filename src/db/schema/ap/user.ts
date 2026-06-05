@@ -1,13 +1,12 @@
 import { bigint, boolean, integer, jsonb, pgTable, timestamp } from 'drizzle-orm/pg-core';
 import type { MapLayoutConfig } from '@/types';
 
-// SPEC §9 auth principals: a user owns one or more characters. Stage 2 creates
-// one user per newly-seen character; linking additional characters onto an
-// existing user is a Stage 5 flow. Kept deliberately minimal — identity lives
-// on the character rows.
+// Auth principal: a user owns one or more characters. One user is created per
+// newly-seen character; additional characters can be linked onto an existing
+// user. Kept deliberately minimal — identity lives on the character rows.
 export const apUser = pgTable('ap_user', {
   id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
-  // Stage 17.5: the account's "main" character — the human identity that login
+  // The account's "main" character — the human identity that login
   // lands on and that statistics / activity roll up to. FK to ap_character is
   // declared in migration 0018 (an inline `.references()` here would create a
   // circular schema import: character.ts already imports apUser).

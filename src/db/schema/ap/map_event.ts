@@ -2,9 +2,8 @@ import { bigint, bigserial, jsonb, pgTable, primaryKey, text, timestamp } from '
 import { apCharacter } from './character';
 import { apMap } from './map';
 
-// SPEC §6.5 / §11 Q11. The single append-only audit log replacing the legacy
-// activity_log + connection_log + NDJSON history files. Every mutation lands as
-// exactly one INSERT here; an AFTER INSERT trigger fires
+// The single append-only audit log for every map mutation. Every mutation lands
+// as exactly one INSERT here; an AFTER INSERT trigger fires
 // `pg_notify('map:'||map_id, payload)` to drive realtime fan-out (the WS server
 // LISTENs on those channels).
 //

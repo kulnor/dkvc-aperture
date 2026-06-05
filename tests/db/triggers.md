@@ -1,6 +1,6 @@
 ## triggers.test.ts
 
-**Purpose:** Stage 6 gate — proves the `ap_map_event` AFTER INSERT trigger fires `pg_notify('map:'||map_id, payload)` on every insert, the sole hook the realtime layer depends on.
+**Purpose:** Proves the `ap_map_event` AFTER INSERT trigger fires `pg_notify('map:'||map_id, payload)` on every insert, the sole hook the realtime layer depends on.
 **File:** `tests/db/triggers.test.ts`
 
 ### Running

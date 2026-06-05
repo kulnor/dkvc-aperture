@@ -1,6 +1,6 @@
 ## loginGate.ts
 
-**Purpose:** The Stage 3 login gate — decides, before any session/JWT is issued, whether a character may sign in under the instance's `access_mode`, with an allowlist, owner-membership, and bootstrap path.
+**Purpose:** The login gate — decides, before any session/JWT is issued, whether a character may sign in under the instance's `access_mode`, with an allowlist, owner-membership, and bootstrap path.
 **File:** `src/lib/auth/loginGate.ts`
 
 ---
@@ -8,7 +8,7 @@
 ### getAccessMode(): Promise<'open' | 'restricted'>
 Reads the `ap_instance` singleton (`id=1`) and returns its `access_mode`. Defaults to `'restricted'` when the row is absent — a fresh, unconfigured deployment is locked down, not open.
 
-**Returns:** `'open'` (legacy "any EVE account may log in") or `'restricted'` (allowlist-gated).
+**Returns:** `'open'` (any EVE account may log in) or `'restricted'` (allowlist-gated).
 
 ---
 

@@ -8,7 +8,7 @@ import { commitMapEvent } from '@/lib/map/mutations/core';
 import { mapEventPayloadSchema } from '@/lib/realtime/protocol';
 
 /**
- * Stage 9.1 gate: `commitMapEvent` lands exactly ONE `ap_map_event` per call and
+ * `commitMapEvent` lands exactly ONE `ap_map_event` per call and
  * its payload parses against `mapEventPayloadSchema`. DB-gated like the rest:
  *
  *   docker compose up -d && pnpm db:migrate && RUN_DB_TESTS=1 pnpm test

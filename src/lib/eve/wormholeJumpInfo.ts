@@ -8,8 +8,8 @@ import {
 } from '@/db/schema';
 
 /**
- * Wormhole jump reference data for the Jump Info dialog — the rebuild's
- * data-backed replacement for the legacy `Init.wormholes` payload.
+ * Wormhole jump reference data for the Jump Info dialog, sourced from
+ * static data.
  *
  * The routing catalog (code + source/target class) lives in `universe_wormhole`;
  * mass / lifetime / sig-strength are dogma attributes read from the

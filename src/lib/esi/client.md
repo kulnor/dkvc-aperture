@@ -1,6 +1,6 @@
 ## client.ts
 
-**Purpose:** The Stage 4 ESI client substrate — one generic entrypoint (`esiCall`) that dispatches an opKey, attaches a character token when required, gates on a per-endpoint circuit breaker, times out, honours ESI error-limit headers, tolerates the CCP downtime window, and Zod-decodes the response. No business logic.
+**Purpose:** The ESI client substrate — one generic entrypoint (`esiCall`) that dispatches an opKey, attaches a character token when required, gates on a per-endpoint circuit breaker, times out, honours ESI error-limit headers, tolerates the CCP downtime window, and Zod-decodes the response. No business logic.
 **File:** `src/lib/esi/client.ts`
 
 ---

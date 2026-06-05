@@ -1,6 +1,6 @@
 ## route.ts — GET /api/map/[mapId]/wormhole-types
 
-**Purpose:** Returns wormhole type options filtered to a solar system's class — fed by the WH-type dropdown in the signature inspector (SPEC §6.4).
+**Purpose:** Returns wormhole type options filtered to a solar system's class — fed by the WH-type dropdown in the signature inspector.
 **File:** `src/app/api/map/[mapId]/wormhole-types/route.ts`
 
 ### GET

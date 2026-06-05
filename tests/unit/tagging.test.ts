@@ -3,7 +3,7 @@ import { abcStrategy, homeStaticExemptionChanges } from '@/lib/tagging/abc';
 import { scheme0121Strategy } from '@/lib/tagging/scheme0121';
 import type { TagContext, TagEdge, TagSystem } from '@/lib/tagging/types';
 
-// Pure-strategy tests for the Stage 17.10 auto-tagging schemes. No db.
+// Pure-strategy tests for the auto-tagging schemes. No db.
 
 const sys = (id: number, securityClass: string | null, tag: string | null): TagSystem => ({
   mapSystemId: BigInt(id),

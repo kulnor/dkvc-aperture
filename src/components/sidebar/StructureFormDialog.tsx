@@ -213,7 +213,7 @@ function StructureForm({
 /**
  * Corporation owner picker. Either shows the selected corp as a chip (with its
  * CCP logo when an id is resolved) and a clear button, or a debounced search box
- * whose dropdown maps the owner to a real EVE corporation via ESI. Legacy
+ * whose dropdown maps the owner to a real EVE corporation via ESI. Plain
  * free-text owners load as a chip with a null id (no logo) until re-picked.
  */
 function OwnerCorpField({

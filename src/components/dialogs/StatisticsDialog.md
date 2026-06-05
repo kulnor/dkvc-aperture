@@ -1,6 +1,6 @@
 ## StatisticsDialog
 
-**Purpose:** Global, header-launched per-character activity ranking with scope tabs, period navigation, and sparklines (Stage 17.7).
+**Purpose:** Global, header-launched per-character activity ranking with scope tabs, period navigation, and sparklines.
 **File:** `src/components/dialogs/StatisticsDialog.tsx`
 
 ### Props

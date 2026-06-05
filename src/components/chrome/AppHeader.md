@@ -24,5 +24,5 @@ A compact (`h-9`) full-width bordered header bar with no max-width cap: on the l
 - `VersionChip` (client) — version label + changelog entry point.
 - `CharacterPanel` (client) — the data props are resolved server-side in `(app)/layout.tsx`.
 - `ReferenceMenu` (client) — header entry point for the static reference dialogs.
-- `StatisticsButton` (client) — launches the Stage 17.7 Statistics dialog.
+- `StatisticsButton` (client) — launches the Statistics dialog.
 - `fetchChangelogReleases` — `@/lib/integrations/github` (server-side, cached).

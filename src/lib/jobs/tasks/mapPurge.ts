@@ -6,7 +6,7 @@ import { withInstrumentation } from '../withInstrumentation';
 import type { JobModule } from '../registry';
 
 /**
- * Stage 11.2. Daily map purge cron at EVE downtime: hard-delete `ap_map` rows
+ * Daily map purge cron at EVE downtime: hard-delete `ap_map` rows
  * whose two-phase soft-delete window has elapsed
  * (`deleted_at < now() - MAP_PURGE_GRACE_DAYS`). `ON DELETE CASCADE` from
  * `ap_map.id` removes `ap_map_system`, `ap_map_connection`, `ap_map_signature`,
@@ -14,10 +14,8 @@ import type { JobModule } from '../registry';
  *
  * No `ap_map_event` is written and no `pg_notify` is fanned out — the map is
  * already soft-deleted, no client tabs are subscribed, and the cascade removes
- * the audit history along with everything else. This is the one Stage-11
- * housekeeping job that intentionally bypasses `commitMapEvent`.
- *
- * Replaces legacy `Cron\MapUpdate::deleteMapData` (`@downtime`). SPEC §6.5.
+ * the audit history along with everything else. This is the one housekeeping
+ * job that intentionally bypasses `commitMapEvent`.
  */
 
 const NAME = 'map-purge';

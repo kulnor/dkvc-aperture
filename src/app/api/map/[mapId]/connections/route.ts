@@ -76,7 +76,7 @@ export async function POST(
     isStatic: parsed.data.isStatic,
   });
 
-  // Auto-tagging (Stage 17.10): on a 0121 map a new edge may root an untagged
+  // Auto-tagging: on a 0121 map a new edge may root an untagged
   // child to its now-known parent. Emit the tag as a separate `system.updated`
   // event (the WS echo folds it onto every client). No-op for ABC / unscheme'd
   // maps. Tagging failures never fail the connection itself.

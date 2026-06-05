@@ -1,6 +1,6 @@
 ## MapSettingsDialog
 
-**Purpose:** Consolidated map edit / settings / import-export dialog (Stage 17.6), launched from the `MapCanvas` toolbar.
+**Purpose:** Consolidated map edit / settings / import-export dialog, launched from the `MapCanvas` toolbar.
 **File:** `src/components/dialogs/MapSettingsDialog.tsx`
 
 ### Props
@@ -12,7 +12,7 @@
 | mapId | string | yes | The open map's id. |
 | settings | MapSettings | yes | Seed values (name/icon/scope/type + toggles + tagScheme/homeMapSystemId/exemptHomeStaticFromTag) from `loadMapSettings`. |
 | onImported | (payloads: MapEventPayload[]) => void | yes | Folds imported event payloads onto the live canvas (wired to the canvas's `onBulkPaste`). |
-| canConfigureTagging | boolean | yes | Owner/admin gate (Stage 17.10): shows the **Tagging** tab. |
+| canConfigureTagging | boolean | yes | Owner/admin gate: shows the **Tagging** tab. |
 | systems | Pick<MapSystemNode,'id'\|'name'\|'alias'>[] | yes | Visible systems, for the Home-system picker. |
 
 ### Renders

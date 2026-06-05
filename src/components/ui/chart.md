@@ -1,6 +1,6 @@
 ## chart.tsx
 
-**Purpose:** Trimmed shadcn-style Recharts wrapper (Stage 17.8) — a themed responsive container plus a compact tooltip, for the system-graph small-multiples module.
+**Purpose:** Trimmed shadcn-style Recharts wrapper — a themed responsive container plus a compact tooltip, for the system-graph small-multiples module.
 **File:** `src/components/ui/chart.tsx`
 
 ### ChartContainer

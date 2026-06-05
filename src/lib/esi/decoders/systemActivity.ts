@@ -8,7 +8,7 @@ import { z } from 'zod';
  * `getUniverseKills` → `get_universe_system_kills`. Array of `{ system_id,
  * ship_kills, pod_kills, npc_kills }` for the same hourly window.
  *
- * Both feed the Stage 11.3 stats-refresh job, which upserts into
+ * Both feed the stats-refresh job, which upserts into
  * `ap_system_stats`. Schemas per `src/lib/esi/swagger.json`.
  */
 

@@ -19,7 +19,7 @@ The `date_trunc` unit is inlined as a SQL literal via `sql.raw(unit)`, **not** a
 - `SystemStatsPoint` — `{ bucket: string } & SystemStatsSummary`.
 
 ### Notes
-- `ap_system_stats` is empty until the Stage 11 refresh job populates it, so this returns an empty record today — but the query path is real.
+- `ap_system_stats` is empty until the refresh job populates it, so this returns an empty record today — but the query path is real.
 
 ### Depends on
 - `@/db/client` (`db`), `@/db/schema` (`apSystemStats`).

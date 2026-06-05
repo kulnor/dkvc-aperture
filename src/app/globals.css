@@ -135,7 +135,7 @@
 }
 
 @layer utilities {
-  /* Map-node underglow (Stage 17.8). Config rides in as CSS custom properties
+  /* Map-node underglow. Config rides in as CSS custom properties
      so one keyframe serves every preset (killmail, rally, …). See
      SystemUnderglow.tsx / MapUnderglowContext.tsx. */
   @keyframes underglow {

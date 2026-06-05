@@ -11,7 +11,7 @@ export type SystemStatsSummary = {
   factionKills: number;
 };
 
-/** Time window + bucket granularity for the system graph (Stage 17.8). */
+/** Time window + bucket granularity for the system graph. */
 export type GraphRange = '24h' | '7d' | '30d';
 
 /** One bucketed point in a system-graph series; `bucket` is an ISO timestamp. */
@@ -28,7 +28,7 @@ const RANGE_CONFIG: Record<GraphRange, { interval: string; unit: 'hour' | 'day' 
  * system, keyed by EVE solar-system id. Systems with no rows are absent from the
  * result — the kill-stats module renders a zero state for them.
  *
- * `ap_system_stats` is empty until the Stage 11 refresh job populates it, so this
+ * `ap_system_stats` is empty until the refresh job populates it, so this
  * currently returns an empty record for any input; the read path is genuine.
  */
 export async function statsForSystems(

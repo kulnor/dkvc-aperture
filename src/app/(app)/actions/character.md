@@ -1,6 +1,6 @@
 ## character.ts
 
-**Purpose:** Server Actions for the multi-character account: toggle per-character location tracking, link another character via OAuth, and sign out. (Active-character *switching* was dropped in the Stage 17.5 follow-up — login lands on the account main and stays there.)
+**Purpose:** Server Actions for the multi-character account: toggle per-character location tracking, link another character via OAuth, and sign out. (There is no active-character *switching* — login lands on the account main and stays there.)
 **File:** `src/app/(app)/actions/character.ts`
 
 ---

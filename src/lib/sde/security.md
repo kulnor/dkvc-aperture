@@ -1,6 +1,6 @@
 ## security.ts
 
-**Purpose:** Derives Pathfinder's denormalized `security` label for a solar system from SDE static data.
+**Purpose:** Derives the denormalized `security` label for a solar system from SDE static data.
 **File:** `src/lib/sde/security.ts`
 
 ---

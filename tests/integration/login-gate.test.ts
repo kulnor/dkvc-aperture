@@ -7,13 +7,12 @@ import { apAccessGrant, apCharacter, apInstance, apInstanceOwner } from '@/db/sc
 import { isLoginAllowed } from '@/lib/auth/loginGate';
 
 /**
- * Permissions-overhaul Stage 3 acceptance gate
- * (`docs/plans/permissions-overhaul.md` §"Stage 3 — Done when").
+ * Login-gate acceptance gate.
  *
  * Drives `isLoginAllowed` directly against real Postgres — the gate is DB-only
  * (the Auth.js callback resolves corp/alliance via ESI and passes them in), so
  * no ESI mocking is needed; passing `null` corp/alliance exercises the
- * ESI-degrade path. Ids use a 99030xxx block disjoint from the Stage 2 test.
+ * ESI-degrade path. Ids use a 99030xxx block disjoint from the authz-resolution test.
  *
  *   docker compose up -d && pnpm db:migrate && RUN_DB_TESTS=1 pnpm test login-gate
  */

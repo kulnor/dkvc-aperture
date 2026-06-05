@@ -12,7 +12,7 @@ import {
 } from '@/lib/session';
 import { mapLayoutConfigSchema } from '@/lib/map/layout/schema';
 
-// Account self-service (Stage 17.5). Low-frequency, user-initiated state changes
+// Account self-service. Low-frequency, user-initiated state changes
 // over ap_user — Server Actions per the CLAUDE.md mutation pathways.
 
 export type AccountActionResult = { ok: true } | { ok: false; error: string };

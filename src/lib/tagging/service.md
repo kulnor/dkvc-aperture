@@ -1,6 +1,6 @@
 ## service.ts
 
-**Purpose:** The db-aware seam between the map mutation pathways and the pure tagging strategies — builds a `TagContext` and dispatches to the registered strategy (Stage 17.10). No `'server-only'` guard (imported by `locationCommit.ts` under plain Node).
+**Purpose:** The db-aware seam between the map mutation pathways and the pure tagging strategies — builds a `TagContext` and dispatches to the registered strategy. No `'server-only'` guard (imported by `locationCommit.ts` under plain Node).
 **File:** `src/lib/tagging/service.ts`
 
 ---

@@ -3,11 +3,11 @@ import { withInstrumentation } from '../withInstrumentation';
 import type { JobModule } from '../registry';
 
 /**
- * Stage 16.6 graphile-worker wrapper around `runIngest` (the CLI ingest from
+ * graphile-worker wrapper around `runIngest` (the CLI ingest from
  * `src/lib/sde/ingest.ts` / `pnpm sde:bootstrap`). Enqueued on-demand by the
  * setup wizard so an operator can refresh static data without shelling into
- * the container. No cron — SDE refreshes are deliberate, not periodic; the
- * scheduled-delta job lands in a later stage.
+ * the container. No cron — SDE refreshes are deliberate, not periodic; a
+ * scheduled-delta job is not yet built.
  *
  * The handler does no per-payload work — it forwards to `runIngest()` and
  * returns the row counts as `notes` so `ap_job_run` carries the outcome.

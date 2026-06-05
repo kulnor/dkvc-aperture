@@ -21,14 +21,14 @@ import { expiredConnections } from '@/lib/jobs/tasks/expiredConnections';
 import { mapPurge } from '@/lib/jobs/tasks/mapPurge';
 
 /**
- * Stage 11.2 gates per sub-stage plan:
+ * Coverage:
  *  - "for each job, seed rows, invoke the handler directly, assert the
  *     expected rows go away **and** an `ap_map_event` row of the right kind
  *     is written for the row-level deletes."
  *  - "A LISTEN-side smoke confirms the `pg_notify` fires from the trigger as
  *     a result of the job-driven delete." — covered by the `ap_map_event`
  *     write because the AFTER INSERT trigger is the only thing that fires the
- *     notify; Stage 8's realtime-transport.test.ts already exercises the
+ *     notify; realtime-transport.test.ts already exercises the
  *     LISTEN side end-to-end.
  *
  * DB-gated like the rest:

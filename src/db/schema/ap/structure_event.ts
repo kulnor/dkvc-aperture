@@ -2,7 +2,7 @@ import { bigint, bigserial, index, integer, jsonb, pgTable, timestamp } from 'dr
 import { apCharacter } from './character';
 import { structureEventKind } from './enums';
 
-// Stage 17.2. Append-only accountability log for manual structure intel
+// Append-only accountability log for manual structure intel
 // (`ap_structure`). Structures are deployment-global and any authenticated user
 // may create/edit/delete them, so every mutation is recorded here stamped with
 // the acting character — that's how griefers are identified.

@@ -14,7 +14,7 @@ import {
 import { seedTrackingForMap } from '@/lib/jobs/tracking';
 
 /**
- * Per-map-character-tracking plan, Stage 1. `seedTrackingForMap` is the per-map
+ * `seedTrackingForMap` is the per-map
  * default: on the first open of a map by an account it auto-tracks all that
  * account's *active* characters, gated by the `ap_map_tracking_seed` marker so
  * it never re-seeds (an intentionally-empty selection must survive).

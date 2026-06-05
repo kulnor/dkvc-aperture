@@ -1,6 +1,6 @@
 ## StatisticsButton
 
-**Purpose:** Header icon button that launches the Statistics dialog (Stage 17.7).
+**Purpose:** Header icon button that launches the Statistics dialog.
 **File:** `src/components/chrome/StatisticsButton.tsx`
 
 ### Renders

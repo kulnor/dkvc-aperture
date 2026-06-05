@@ -1,6 +1,6 @@
 ## map-signature-paste.test.ts
 
-**Purpose:** Integration coverage for `pasteSignatures` — the Stage 10.2 bulk orchestrator. Verifies the diff matrix, exact `ap_map_event` count, end-state correctness, optional orphan-connection tear-down, and atomic rollback on partial failure.
+**Purpose:** Integration coverage for `pasteSignatures` — the bulk orchestrator. Verifies the diff matrix, exact `ap_map_event` count, end-state correctness, optional orphan-connection tear-down, and atomic rollback on partial failure.
 **File:** `tests/integration/map-signature-paste.test.ts`
 
 Gated on `RUN_DB_TESTS=1`. Runs against the migrated Postgres in `docker-compose`.

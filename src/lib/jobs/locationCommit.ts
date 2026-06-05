@@ -7,20 +7,20 @@ import { findOpenPosition, type Point } from '@/lib/map/placement';
 import { assignTagOnAdd, assignTagOnConnect } from '@/lib/tagging/service';
 
 /**
- * Stage 12.2. The per-map fold for a detected wormhole jump from the
+ * The per-map fold for a detected wormhole jump from the
  * location-poll. Wraps the three `commitMapEvent` calls that turn
  * "character moved from system A to system B" into the same set of events a
  * user-driven `addSystem` + `addSystem` + `createConnection` would produce —
  * minus the events that would be redundant.
  *
- * Idempotency rules (sub-stage 12.2 decision):
+ * Idempotency rules:
  *   - If a `ap_map_system` row already exists with `visible = true`, no
  *     `system.added` event is emitted (the system is already on the canvas).
  *   - If a `ap_map_connection` already links the two endpoints in either
  *     direction, no `connection.create` event is emitted (the operator may
  *     have placed it manually, or a prior poll tick already laid it down).
  *
- * Each commit is its own transaction (Stage 9 pattern). A failure between
+ * Each commit is its own transaction. A failure between
  * commits leaves a consistent state — the next poll tick will skip the parts
  * that succeeded and retry the parts that didn't.
  */
@@ -54,7 +54,7 @@ export async function foldWormholeJumpOntoMap(args: FoldArgs): Promise<FoldResul
     toOutcome.mapSystemId,
     args.characterId,
   );
-  // Auto-tagging (Stage 17.10). On a 0121 map the jump roots the destination as
+  // Auto-tagging. On a 0121 map the jump roots the destination as
   // a child of the system the pilot came from; tag it as a separate
   // `system.updated`. Run whether or not the edge was newly created (a prior
   // tick may have laid the edge before either side was tagged). No-op for ABC
@@ -115,7 +115,7 @@ async function ensureSystemVisible(
         })
         .returning({ id: apMapSystem.id });
       mapSystemId = row!.id;
-      // Auto-tagging (Stage 17.10): ABC tags here so it rides in `system.added`;
+      // Auto-tagging: ABC tags here so it rides in `system.added`;
       // 0121 clears any preserved tag and re-tags on the connection below.
       await assignTagOnAdd(tx, mapId, row!.id);
       return buildSystemNode(tx, row!.id);
@@ -262,7 +262,7 @@ async function ensureConnection(
 }
 
 /**
- * Stage 17.10. After a jump's endpoints + edge are folded, assign the 0121 child
+ * After a jump's endpoints + edge are folded, assign the 0121 child
  * tag (if any) as its own `system.updated` event. `systems.ts` carries
  * `'server-only'` and can't be imported here, so the tag write goes through
  * `commitMapEvent` directly. No-op for ABC / unscheme'd maps and when no tag is

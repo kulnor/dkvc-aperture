@@ -1,8 +1,5 @@
 {
   "permissions": {
-    "allow": [
-      "Bash(Get-ChildItem -Path 'D:\\\\DEV\\\\pathfinder\\\\app' -Directory)",
-      "Bash(Select-Object -ExpandProperty Name)"
-    ]
+    "allow": ["Bash(Select-Object -ExpandProperty Name)"]
   }
 }

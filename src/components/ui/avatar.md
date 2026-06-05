@@ -7,7 +7,7 @@
 - `Avatar` — root. Props add `size?: "default" | "sm" | "lg"`.
 - `AvatarImage` — the portrait image.
 - `AvatarFallback` — shown until/if the image fails (e.g. character initials).
-- `AvatarBadge` / `AvatarGroup` / `AvatarGroupCount` — status badge and grouping helpers (unused in Stage 5).
+- `AvatarBadge` / `AvatarGroup` / `AvatarGroupCount` — status badge and grouping helpers (currently unused).
 
 ### Notes
 - Client component (`"use client"`).

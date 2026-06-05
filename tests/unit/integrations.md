@@ -1,6 +1,6 @@
 ## integrations.test.ts
 
-**Purpose:** Unit coverage for Stage 13 third-party clients, link helpers, and payload decoders.
+**Purpose:** Unit coverage for third-party clients, link helpers, and payload decoders.
 **File:** `tests/unit/integrations.test.ts`
 
 ---

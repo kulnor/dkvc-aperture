@@ -1,6 +1,6 @@
 ## types.ts
 
-**Purpose:** The pure, db-free contract every auto-tagging scheme implements, plus the read-only `TagContext` snapshot the schemes operate over (Stage 17.10).
+**Purpose:** The pure, db-free contract every auto-tagging scheme implements, plus the read-only `TagContext` snapshot the schemes operate over.
 **File:** `src/lib/tagging/types.ts`
 
 ---

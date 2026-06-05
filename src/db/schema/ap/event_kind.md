@@ -10,4 +10,4 @@
 - `kind` — `text` PK, e.g. `system.added`, `connection.create`, `signature.update`.
 - `category` — `text`, required; groups kinds for the history UI (`system` | `connection` | `signature` | `map`).
 
-Seed rows are inserted by the Stage 6 migration (`0004_map_schema.sql`), not at runtime.
+Seed rows are inserted by the map-schema migration (`0004_map_schema.sql`), not at runtime.

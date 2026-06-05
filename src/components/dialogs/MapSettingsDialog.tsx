@@ -27,7 +27,7 @@ const TAG_SCHEME_OPTIONS: { value: MapSettings['tagScheme']; label: string }[] =
 ];
 
 /**
- * Map Settings dialog (Stage 17.6) — the consolidated edit / settings /
+ * Map Settings dialog — the consolidated edit / settings /
  * import-export surface, launched from the `MapCanvas` toolbar. General +
  * Settings persist via `updateMapSettingsAction` (`map_update`); Export reads
  * `/export` (`map_export`) and downloads the JSON client-side; Import posts to
@@ -50,7 +50,7 @@ export function MapSettingsDialog({
   settings: MapSettings;
   /** Fold imported event payloads onto the live canvas (reuses the bulk-paste handler). */
   onImported: (payloads: MapEventPayload[]) => void;
-  /** Owner/admin gate (Stage 17.10): shows the Tagging tab. */
+  /** Owner/admin gate: shows the Tagging tab. */
   canConfigureTagging: boolean;
   /** Visible systems, for the Home-system picker. */
   systems: HomeOption[];

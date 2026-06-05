@@ -36,7 +36,7 @@ WH data CCP omits from the SDE/ESI is reconstructed by [anoik.is](https://anoik.
   - **Drifter destinations** (`B735`/`C414`/`R259`/`S877`/`V928`, dest = barbican/conflux/redoubt/sentinel/vidette = classes 14–18): not in Aperture's class vocabulary, so `targetClass` is left empty (unmodeled). Revisit if C14–C18 are added to the label set.
   - K162 (the universal reverse-exit) has both cells empty by definition.
 
-Re-pull: refetch `static.json`, regenerate, and re-validate the Stage-1.5 gate (valid-or-null labels, K162 both-null, `A239` resolves).
+Re-pull: refetch `static.json`, regenerate, and re-validate the integrity gate (valid-or-null labels, K162 both-null, `A239` resolves).
 
 ---
 

@@ -18,7 +18,7 @@ import { commitMapEvent } from '@/lib/map/mutations/core';
 import { runWebhookDispatch } from '@/lib/webhooks/dispatcher';
 
 /**
- * Stage 14 gate (DB-gated):
+ * DB-gated:
  *   docker compose up -d && pnpm db:migrate && RUN_DB_TESTS=1 pnpm test
  *
  * Covers: per-event dispatch (success, retriable 5xx, terminal 404), the

@@ -7,7 +7,7 @@ import { db } from '@/db/client';
 import { universeType } from '@/db/schema';
 
 /**
- * Ship mass resolution for the connection mass-log (Stage 17.11a). A ship's
+ * Ship mass resolution for the connection mass-log. A ship's
  * mass is the base `mass` column on `universe_type` (kg), not a dogma attribute —
  * only a handful of types carry a `mass` dogma attribute, so the attribute path
  * resolves to null for essentially every ship. (Wormhole stable/jump mass in

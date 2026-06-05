@@ -3,7 +3,7 @@ import { apCharacter } from './character';
 import { apMapConnection } from './map_connection';
 import { universeType } from '../universe/items';
 
-// Stage 17.11a. Per-jump mass accounting for a wormhole connection. Rows are
+// Per-jump mass accounting for a wormhole connection. Rows are
 // written server-side by the location-poll when a tracked character jumps a hole
 // (see `src/lib/map/connectionMassLog.ts`); the inspector renders the running
 // cumulative total. Decoupled from `ap_map_connection.mass_status` (which mirrors

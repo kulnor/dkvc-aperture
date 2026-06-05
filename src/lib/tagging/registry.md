@@ -1,6 +1,6 @@
 ## registry.ts
 
-**Purpose:** The `tag_scheme` → `TagStrategy` lookup; the single extension point for adding a scheme (Stage 17.10).
+**Purpose:** The `tag_scheme` → `TagStrategy` lookup; the single extension point for adding a scheme.
 **File:** `src/lib/tagging/registry.ts`
 
 ---

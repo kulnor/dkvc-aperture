@@ -18,7 +18,7 @@ import type { MapRight } from '@/types';
  *
  * The lower-level `parseBigInt` and `guardMap` remain available for callers
  * that need the no-rights map-existence check (e.g. presence queries or
- * pre-Stage-15 read-only endpoints under different access models).
+ * read-only endpoints under different access models).
  */
 
 /** Parse a URL segment that must be a positive-integer string. Returns null on failure. */
@@ -34,7 +34,7 @@ export function parseBigInt(s: string): bigint | null {
 /**
  * Verify a map exists and is not soft-deleted. Returns `{ mapId }` on success,
  * or `null` when the map is missing or has `deleted_at` set. Callers should
- * return HTTP 404 on null. This bypasses Stage 15 rights — only use it from
+ * return HTTP 404 on null. This bypasses per-map rights — only use it from
  * paths that genuinely need that (e.g. realtime subscribe filtering before the
  * session is fully resolved).
  */
@@ -54,8 +54,8 @@ export type MapAccessGuard =
   | { ok: false; status: 400 | 401 | 403 | 404; error: string };
 
 /**
- * Combined session + parse + view + right check for write endpoints. Closes
- * SPEC §11 Q8 — every mutation under `/api/map/**` runs this before touching
+ * Combined session + parse + view + right check for write endpoints —
+ * every mutation under `/api/map/**` runs this before touching
  * the DB. The 404 case covers both "map does not exist" and "you cannot see
  * this map" to avoid leaking existence.
  */

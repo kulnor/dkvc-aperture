@@ -12,7 +12,7 @@ Maps a `universe_system.security` or `universe_wormhole.target_class` label to a
 - Unknown/null → grey `#6b7280`.
 
 ### systemEffectColor(key: SystemEffectKey): string
-Swatch colour for a W-space anomaly effect, carried over from legacy Pathfinder's `$wh-color-*` palette: magnetar→pink `#e06fdf`, redGiant→red `#d9534f`, pulsar→blue `#428bca`, wolfRayet→orange `#e28a0d`, cataclysmic→light-yellow `#ffffbb`, blackHole→black `#000000`. Used by `SystemNode`'s effect indicator square.
+Swatch colour for a W-space anomaly effect: magnetar→pink `#e06fdf`, redGiant→red `#d9534f`, pulsar→blue `#428bca`, wolfRayet→orange `#e28a0d`, cataclysmic→light-yellow `#ffffbb`, blackHole→black `#000000`. Used by `SystemNode`'s effect indicator square.
 
 ### systemStatusColor(status): string
 Maps a `system_status` enum value to a hex colour (unknown→grey, friendly→blue, occupied→amber, hostile→red, empty→green, unscanned→purple).
@@ -27,4 +27,4 @@ Returns `{ stroke, strokeWidth, strokeDasharray? }`. Scope sets the base colour;
 Short labels for a connection: `STATIC` (user-designated static), jump-mass class (`S`/`M`/`L`/`XL`), then `EOL` (eol stage) or `EOL 1h` (critical stage), `ROLL`, `PRES`.
 
 ### Notes
-- Colours mirror legacy semantics, not exact legacy hex. Kept out of Tailwind tokens because they're consumed inside SVG/inline styles.
+- Kept out of Tailwind tokens because they're consumed inside SVG/inline styles.

@@ -1,8 +1,7 @@
 import { integer, pgTable, primaryKey, timestamp } from 'drizzle-orm/pg-core';
 import { universeSystem } from '../universe/geography';
 
-// SPEC §6.5. Narrow per-system stats time-series replacing the legacy
-// system_jumps / system_kills_* 24-column circular buffers. One row per
+// Narrow per-system stats time-series. One row per
 // (system, hour); rolling 24h windows are `WHERE hour_bucket > now() - interval
 // '24 hours'`.
 //
@@ -12,7 +11,7 @@ import { universeSystem } from '../universe/geography';
 // definition exists only for type inference; the partition key must be part of
 // the PK, hence the composite `(system_id, hour_bucket)`.
 //
-// Populated by the Stage 11 stats-refresh job — empty until then; the read-only
+// Populated by the stats-refresh job — empty until then; the read-only
 // kill-stats module renders a zero state against an empty table.
 export const apSystemStats = pgTable(
   'ap_system_stats',

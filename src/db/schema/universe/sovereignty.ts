@@ -1,9 +1,9 @@
 import { bigint, integer, pgTable, primaryKey, text } from 'drizzle-orm/pg-core';
 import { universeSystem } from './geography';
 
-// Mutable ESI-fed sovereignty state used by the read-side intel module. Unlike
-// the legacy dual-DB model, this lives beside the static universe tables and is
-// refreshed by the `sov-fw-refresh` graphile-worker task.
+// Mutable ESI-fed sovereignty state used by the read-side intel module. Lives
+// beside the static universe tables and is refreshed by the `sov-fw-refresh`
+// graphile-worker task.
 export const universeSovereigntyMap = pgTable('universe_sovereignty_map', {
   systemId: integer('system_id')
     .primaryKey()

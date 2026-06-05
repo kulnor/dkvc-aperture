@@ -11,8 +11,8 @@ import { pool } from '@/db/client';
 import { buildCronItems, buildTaskList, type JobModule } from './registry';
 
 /**
- * The graphile-worker runtime for Stage 11. Single Node process, shares the
- * app's pg.Pool, no Redis, no separate worker container (SPEC §5.3).
+ * The graphile-worker runtime. Single Node process, shares the
+ * app's pg.Pool, no Redis, no separate worker container.
  *
  * Boot order:
  *   1. `startWorker()` calls graphile-worker's own `runMigrations` to create /

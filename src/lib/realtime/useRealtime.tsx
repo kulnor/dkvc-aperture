@@ -16,10 +16,10 @@ import { envelopeSchema, type Envelope } from './protocol';
 /**
  * Client-side realtime façade. Boots the SharedWorker (one socket per origin),
  * exposes the connection status and the most recent envelope, and lets a page
- * subscribe / unsubscribe to map channels. Stage 8 surfaces `lastEvent` but does
- * NOT merge it into the xyflow canvas — that is Stage 9.
+ * subscribe / unsubscribe to map channels. Surfaces `lastEvent` but does
+ * NOT merge it into the xyflow canvas.
  *
- * Degraded mode (SPEC §71 NFR): the banner must never render silently stale.
+ * Degraded mode: the banner must never render silently stale.
  * `status` reflects the worker's socket state AND a staleness watchdog — if no
  * traffic (including the server heartbeat) arrives within WS_HEALTH_STALE_MS we
  * force `degraded` even if the socket believes it is open.

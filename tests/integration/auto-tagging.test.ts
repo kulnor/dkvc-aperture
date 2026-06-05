@@ -17,7 +17,7 @@ import { foldWormholeJumpOntoMap } from '@/lib/jobs/locationCommit';
 import { isMapOwnerOrAdmin } from '@/lib/auth/rights';
 
 /**
- * Stage 17.10 gate: per-map auto-tagging (ABC + 0121).
+ * Per-map auto-tagging (ABC + 0121).
  *
  * Verifies, against real Postgres, that ABC assigns/reclaims per-class letters
  * at add time, that 0121 numbers a chain off Home at connect time (via the

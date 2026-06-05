@@ -33,7 +33,7 @@ const HUB = apertureConfig.ROUTE_HUBS[0]!.systemId; // Jita
 
 let mapId = 0n;
 let hubInserted = false;
-// Stage 15: read paths now require a viewer character. Provision a synthetic
+// Read paths require a viewer character. Provision a synthetic
 // admin so the test exercises the same path as a real `/maps` request.
 const TEST_VIEWER_ID = 98020999n;
 let testUserId = 0;

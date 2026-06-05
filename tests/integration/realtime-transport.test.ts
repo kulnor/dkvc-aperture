@@ -14,7 +14,7 @@ import { attachWsServer } from '@/lib/realtime/wsServer';
 import type { ServerToClientMessage } from '@/lib/realtime/protocol';
 
 /**
- * Stage 8 gate (roadmap): two tabs subscribed to the same map see each other's
+ * Two tabs subscribed to the same map see each other's
  * `pg_notify` messages within <500ms; an upgrade without a valid session is
  * rejected; subscribing to a soft-deleted/nonexistent map delivers nothing.
  * Gated behind RUN_DB_TESTS (needs containerized Postgres + applied migrations):

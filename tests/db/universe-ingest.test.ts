@@ -5,13 +5,13 @@ import { db, pool } from '@/db/client';
 import { SDE_BUILD } from '@/lib/sde/ingest';
 
 /**
- * Phase-0 gate (SPEC §9). Requires a migrated DB populated by `pnpm sde:bootstrap`
+ * Requires a migrated DB populated by `pnpm sde:bootstrap`
  * against the pinned SDE build. Gated behind RUN_DB_TESTS so the default fast
  * `pnpm test` lane stays offline.
  *
  *   pnpm db:migrate && pnpm sde:bootstrap && RUN_DB_TESTS=1 pnpm test
  *
- * Thresholds are pinned lower bounds for build SDE_BUILD, not a legacy diff.
+ * Thresholds are pinned lower bounds for build SDE_BUILD, not an exact count.
  */
 const run = process.env.RUN_DB_TESTS === '1';
 

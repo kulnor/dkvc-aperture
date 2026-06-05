@@ -1,6 +1,6 @@
 ## transfer.ts
 
-**Purpose:** Stage 17.6 map JSON import/export — serialise a map's state to a versioned document and merge such a document back into an existing map.
+**Purpose:** Map JSON import/export — serialise a map's state to a versioned document and merge such a document back into an existing map.
 **File:** `src/lib/map/transfer.ts`
 
 ---

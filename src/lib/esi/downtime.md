@@ -3,7 +3,7 @@
 **Purpose:** Decide whether a given instant falls inside CCP's daily ESI-downtime window, so the client can treat failures there as expected rather than real faults.
 **File:** `src/lib/esi/downtime.ts`
 
-Mirrors legacy `Lib\Config::inDownTimeRange` (SPEC §01). Window = `CCP_SSO_DOWNTIME` ± `CCP_SSO_DOWNTIME_WINDOW_MIN`, padded by `CCP_SSO_DOWNTIME_BUFFER_MIN` each side. All UTC.
+Window = `CCP_SSO_DOWNTIME` ± `CCP_SSO_DOWNTIME_WINDOW_MIN`, padded by `CCP_SSO_DOWNTIME_BUFFER_MIN` each side. All UTC.
 
 ---
 

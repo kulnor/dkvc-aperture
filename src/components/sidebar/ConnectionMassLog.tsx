@@ -8,7 +8,7 @@ import { connectionMassLogLoadSchema } from '@/lib/realtime/protocol';
 import { formatAgoFromMs } from '@/lib/map/relativeTime';
 
 /**
- * Read-only per-jump mass-log for the selected connection (Stage 17.11a). The
+ * Read-only per-jump mass-log for the selected connection. The
  * log is server-derived from the location-poll; this module only reads it and
  * refetches when a peer's jump arrives over the `connectionMassLog` realtime
  * task. No manual entry.

@@ -6,14 +6,14 @@
 ### Exports
 
 #### `RealtimeProvider` (component)
-Mounts the SharedWorker once, relays its status/messages into React state, and provides the context. Because React runs child effects before parent effects, a map page's `useMapSubscription` calls `subscribe()` before this provider's effect has created the port; requested map ids are recorded in a `desiredRef` set and flushed to the worker once the port is ready. Falls back to permanent `degraded` status when `SharedWorker` is unavailable (e.g. Safari). Runs a staleness watchdog: if no traffic (including the server heartbeat) arrives within `WS_HEALTH_STALE_MS` while the socket claims `open`, it forces `degraded` — never silently stale (SPEC §71).
+Mounts the SharedWorker once, relays its status/messages into React state, and provides the context. Because React runs child effects before parent effects, a map page's `useMapSubscription` calls `subscribe()` before this provider's effect has created the port; requested map ids are recorded in a `desiredRef` set and flushed to the worker once the port is ready. Falls back to permanent `degraded` status when `SharedWorker` is unavailable (e.g. Safari). Runs a staleness watchdog: if no traffic (including the server heartbeat) arrives within `WS_HEALTH_STALE_MS` while the socket claims `open`, it forces `degraded` — never silently stale.
 
 | Prop | Type | Required | Description |
 |---|---|---|---|
 | children | ReactNode | yes | App subtree that can read realtime context. |
 
 #### `useRealtime(): { status, lastEvent, subscribe, unsubscribe }`
-Context accessor; throws outside a `RealtimeProvider`. `status: RealtimeStatus`; `lastEvent: Envelope | null` (exposed for Stage 9 — not yet merged into the canvas).
+Context accessor; throws outside a `RealtimeProvider`. `status: RealtimeStatus`; `lastEvent: Envelope | null` (not merged into the canvas).
 
 #### `useMapSubscription(mapId: number | null): void`
 Subscribes to one map for the calling component's lifetime; unsubscribes on unmount.

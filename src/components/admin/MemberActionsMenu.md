@@ -1,6 +1,6 @@
 ## MemberActionsMenu
 
-**Purpose:** Stage 16.3 client island rendered inside each `/admin/members` row. Surfaces kick/ban/activate moderation controls and (for admins only) a grant/revoke-manager toggle.
+**Purpose:** Client island rendered inside each `/admin/members` row. Surfaces kick/ban/activate moderation controls and (for admins only) a grant/revoke-manager toggle.
 **File:** `src/components/admin/MemberActionsMenu.tsx`
 
 ### Props
@@ -33,4 +33,4 @@ A right-aligned row of small icon buttons. The visible set depends on `member.st
 - `AdminMemberRow` — `@/lib/auth/members`.
 
 ### Notes
-- No bulk-select / multi-row controls — Stage 16.3 is per-row only.
+- No bulk-select / multi-row controls — per-row only.

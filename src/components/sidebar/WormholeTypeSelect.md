@@ -1,6 +1,6 @@
 ## WormholeTypeSelect
 
-**Purpose:** Class-filtered wormhole-type dropdown for the signature inspector (SPEC §6.4).
+**Purpose:** Class-filtered wormhole-type dropdown for the signature inspector.
 **File:** `src/components/sidebar/WormholeTypeSelect.tsx`
 
 ### Props

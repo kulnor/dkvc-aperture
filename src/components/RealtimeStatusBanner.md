@@ -1,6 +1,6 @@
 ## RealtimeStatusBanner
 
-**Purpose:** Degraded-mode banner — surfaces realtime connection trouble so the UI never silently renders stale state (SPEC §71 NFR / CLAUDE.md "Realtime").
+**Purpose:** Degraded-mode banner — surfaces realtime connection trouble so the UI never silently renders stale state.
 **File:** `src/components/RealtimeStatusBanner.tsx`
 
 ### Renders

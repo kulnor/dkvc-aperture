@@ -28,7 +28,7 @@ import { env } from '@/lib/env';
 import { onDemandJobModules } from '@/lib/jobs/registry';
 
 /**
- * Stage 16.6 setup-wizard Server Actions. All gated except `setupUnlockAction`
+ * Setup-wizard Server Actions. All gated except `setupUnlockAction`
  * itself: a request hitting any other action without a valid `ap_setup` cookie
  * returns `{ ok: false, error: 'Locked.' }`. The unlock check is constant-time
  * (`timingSafeEqual`) and the response is generic ("Invalid password") to
@@ -246,7 +246,7 @@ export async function setupRunCronOnDemand(
 }
 
 /**
- * Permissions-overhaul Stage 4. Instance access configuration. These actions
+ * Instance access configuration. These actions
  * wrap `src/lib/auth/instanceConfig.ts` behind the same `gate()` as the rest of
  * the console — the operator drives the allowlist with no EVE login, the
  * bootstrap path before anyone can sign in.

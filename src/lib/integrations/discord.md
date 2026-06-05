@@ -1,6 +1,6 @@
 ## discord.ts
 
-**Purpose:** Discord webhook POST client for the Stage 14 fan-out dispatcher.
+**Purpose:** Discord webhook POST client for the fan-out dispatcher.
 **File:** `src/lib/integrations/discord.ts`
 
 ---

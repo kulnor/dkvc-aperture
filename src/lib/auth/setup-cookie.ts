@@ -3,7 +3,7 @@ import { cookies } from 'next/headers';
 import { AUTH_COOKIE_OPTIONS } from '@/lib/cookies';
 import { env } from '@/lib/env';
 
-// Stage 16.6 setup-wizard gate. The /setup route deliberately bypasses EVE SSO
+// Setup-wizard gate. The /setup route deliberately bypasses EVE SSO
 // so an operator can troubleshoot a broken auth deploy; the floor under that
 // bypass is a SETUP_PASSWORD check that mints this signed, httpOnly, short-TTL
 // cookie. The HMAC signature (keyed on AUTH_SECRET) is what prevents a forged

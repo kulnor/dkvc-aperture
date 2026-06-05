@@ -1,6 +1,6 @@
 ## members.ts
 
-**Purpose:** Stage 16.3 admin-panel data loader for `/admin/members`. Returns the `ap_character` rows visible to the actor's `AdminVisibilityScope`, with the moderation + authz fields the action menu needs to decide which controls to show.
+**Purpose:** Admin-panel data loader for `/admin/members`. Returns the `ap_character` rows visible to the actor's `AdminVisibilityScope`, with the moderation + authz fields the action menu needs to decide which controls to show.
 **File:** `src/lib/auth/members.ts`
 
 ---
@@ -23,8 +23,8 @@ Bigints serialised to strings; timestamps to ISO so the row is safe to pass stra
 
 ### Depends on
 - `apCharacter` — `@/db/schema`.
-- `characterScopeFilterFor`, `AdminVisibilityScope` — `@/lib/auth/rights` (16.1).
+- `characterScopeFilterFor`, `AdminVisibilityScope` — `@/lib/auth/rights`.
 
 ### Notes
 - `server-only` import guard — never bundled to the client.
-- The dashboard counts in `src/app/(admin)/admin/page.tsx` (Stage 16.1) compute their own `COUNT(*)` queries against `apCharacter` rather than calling this loader; this function is the row-level fetch, not a count surface.
+- The dashboard counts in `src/app/(admin)/admin/page.tsx` compute their own `COUNT(*)` queries against `apCharacter` rather than calling this loader; this function is the row-level fetch, not a count surface.

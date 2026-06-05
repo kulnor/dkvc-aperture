@@ -48,8 +48,8 @@ export function normalizeShipName(raw: string): string {
 
 /**
  * `getCharacterShip` → `get_characters_character_id_ship`. Current ship the
- * character is in. `ship_type_id` is the type the rebuild stores as
- * `ap_character.last_ship_type_id` for the head-of-page breadcrumb (Stage 12.1).
+ * character is in. `ship_type_id` is the type stored as
+ * `ap_character.last_ship_type_id` for the head-of-page breadcrumb.
  *
  * `ship_item_id` is an instance id (per-ship, persists across docking until
  * the ship is repackaged); useful for the future "did the pilot swap ships?"

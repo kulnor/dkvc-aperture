@@ -7,7 +7,7 @@ import { withInstrumentation } from '../withInstrumentation';
 import type { JobModule } from '../registry';
 
 /**
- * Stage 11.2. EOL-expiry cron: delete `ap_map_connection` rows that have been
+ * EOL-expiry cron: delete `ap_map_connection` rows that have been
  * end-of-life (`eol_stage <> 'none'`) for longer than the lifetime of their
  * *current* stage — `WORMHOLE_EOL_LIFETIME_MS` (4h 15m) for the `eol` stage,
  * `WORMHOLE_EOL_CRITICAL_LIFETIME_MS` (1h 15m) for the `critical` stage — but
@@ -15,7 +15,7 @@ import type { JobModule } from '../registry';
  * through `commitMapEvent` so it becomes a `connection.delete` event on the
  * realtime bus.
  *
- * Shares the Stage 10 ms constants with the canvas EOL countdown so the
+ * Shares the ms constants with the canvas EOL countdown so the
  * "expires in X" hint and the actual reap threshold can never drift apart; the
  * SQL `make_interval(secs => …)` site converts ms → seconds and picks the
  * per-stage constant with a `CASE` so a hole escalated to `critical` is reaped
@@ -23,9 +23,6 @@ import type { JobModule } from '../registry';
  *
  * Connections are hard-deleted (CLAUDE.md: wormholes don't come back); attached
  * `ap_map_signature` rows cascade.
- *
- * Replaces legacy `Cron\MapUpdate::deleteEolConnections` (`@fiveMinutes`).
- * SPEC §6.5.
  */
 
 const NAME = 'eol-expiry';

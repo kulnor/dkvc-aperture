@@ -10,10 +10,10 @@
 | stats | SystemStatsSummary \| undefined | yes | 24h totals; absent → zero state. |
 
 ### Renders
-A `Card` with four rows of 24h counts. Shows a select prompt when nothing is selected, and "Not tracked in wormhole space" for J-space systems (K-space only, matching legacy `system_graph`).
+A `Card` with four rows of 24h counts. Shows a select prompt when nothing is selected, and "Not tracked in wormhole space" for J-space systems (K-space only).
 
 ### Behaviour & Interactions
-- Read-only. Renders zeros until the Stage 11 stats-refresh job populates `ap_system_stats`.
+- Read-only. Renders zeros until the stats-refresh job populates `ap_system_stats`.
 - Wormhole detection via the shared `isWormholeSystem` helper (`@/lib/map/space`).
 
 ### Depends On

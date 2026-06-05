@@ -15,7 +15,7 @@ import {
 
 /**
  * Static reference dialog listing every W-space anomaly effect and its per-class
- * bonuses (Stage 17.3). One table per effect, two-up on wide viewports. Pure
+ * bonuses. One table per effect, two-up on wide viewports. Pure
  * reference data from `SYSTEM_EFFECTS` — no server call.
  */
 export function SystemEffectsDialog({

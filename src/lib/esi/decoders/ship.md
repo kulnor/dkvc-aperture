@@ -1,6 +1,6 @@
 ## ship.ts
 
-**Purpose:** Zod decoder for `getCharacterShip`. Stage 12.1 location-poll persists `ship_type_id` to `ap_character.last_ship_type_id` for the head breadcrumb; `ship_name` feeds the presence hover panel.
+**Purpose:** Zod decoder for `getCharacterShip`. The location-poll persists `ship_type_id` to `ap_character.last_ship_type_id` for the head breadcrumb; `ship_name` feeds the presence hover panel.
 **File:** `src/lib/esi/decoders/ship.ts`
 
 ---

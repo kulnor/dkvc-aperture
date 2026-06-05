@@ -30,7 +30,7 @@ import { requestJson, type FetchResult } from '@/lib/http/fetchJson';
 export type { FetchResult };
 
 /**
- * Client-side fetch wrappers for the Stage 9.4 JSON API routes.
+ * Client-side fetch wrappers for the JSON API routes.
  *
  * Each mutation helper returns `ActionResult<MapEventPayload>` — the same body
  * shape the route emits, so callers can feed the success payload straight into
@@ -212,7 +212,7 @@ export function deleteConnectionOnServer(args: {
 
 /**
  * List a connection's per-jump mass-log (read; view rights). Returns a plain
- * `FetchResult` — no `eventId`. The log is server-derived (Stage 17.11a); the
+ * `FetchResult` — no `eventId`. The log is server-derived; the
  * inspector refetches on the `connectionMassLog` realtime task.
  */
 export function fetchConnectionMassLog(args: {
@@ -312,7 +312,7 @@ export function deleteSignatureOnServer(args: {
 }
 
 // ---------------------------------------------------------------------------
-// Signature paste — bulk diff + resolver preview (Stage 10.2)
+// Signature paste — bulk diff + resolver preview
 // ---------------------------------------------------------------------------
 
 export type PasteSignaturesBody = {
@@ -358,7 +358,7 @@ export function resolveSignaturesOnServer(args: {
 }
 
 // ---------------------------------------------------------------------------
-// Map import / export (Stage 17.6)
+// Map import / export
 // ---------------------------------------------------------------------------
 
 /**
@@ -384,7 +384,7 @@ export function importMapOnServer(args: {
 }
 
 // ---------------------------------------------------------------------------
-// Thera module (Stage 17.9)
+// Thera module
 // ---------------------------------------------------------------------------
 
 /**

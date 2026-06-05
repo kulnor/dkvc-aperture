@@ -6,7 +6,7 @@ import type { AdminVisibilityScope } from '@/lib/auth/rights';
 import type { AuthzLevel, MapRight } from '@/types';
 
 /**
- * Stage 16.5 — read-side helpers for the `/admin/settings` corp-rights matrix.
+ * Read-side helpers for the `/admin/settings` corp-rights matrix.
  *
  * The matrix is `ap_corporation_right` rendered as 6 rights × 4-state radios
  * (none + the three `authz_level` rungs). "None" maps to no row in the table;

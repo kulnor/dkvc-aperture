@@ -20,7 +20,7 @@ A full-size wrapper `div` holding either the live `Responsive` grid (once measur
 - `rowHeight` 40px, `margin` [8, 8]px. Breakpoints/cols come from `PANEL_BREAKPOINTS` / `PANEL_COLS`.
 - Re-applies `PANEL_MIN` (registry resize floors) over each stored layout item before handing `layouts` to RGL, so the registry `minW`/`minH` stay authoritative — lowering a floor takes effect for already-saved layouts without altering their persisted `x/y/w/h`.
 - Imports `react-grid-layout/css/styles.css` for the grid item / resize-handle positioning.
-- Stateless: holds no layout state itself; the parent owns `layouts` and persists via `onLayoutChange` (wired in a later stage).
+- Stateless: holds no layout state itself; the parent owns `layouts` and persists via `onLayoutChange`.
 
 ### Depends On
 - `react-grid-layout` (`Responsive`, `useContainerWidth`, `Layout`, `ResponsiveLayouts`).

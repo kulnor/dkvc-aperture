@@ -1,9 +1,9 @@
 import type { Breakpoint, MapLayoutConfig, PanelId } from '@/types';
 
 // Single source of truth for the map dashboard's panels and their default
-// arrangement (map-layout-builder). `DEFAULT_MAP_LAYOUT` reproduces the legacy
-// fixed two-column layout: a tall canvas top-left with full-width signatures
-// beneath it, and the info modules stacked in a right column.
+// arrangement. `DEFAULT_MAP_LAYOUT` is the built-in fixed two-column layout:
+// a tall canvas top-left with full-width signatures beneath it, and the info
+// modules stacked in a right column.
 
 /** Bumped when the stored shape changes incompatibly; gates a reset/migration. */
 export const LAYOUT_CONFIG_VERSION = 1;

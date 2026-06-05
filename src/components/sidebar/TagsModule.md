@@ -1,6 +1,6 @@
 ## TagsModule
 
-**Purpose:** Sidebar panel showing the next available auto-tags for the active scheme (Stage 17.10).
+**Purpose:** Sidebar panel showing the next available auto-tags for the active scheme.
 **File:** `src/components/sidebar/TagsModule.tsx`
 
 ### Props

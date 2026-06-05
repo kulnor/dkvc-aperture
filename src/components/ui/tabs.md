@@ -19,4 +19,4 @@ Content panel shown when the `Tab` with the matching `value` is active. Hidden (
 
 ---
 
-Used by `MapInfoDialog` (Summary / Systems / Connections / Users). Intended for reuse by later Stage 17 dialogs (account settings, statistics).
+Used by `MapInfoDialog` (Summary / Systems / Connections / Users). Intended for reuse by other dialogs (account settings, statistics).

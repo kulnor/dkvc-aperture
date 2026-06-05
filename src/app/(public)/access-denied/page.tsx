@@ -1,7 +1,7 @@
 import { LoginButton } from '@/components/chrome/LoginButton';
 
 /**
- * Permissions-overhaul Stage 3. Where the Auth.js `signIn` gate sends a denied
+ * Where the Auth.js `signIn` gate sends a denied
  * sign-in (configured as `pages.error` in `src/lib/auth.ts`). Copy is kept
  * generic — it does not reveal whether the instance is restricted or the
  * character simply isn't on the allowlist.

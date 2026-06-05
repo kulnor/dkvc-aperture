@@ -17,7 +17,7 @@ import { commitMapEvent, type ActionResult } from '@/lib/map/mutations/core';
 import type { MapEventPayload } from '@/lib/realtime/protocol';
 
 /**
- * Stage 16.2 admin map actions. Three operations, each gated independently of
+ * Admin map actions. Three operations, each gated independently of
  * the corp-right matrix because the admin panel is the manager/admin's
  * override path:
  *
@@ -51,7 +51,7 @@ async function selectScopedMap(
 }
 
 /**
- * Stage 16.2. Soft-delete a map: set `deleted_at = now()`. Mirrors the user
+ * Soft-delete a map: set `deleted_at = now()`. Mirrors the user
  * `deleteMapAction` outcome (same event kind, same payload shape) but bypasses
  * the corp-right matrix in favour of an admin/manager gate. The 30-day
  * `map-purge` cron remains the eventual hard-delete path.
@@ -97,7 +97,7 @@ export async function adminSoftDeleteMap(
 }
 
 /**
- * Stage 16.2. Restore a soft-deleted map by clearing `deleted_at`. Emits
+ * Restore a soft-deleted map by clearing `deleted_at`. Emits
  * `map.restore` so the audit chain records the action. Manager or admin.
  */
 export async function adminRestoreMap(
@@ -140,7 +140,7 @@ export async function adminRestoreMap(
 }
 
 /**
- * Stage 16.2. Admin-only: hard-delete a soft-deleted map immediately, skipping
+ * Admin-only: hard-delete a soft-deleted map immediately, skipping
  * the 30-day `map-purge` cron grace. Managers cannot invoke (they may
  * soft-delete but not purge).
  *

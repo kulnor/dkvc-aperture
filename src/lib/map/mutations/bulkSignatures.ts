@@ -10,7 +10,7 @@ import { createSignature, updateSignature, deleteSignature } from './signatures'
 import { deleteConnection } from './connections';
 
 /**
- * Bulk signature-paste orchestrator (Stage 10.2). Diffs incoming resolved rows
+ * Bulk signature-paste orchestrator. Diffs incoming resolved rows
  * against the system's existing signatures, then routes each diff item through
  * the existing per-sig helpers (`createSignature`/`updateSignature`/`deleteSignature`)
  * — plus `deleteConnection` for orphaned WH edges when `removeOrphanedConnections`
@@ -114,7 +114,7 @@ export async function pasteSignatures(
         // Only overwrite when the paste resolved to a real value that differs.
         // Treat incoming nulls as "unknown — don't clobber prior classification".
         // For `name` we never overwrite a non-blank existing value (user-typed
-        // cosmic site, or the wormhole-code mirror), matching the legacy
+        // cosmic site, or the wormhole-code mirror), honoring the
         // "paste shouldn't clobber typed-in data" contract — but we DO fill in a
         // blank one, so a row first added from a low-strength scan (group known,
         // site name not yet revealed) gets its Type populated by a later

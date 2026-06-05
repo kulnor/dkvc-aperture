@@ -61,7 +61,7 @@ import {
 import { loadTheraConnections, syncTheraConnections } from '@/lib/map/thera';
 
 /**
- * Stage 17.9 gate: Thera/Turnur sync onto a map + the read-side orientation.
+ * Thera/Turnur sync onto a map + the read-side orientation.
  *
  *   docker compose up -d && pnpm db:migrate && RUN_DB_TESTS=1 pnpm test
  */

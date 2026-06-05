@@ -11,7 +11,7 @@
 - `map_id` — `bigint` FK → `ap_map.id` `ON DELETE CASCADE`.
 - `system_id` — `integer` FK → `universe_system.id` `ON DELETE RESTRICT` (a static system in use must not be deletable).
 - `visible` — `boolean`, required. **Lifecycle flag**: removing a system flips this `false` (row persists); re-adding upserts `true`. `MAX_SYSTEMS` counts only `visible = true`.
-- `position_x` / `position_y` — `double precision`, default `0`. No legacy 2440×1480 clamping.
+- `position_x` / `position_y` — `double precision`, default `0`. No coordinate clamping.
 - `alias`, `tag`, `intel_notes` — `text`, nullable.
 - `status` — `system_status` enum, default `unknown`.
 - `locked` — `boolean`, default `false`.

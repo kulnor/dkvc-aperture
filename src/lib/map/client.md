@@ -1,6 +1,6 @@
 ## client.ts
 
-**Purpose:** Browser-side fetch wrappers for the Stage 9.4 JSON API routes. The network layer for `MapCanvas`'s optimistic+reconcile flow.
+**Purpose:** Browser-side fetch wrappers for the JSON API routes. The network layer for `MapCanvas`'s optimistic+reconcile flow.
 **File:** `src/lib/map/client.ts`
 
 Each helper returns `ActionResult<MapEventPayload>` — same shape as the route — so the caller can feed the success `data` straight into `applyEvent`. The helpers do not touch view state: optimistic apply / rollback / dedupe is orchestrated in `MapCanvas`. On a non-2xx response or network throw, helpers fire a `toast.error` and return `{ ok: false, error }`.
@@ -39,8 +39,8 @@ PATCH / DELETE on `/api/map/{mapId}/connections/{connectionId}`. Optimistic.
 
 ### fetchConnectionMassLog({ mapId, connectionId }): Promise<FetchResult<ConnectionMassLogEntry[]>>
 GET `/api/map/{mapId}/connections/{connectionId}/mass-log` (view rights). Lists the connection's
-per-jump mass-log oldest-first with a running cumulative mass. Read-only — the log is server-derived
-(Stage 17.11a); the `ConnectionMassLog` inspector module refetches on the `connectionMassLog` realtime task.
+per-jump mass-log oldest-first with a running cumulative mass. Read-only — the log is server-derived;
+the `ConnectionMassLog` inspector module refetches on the `connectionMassLog` realtime task.
 
 ### deleteSubchainOnServer({ mapId, headMapSystemId, anchorMapSystemId? }): Promise<ActionResult<SubchainDeleteResult>>
 POST `/api/map/{mapId}/subchain`. Delete a head system and everything orphaned from the keep-side anchor by removing it. The server recomputes the set authoritatively from `headMapSystemId` (+ `anchorMapSystemId`, the neighbour to keep, only when the map has no Home). Returns `{ summary, payloads }`; the caller iterates `payloads` to register each `eventId` and apply each locally (wrapper-level `eventId` is always `0` — N-events). Used by `MapCanvas`'s delete-subchain handler.

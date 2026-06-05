@@ -1,6 +1,6 @@
 ## settings.ts (admin server actions)
 
-**Purpose:** Stage 16.5 admin actions on `ap_corporation_right`. Exposes upsert and delete for `(corporation_id, right)` rows from `/admin/settings`. Gated by `isManagerOrAdmin` plus a per-corp scope check — managers can only edit their own corp; admins can edit any.
+**Purpose:** Admin actions on `ap_corporation_right`. Exposes upsert and delete for `(corporation_id, right)` rows from `/admin/settings`. Gated by `isManagerOrAdmin` plus a per-corp scope check — managers can only edit their own corp; admins can edit any.
 **File:** `src/app/(admin)/actions/settings.ts`
 
 ---
@@ -26,5 +26,5 @@ Sets the instance-wide default stale-signature threshold (`ap_instance.stale_sig
 - `apCorporation`, `apCorporationRight`, `apInstance`, `mapRight`, `authzLevel` — `@/db/schema`.
 
 ### Notes
-- No `ap_map_event` row is written. Corp-right config is not map state; `ap_map_event` is map-scoped. Audit gap is documented in the Stage 16 plan ("What is intentionally NOT in scope").
+- No `ap_map_event` row is written. Corp-right config is not map state; `ap_map_event` is map-scoped, so corp-right changes are intentionally out of its scope.
 - Manager scope check returns `"Corporation not found."` instead of `"Forbidden."` for parity with the maps/webhook actions' "don't leak existence" rule.

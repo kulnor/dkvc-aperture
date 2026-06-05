@@ -28,7 +28,7 @@ import {
 } from '@/lib/map/transfer';
 
 /**
- * Stage 17.6 gate: map JSON export + merge-import.
+ * Map JSON export + merge-import.
  * Verifies a round-trip (export a populated map, import it into a fresh map)
  * remaps system/connection endpoints correctly, against real Postgres.
  *

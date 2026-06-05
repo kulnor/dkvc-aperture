@@ -10,7 +10,7 @@ import { apCharacter, apMapConnection, apMapConnectionLog, universeType } from '
 import type { ConnectionMassLogEntry } from '@/types';
 
 /**
- * Stage 17.11a. Server-side writer for the connection mass-log. Called from the
+ * Server-side writer for the connection mass-log. Called from the
  * location-poll's wormhole-jump fold (`src/lib/jobs/locationCommit.ts`) when a
  * tracked character traverses a connection.
  *

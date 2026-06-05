@@ -1,6 +1,6 @@
 ## cookies.ts
 
-**Purpose:** Single source of truth for the cookie flags every same-origin auth cookie in this app sets. Closes SPEC §11 Q9.
+**Purpose:** Single source of truth for the cookie flags every same-origin auth cookie in this app sets.
 **File:** `src/lib/cookies.ts`
 
 ---

@@ -1,7 +1,7 @@
 // No `import 'server-only'` here: this is the low-level commit primitive,
 // consumed by the high-level mutation wrappers (signatures.ts / connections.ts /
 // systems.ts — all of which DO carry `'server-only'` and define the surface a
-// client could accidentally import) AND by the Stage 11 graphile-worker tasks,
+// client could accidentally import) AND by the graphile-worker tasks,
 // which run under plain Node via server.ts and would crash on the bare
 // `server-only/index.js` throw (no React `react-server` export condition).
 import { sql } from 'drizzle-orm';
@@ -100,7 +100,7 @@ export async function commitMapEvent<K extends MapEventKind>(
     // Joined to a caller's outer transaction (bulk paste path). Skip the
     // webhook enqueue here: the outer transaction hasn't committed yet, so
     // dispatching could race with rollback. Bulk paths can enqueue once after
-    // their outer commit if Stage-17 surfaces a use case (today none does).
+    // their outer commit if a use case surfaces (today none does).
     const result = await run(outerTx);
     return { ok: true, data: result.payload, eventId: result.eventId };
   }
@@ -115,7 +115,7 @@ export async function commitMapEvent<K extends MapEventKind>(
 }
 
 /**
- * Best-effort fire-and-forget enqueue of the Stage 14 webhook-dispatch job.
+ * Best-effort fire-and-forget enqueue of the webhook-dispatch job.
  * The EXISTS short-circuit keeps the common case (map with no webhooks
  * configured) free of any graphile-worker traffic. Failures are logged and
  * swallowed — webhook delivery never blocks the underlying map mutation.

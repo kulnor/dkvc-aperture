@@ -12,9 +12,9 @@ import { universeType } from '../universe/items';
 import { universeCorporation } from '../universe/corporation';
 import { apCharacter } from './character';
 
-// SPEC §10 row 9 / spec-08 `system_intel`. Manual structure-intel: one row per
+// Manual structure-intel: one row per
 // player-owned structure a user has spotted in a system. System-scoped and
-// deployment-global (shared across maps, like the legacy system_intel module).
+// deployment-global (shared across maps).
 //
 // This is MANUAL ENTRY, not ESI-resolved. ESI's getUniverseStructure only
 // returns structures the calling character can dock at (their own corp's), so

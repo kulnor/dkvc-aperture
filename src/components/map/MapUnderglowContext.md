@@ -1,9 +1,9 @@
 ## MapUnderglowContext
 
-**Purpose:** Transient per-node "underglow" external store (keyed by `ap_map_system.id`) + provider + per-node hook — the versatile glow-highlight primitive shared by killmail alerts and future rally/unscanned-sig indicators.
+**Purpose:** Transient per-node "underglow" external store (keyed by `ap_map_system.id`) + provider + per-node hook — the versatile glow-highlight primitive shared by killmail alerts, rally points and system pings indicators.
 **File:** `src/components/map/MapUnderglowContext.tsx`
 
-Mirrors `MapTravelContext`: a `useSyncExternalStore`-backed store so one event re-renders one node, not the whole nodes array. The animation lives in `SystemUnderglow`; this store only tracks *which* node, *which* `UnderglowConfig`, and a monotonic `token` so a rapid re-trigger restarts the CSS animation (via React `key`). The producer is `MapUnderglowBridge`.
+Mirrors `MapTravelContext`: a `useSyncExternalStore`-backed store so one event re-renders one node, not the whole nodes array. The animation lives in `SystemUnderglow`; this store only tracks _which_ node, _which_ `UnderglowConfig`, and a monotonic `token` so a rapid re-trigger restarts the CSS animation (via React `key`). The producer is `MapUnderglowBridge`.
 
 ### Exports
 

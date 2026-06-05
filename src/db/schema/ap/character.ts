@@ -2,8 +2,7 @@ import { bigint, boolean, integer, pgTable, text, timestamp } from 'drizzle-orm/
 import { authzLevel, characterStatus } from './enums';
 import { apUser } from './user';
 
-// SPEC §7. ESI tokens live directly on the character row (not a separate auth
-// table — the legacy `character_authentication` cookie store is dropped). The
+// ESI tokens live directly on the character row, not a separate auth table. The
 // access/refresh tokens are stored as ciphertext blobs produced by
 // `src/lib/crypto.ts`; nothing here ever holds plaintext.
 export const apCharacter = pgTable('ap_character', {
@@ -14,10 +13,10 @@ export const apCharacter = pgTable('ap_character', {
     .references(() => apUser.id, { onDelete: 'cascade' }),
   name: text('name').notNull(),
   // CCP rotates `owner_hash` when a character is transferred between accounts;
-  // it is the canonical "same character" signal. SPEC §7.
+  // it is the canonical "same character" signal.
   ownerHash: text('owner_hash').notNull(),
-  // Membership ids. Real FK tables (ap_corporation / ap_alliance) arrive in a
-  // later stage; stored as plain nullable bigints until then.
+  // Membership ids. Stored as plain nullable bigints (no FK to ap_corporation /
+  // ap_alliance).
   corporationId: bigint('corporation_id', { mode: 'bigint' }),
   allianceId: bigint('alliance_id', { mode: 'bigint' }),
   // Encrypted at rest (AES-256-GCM, see src/lib/crypto.ts).
@@ -28,18 +27,18 @@ export const apCharacter = pgTable('ap_character', {
   status: characterStatus('status').notNull().default('active'),
   statusChangedAt: timestamp('status_changed_at', { withTimezone: true }),
   statusReason: text('status_reason'),
-  // Stage 15. Set on a `kicked` row to the moment the timeout expires; the
+  // Set on a `kicked` row to the moment the timeout expires; the
   // `character-cleanup` cron flips `status` back to `'active'` and clears this
   // when `now() >= status_expires_at`. NULL for `'active'` and `'banned'` rows
   // (bans are permanent).
   statusExpiresAt: timestamp('status_expires_at', { withTimezone: true }),
   authzLevel: authzLevel('authz_level').notNull().default('member'),
-  // Stage 15. When `syncCharacterAuthz` last reconciled this row's
+  // When `syncCharacterAuthz` last reconciled this row's
   // `authz_level`, `corporation_id`, `alliance_id`, and `ap_character_role`
   // membership against ESI. Used by the `character-cleanup` job to throttle
   // resync work to stale rows only.
   authzSyncedAt: timestamp('authz_synced_at', { withTimezone: true }),
-  // SPEC §5.3 / Stage 12. Last-known state cached on the row by the
+  // Last-known state cached on the row by the
   // location-poll job; nullable until the first successful tick. No FK to
   // `universe_system` — a universe rebuild would otherwise have to honour
   // every stale pointer, and the next poll tick overwrites the value anyway.

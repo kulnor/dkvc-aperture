@@ -1,6 +1,6 @@
 ## queries.ts
 
-**Purpose:** Read-only helpers over `ap_job_run` for the Stage 11.6 operability sweep (CLI `pnpm jobs:status`, and any future admin page in Stage 16/17).
+**Purpose:** Read-only helpers over `ap_job_run` for the operability sweep (CLI `pnpm jobs:status`, and any future admin page).
 **File:** `src/lib/jobs/queries.ts`
 
 ---
@@ -17,7 +17,7 @@ Most recent `ap_job_run` rows for one task, newest first. Used for the per-task 
 - `lastSuccess` — boolean from the most recent finished run (`null` if the most recent row is in-flight).
 - `lastErrorText` — truncated `Error.message` if the last run failed.
 - `runCount` / `successCount` / `failCount` — count over the `sinceMs` window.
-- `abandonedCount` — runs whose `ended_at IS NULL` and whose `started_at` is older than expected — i.e. the worker died mid-handler. Stage 11.6 CLI flags any non-zero count.
+- `abandonedCount` — runs whose `ended_at IS NULL` and whose `started_at` is older than expected — i.e. the worker died mid-handler. The CLI flags any non-zero count.
 - `avgDurationMs` — mean of `(ended_at - started_at)` over finished runs in the window.
 
 ### summary(taskName, sinceMs): Promise<JobSummary>

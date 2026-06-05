@@ -11,7 +11,7 @@ import {
 /**
  * GET /api/statistics?scope=&period=&anchor=
  *
- * Global (not map-scoped) activity statistics for the Stage 17.7 dialog.
+ * Global (not map-scoped) activity statistics for the Statistics dialog.
  * Aggregates `ap_activity_rollup` over every map of `scope` the session can
  * view, attributing activity to account mains. Returns
  * `{ ok, availableScopes, rows, label, prevAnchor, nextAnchor, hasNext }`.

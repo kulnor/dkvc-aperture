@@ -1,6 +1,6 @@
 ## /admin/settings — Corp rights matrix editor
 
-**Purpose:** Stage 16.5 server component that renders the per-corp `ap_corporation_right` matrix. Admin sees a corp picker (`?corp=<id>`); manager is auto-scoped to their own corp.
+**Purpose:** Server component that renders the per-corp `ap_corporation_right` matrix. Admin sees a corp picker (`?corp=<id>`); manager is auto-scoped to their own corp.
 **File:** `src/app/(admin)/admin/settings/page.tsx`
 
 ### Renders

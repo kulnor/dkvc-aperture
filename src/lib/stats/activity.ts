@@ -6,12 +6,11 @@ import { apCharacter, apMap } from '@/db/schema';
 import { viewableMapPredicate } from '@/lib/auth/rights';
 
 /**
- * Stage 17.7. Server-side activity-statistics reader over the
+ * Server-side activity-statistics reader over the
  * `ap_activity_rollup` materialized view (`src/db/views/activity_rollup.sql`).
  *
- * The legacy `stats.js` dialog ranked characters by activity across all maps of
- * a given scope (private/corp/alliance — no mapId). This module reproduces that
- * shape from the weekly rollup:
+ * Ranks characters by activity across all maps of a given scope
+ * (private/corp/alliance — no mapId), built from the weekly rollup:
  *
  *   - **Main-character attribution** — every rollup row's `character_id` rolls
  *     up to the acting character's account *main* (`ap_user.main_character_id`),

@@ -5,7 +5,7 @@ import { ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
 
 import { cn } from '@/lib/utils';
 
-// Trimmed shadcn-style chart wrapper (Stage 17.8). Provides a themed responsive
+// Trimmed shadcn-style chart wrapper. Provides a themed responsive
 // container and a compact tooltip; charts compose Recharts primitives directly.
 // Kept minimal — the only consumer is the system-graph small-multiples module.
 

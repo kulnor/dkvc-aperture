@@ -1,6 +1,6 @@
 ## scheme0121.ts
 
-**Purpose:** Scheme B "0121" — positional chain numbering off the Home system (Stage 17.10). Pure / db-free.
+**Purpose:** Scheme B "0121" — positional chain numbering off the Home system. Pure / db-free.
 **File:** `src/lib/tagging/scheme0121.ts`
 
 ---

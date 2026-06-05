@@ -1,6 +1,6 @@
 ## AdminMembersPage
 
-**Purpose:** `/admin/members` — table of every character in the actor's `AdminVisibilityScope` with the moderation + authz action surface (`MemberActionsMenu`). Stage 16.3.
+**Purpose:** `/admin/members` — table of every character in the actor's `AdminVisibilityScope` with the moderation + authz action surface (`MemberActionsMenu`).
 **File:** `src/app/(admin)/admin/members/page.tsx`
 
 ### Renders

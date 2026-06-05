@@ -9,7 +9,7 @@ import { JumpInfoDialog } from '@/components/dialogs/JumpInfoDialog';
 import { ManualDialog } from '@/components/dialogs/ManualDialog';
 
 /**
- * Header "Info" menu (Stage 17.3) — the entry point for the static reference
+ * Header "Info" menu — the entry point for the static reference
  * dialogs. Owns the open-state for each dialog it can launch.
  */
 export function ReferenceMenu() {

@@ -25,16 +25,16 @@ import { mapUpdateLoadSchema, type ServerToClientMessage } from '@/lib/realtime/
 /**
  * Multi-user sync soak (CLAUDE.md "Realtime" robustness investigation).
  *
- * Reproduces the legacy "everybody fights when several people rearrange systems"
- * scenario on the rebuild's pathway: N actors fire concurrent position commits
+ * Reproduces the "everybody fights when several people rearrange systems"
+ * scenario: N actors fire concurrent position commits
  * through the real `updateSystem` → `commitMapEvent` → `ap_map_event` →
  * `tg_map_event_notify` → LISTEN bus → WebSocket fan-out, while K observer
  * sockets record every `mapUpdate` they receive. Three properties are asserted:
  *
  *   1. CONVERGENCE — every observer, folding the events it received in arrival
  *      order, lands on the same final position per system as the authoritative
- *      DB row. This is the property the legacy 5s-debounce + full-map-push model
- *      violated; the delta model should satisfy it because pg NOTIFY delivers in
+ *      DB row. A 5s-debounce + full-map-push model would violate this property;
+ *      the delta model should satisfy it because pg NOTIFY delivers in
  *      commit order and the row's final value is set by the last committer.
  *
  *   2. NO TRANSPORT DROP — each observer received exactly the set of event ids

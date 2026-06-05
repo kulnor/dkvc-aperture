@@ -1,6 +1,6 @@
 ## auth-rotation.test.ts
 
-**Purpose:** Proves the Stage 2 security invariants — persisted refresh-token rotation (footgun #2) and the JWK refetch cap (footgun #3).
+**Purpose:** Proves the auth security invariants — persisted refresh-token rotation (footgun #2) and the JWK refetch cap (footgun #3).
 **File:** `tests/integration/auth-rotation.test.ts`
 
 Runs in the `node` environment (`@vitest-environment node`) because it uses `pg` and `node:crypto`.
@@ -16,4 +16,4 @@ Runs in the `node` environment (`@vitest-environment node`) because it uses `pg`
 - Two verifies of a token with an absent `kid` within the 10s cooldown trigger exactly **one** network fetch.
 
 ### Requirements
-Needs a reachable Postgres (the Stage-0 docker compose / CI service). `vitest.config.ts` supplies test defaults for `ESI_TOKEN_ENC_KEY` and the auth client envs; `DATABASE_URL` falls back to the local compose connection string.
+Needs a reachable Postgres (the docker compose / CI service). `vitest.config.ts` supplies test defaults for `ESI_TOKEN_ENC_KEY` and the auth client envs; `DATABASE_URL` falls back to the local compose connection string.

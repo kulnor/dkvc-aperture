@@ -14,13 +14,11 @@ import {
 } from '@/lib/auth/rights';
 
 /**
- * Permissions-overhaul Stage 6 acceptance gate
- * (`docs/plans/permissions-overhaul.md` §"Stage 6 — Done when", item 1 + the
- * end-to-end Verification §2).
+ * Manager corp-scoping acceptance gate.
  *
- * The headline bug the overhaul exists to kill: a corp Director used to be a
- * GLOBAL admin who could see every corp's maps. Stage 2 proves the resolver now
- * caches `authz_level='manager'` for any Director; this test proves the
+ * The headline rule: a corp Director is never a global admin. The
+ * authz-resolution test proves the resolver caches `authz_level='manager'` for
+ * any Director; this test proves the
  * *consequence* at the enforcement layer — a `manager` is corp-scoped and
  * cannot reach a foreign corp's maps, while only an explicit `admin` keeps the
  * global view. Drives the `rights.ts` scope primitives directly against real

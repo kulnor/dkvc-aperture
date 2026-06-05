@@ -3,7 +3,7 @@ import { envelopeSchema, type Envelope } from './protocol';
 
 /**
  * SharedWorker body — one WebSocket per browser origin, multiplexed across every
- * tab of a character (SPEC §5.2). Tabs connect a MessagePort; the worker
+ * tab of a character. Tabs connect a MessagePort; the worker
  * reference-counts map subscriptions across ports so a `subscribe` frame goes
  * out only when the first tab wants a map and `unsubscribe` only when the last
  * leaves. Inbound envelopes and connection-state changes fan to all ports.

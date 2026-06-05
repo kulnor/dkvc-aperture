@@ -1,6 +1,6 @@
 ## sov-fw-refresh.test.ts
 
-**Purpose:** Real-Postgres integration coverage for the Stage 13 sovereignty/FW worker and map intel loader.
+**Purpose:** Real-Postgres integration coverage for the sovereignty/FW worker and map intel loader.
 **File:** `tests/integration/jobs/sov-fw-refresh.test.ts`
 
 ---

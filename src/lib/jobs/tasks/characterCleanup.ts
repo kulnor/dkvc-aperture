@@ -7,8 +7,8 @@ import { withInstrumentation } from '../withInstrumentation';
 import type { JobModule } from '../registry';
 
 /**
- * Stage 15.6. Lands the legacy `cleanUpCharacterData` job deferred from
- * Stage 11. Single cron task with two responsibilities:
+ * Cron-driven character maintenance. Single cron task with two
+ * responsibilities:
  *
  *   1. **Kick expiry.** Flip `status` from `'kicked'` back to `'active'` and
  *      `NULL` out `status_expires_at` / `status_reason` for every row where

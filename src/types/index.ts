@@ -114,7 +114,7 @@ export type ApMapConnectionLog = InferSelectModel<typeof apMapConnectionLog>;
 export type NewApMapConnectionLog = InferInsertModel<typeof apMapConnectionLog>;
 
 /**
- * Display row for the connection mass-log (Stage 17.11a). One per logged jump,
+ * Display row for the connection mass-log. One per logged jump,
  * joined to the acting character + ship type, with a running cumulative mass.
  * `mass`/`cumulativeMass` cross the wire as `number` (kg fits in a JS safe int).
  */
@@ -174,7 +174,7 @@ export type NewApStructure = InferInsertModel<typeof apStructure>;
 export type ApStructureEvent = InferSelectModel<typeof apStructureEvent>;
 export type NewApStructureEvent = InferInsertModel<typeof apStructureEvent>;
 
-// Stage 15 enum unions. `pgEnum` exposes its values via `.enumValues`; the
+// Enum unions. `pgEnum` exposes its values via `.enumValues`; the
 // `[number]` index extracts the union of string literals.
 export type AuthzLevel = (typeof authzLevel.enumValues)[number];
 export type MapRight = (typeof mapRight.enumValues)[number];
@@ -234,10 +234,10 @@ export type {
 // Map import/export document + result types (src/lib/map/transfer.ts).
 export type { MapExportFile, ImportSummary, ImportResult } from '@/lib/map/transfer';
 
-// Thera module view-model + sync types (Stage 17.9, src/lib/map/thera.ts).
+// Thera module view-model + sync types (src/lib/map/thera.ts).
 export type { TheraHub, TheraConnection, TheraSyncInput, TheraSyncResult } from '@/lib/map/thera';
 
-// Auto-tagging strategy contract + view-model (Stage 17.10, src/lib/tagging/types.ts).
+// Auto-tagging strategy contract + view-model (src/lib/tagging/types.ts).
 export type {
   ActiveScheme,
   TagSystem,
@@ -360,11 +360,11 @@ export type { SignatureClassKind, SignatureClassOption } from '@/lib/map/signatu
 // ESI opKey identifiers (map in src/lib/esi/opkeys.ts).
 export type { OpKey, OpDef } from '@/lib/esi/opkeys';
 
-// Static reference data for the Stage 17.3 dialogs.
+// Static reference data for the system-reference dialogs.
 export type { SystemEffect, SystemEffectBonus, SystemEffectKey } from '@/lib/eve/systemEffects';
 export type { WormholeJumpInfoRow } from '@/lib/eve/wormholeJumpInfo';
 
-// Activity-statistics view-models (Stage 17.7, computed in src/lib/stats/activity.ts).
+// Activity-statistics view-models (computed in src/lib/stats/activity.ts).
 export type {
   ActivityStatScope,
   ActivityStatPeriod,
@@ -373,7 +373,7 @@ export type {
   ActivityStatsResponse,
 } from '@/lib/stats/activity';
 
-// ESI client decoded-response types (Stage 4).
+// ESI client decoded-response types.
 export type {
   EsiStatus,
   EsiLocation,
@@ -384,7 +384,7 @@ export type {
 
 /**
  * Visual configuration for a map-node "underglow" — a pulsing colored glow
- * rendered beneath a `SystemNode` (Stage 17.8). The component is intentionally
+ * rendered beneath a `SystemNode`. The component is intentionally
  * notification-agnostic; callers (`underglowPresets.ts`) pick the look per
  * notification kind (killmail = red, future rally/unscanned-sig presets, …).
  */

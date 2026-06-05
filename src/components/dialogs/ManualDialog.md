@@ -16,7 +16,7 @@ A `max-w-3xl` dialog with a left section-nav (hidden below `sm`) and a scrollabl
 ### Behaviour & Interactions
 - Clicking a nav link smooth-scrolls its section into view and marks it active.
 - An `IntersectionObserver` (rooted at the scroll container, `rootMargin` biased so the active section is the one near the top) updates the active nav link as the user scrolls.
-- A `suppressUntil` timestamp ref blocks observer-driven active changes for ~500ms after a click so the programmatic scroll doesn't flicker the highlight through intermediate sections (mirrors the legacy "disable handler during programmatic scroll").
+- A `suppressUntil` timestamp ref blocks observer-driven active changes for ~500ms after a click so the programmatic scroll doesn't flicker the highlight through intermediate sections (disables the handler during programmatic scroll).
 - The observer is created when `open` becomes true and disconnected on close/unmount, so reopening re-initialises cleanly with no duplicate observers.
 
 ### Depends On

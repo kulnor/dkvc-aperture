@@ -19,4 +19,4 @@
 **Index:** `system_id` (`ap_structure_system_id_idx`) for the per-system module read.
 
 ### Notes
-- **Manual entry, not ESI.** ESI `getUniverseStructure` only returns structures the calling character can dock at, so it cannot supply intel on other corps' structures. The Stage 11.6 `structure-resolve` ESI job was retired in Stage 17.1 rather than implemented. See `docs/plans/stage-17-ui-catchup.md`.
+- **Manual entry, not ESI.** ESI `getUniverseStructure` only returns structures the calling character can dock at, so it cannot supply intel on other corps' structures. There is no ESI structure-resolve path.

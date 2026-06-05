@@ -1,6 +1,6 @@
 ## dispatcher.ts
 
-**Purpose:** Stage 14 single-event Discord webhook dispatcher. Loads one `ap_map_event` row, joins to resolve naming context, fans out to every `ap_map_webhook` row that subscribes to the event class, and writes per-row delivery outcomes back to `ap_map_webhook`. Never throws.
+**Purpose:** Single-event Discord webhook dispatcher. Loads one `ap_map_event` row, joins to resolve naming context, fans out to every `ap_map_webhook` row that subscribes to the event class, and writes per-row delivery outcomes back to `ap_map_webhook`. Never throws.
 **File:** `src/lib/webhooks/dispatcher.ts`
 
 ---
@@ -29,7 +29,7 @@ Single-event dispatch. Called by the `webhook-dispatch` graphile-worker task wit
 ---
 
 ### runTestWebhookDispatch(webhookId: bigint, sentAt: Date): Promise<WebhookDispatchNotes>
-Stage 16.4 admin test-fire. Sends a synthetic `[test]` message to one `ap_map_webhook` row, writing back `last_status` / `last_error` / `last_attempted_at` / `consecutive_failures` exactly like a real dispatch — so a green test fire is identical evidence to a green real send.
+Admin test-fire. Sends a synthetic `[test]` message to one `ap_map_webhook` row, writing back `last_status` / `last_error` / `last_attempted_at` / `consecutive_failures` exactly like a real dispatch — so a green test fire is identical evidence to a green real send.
 
 **Parameters:**
 - `webhookId` — `ap_map_webhook.id`.

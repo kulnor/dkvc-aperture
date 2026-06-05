@@ -14,11 +14,10 @@ import { Sparkline } from './Sparkline';
 import type { ActivityStatRow } from '@/types';
 
 /**
- * StatsTable (Stage 17.7) — the rebuild's **first** `@tanstack/react-table`
- * use. Ranks characters (rolled up to account main) by activity in the selected
+ * StatsTable — a `@tanstack/react-table`
+ * table. Ranks characters (rolled up to account main) by activity in the selected
  * period: System / Connection / Signature create-update-delete triplets, a total
- * (default sort), and a trailing-window sparkline. Establishes the column +
- * sorting pattern that Stage 17.10 reuses to migrate the admin HTML tables.
+ * (default sort), and a trailing-window sparkline.
  */
 const columnHelper = createColumnHelper<ActivityStatRow>();
 

@@ -2,9 +2,8 @@
 
 **Goal:** Close the two dropped-event gaps in the map realtime pathway so a client never silently diverges — (1) bursts can't be coalesced away on the client, and (2) a reconnecting client recovers what it missed while disconnected.
 
-**Spec / context references:**
+**Context references:**
 - CLAUDE.md §"Realtime" (broadcast-only WS, degraded banner must never render silently stale).
-- `docs/spec/SPEC.md` §§5–6 (realtime pipeline), §71 NFR (degraded mode).
 - Soak harness + companion: `tests/integration/realtime-soak.test.ts`, `tests/integration/realtime-soak.md`.
 
 ---

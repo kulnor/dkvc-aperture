@@ -4,7 +4,7 @@ import { apCharacter, apMap, apMapCharacterTracking, apMapTrackingSeed } from '@
 import { locationPollJobKey } from './tasks/locationPoll';
 
 /**
- * Stage 12.1 lifecycle seam for the per-character location-poll.
+ * Lifecycle seam for the per-character location-poll.
  *
  * Tracking enable/disable is a low-frequency operation (a user toggles it in
  * the map UI); it doesn't justify a long-lived `WorkerUtils` connection. We
@@ -106,7 +106,7 @@ export interface SeedTrackingArgs {
 
 /**
  * The per-map default: the first time an account opens a map, track all its
- * active characters (per-map-character-tracking plan, Stage 1). Idempotent and
+ * active characters. Idempotent and
  * gated by the `ap_map_tracking_seed` marker so the auto-add fires exactly once
  * per `(map, account)` — after that the user's explicit per-map selection
  * stands, *including selecting zero* (an empty selection is no longer mistaken

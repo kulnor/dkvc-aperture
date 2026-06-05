@@ -8,7 +8,7 @@ import { apJobRun } from '@/db/schema';
 import { partitionMaintenance } from '@/lib/jobs/tasks/partitionMaintenance';
 
 /**
- * Stage 11.5 gate (sub-stage plan):
+ * Coverage:
  *   "A run creates a next-month `ap_map_event` partition and a next-day
  *    `ap_system_stats` partition in a test DB where the previously-created
  *    horizons have been artificially truncated."

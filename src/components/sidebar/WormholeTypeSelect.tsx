@@ -16,8 +16,8 @@ import type { WormholeTypeOption } from '@/types';
 const NONE_VALUE = '__none__';
 
 /**
- * Class-filtered wormhole-type dropdown for the signature inspector
- * (SPEC §6.4). Lazy-loads options from `/api/map/[mapId]/wormhole-types?systemId=`
+ * Class-filtered wormhole-type dropdown for the signature inspector.
+ * Lazy-loads options from `/api/map/[mapId]/wormhole-types?systemId=`
  * when mounted, then keeps them in a per-(mapId, universeSystemId) cache so
  * swapping between systems doesn't re-fetch.
  */

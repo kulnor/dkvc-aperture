@@ -1,6 +1,6 @@
 ## AccessDeniedPage
 
-**Purpose:** Friendly landing page for a denied EVE sign-in — the `pages.error` target of the Auth.js login gate (Permissions-overhaul Stage 3).
+**Purpose:** Friendly landing page for a denied EVE sign-in — the `pages.error` target of the Auth.js login gate.
 **File:** `src/app/(public)/access-denied/page.tsx`
 
 ### Renders

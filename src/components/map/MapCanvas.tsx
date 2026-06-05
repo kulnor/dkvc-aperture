@@ -163,13 +163,13 @@ export function MapCanvas({
   travelAnimation: boolean;
   /** Viewer's resolved stale/unscanned indicator prefs (threshold + toggles). */
   signatureIndicators: SignatureIndicatorPrefs;
-  /** Owner/admin gate (Stage 17.10): shows the Map Settings "Tagging" tab. */
+  /** Owner/admin gate: shows the Map Settings "Tagging" tab. */
   canConfigureTagging: boolean;
   /** Viewer's account character ids — matched against presence for the CTRL+V fast-paste location check. */
   viewerCharacterIds: number[];
   /**
    * Saved per-account dashboard layout (map-layout-builder), or `null` to use
-   * `DEFAULT_MAP_LAYOUT`. Accepted now but unused until the grid lands (Stage 3).
+   * `DEFAULT_MAP_LAYOUT`.
    */
   mapLayout?: MapLayoutConfig | null;
 }) {

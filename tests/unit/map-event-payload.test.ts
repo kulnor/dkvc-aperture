@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { MAP_EVENT_KINDS, mapEventPayloadSchema } from '@/lib/realtime/protocol';
 
-// Pure (no DB) checks on the Stage 9.1 payload contract.
+// Pure (no DB) checks on the map-event payload contract.
 describe('mapEventPayloadSchema', () => {
   it('covers all 12 seeded event kinds as discriminators', () => {
     const optionKinds = mapEventPayloadSchema.options.map((o) => o.shape.kind.value);

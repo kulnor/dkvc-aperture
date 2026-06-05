@@ -2,7 +2,7 @@ import { createServer } from 'node:http';
 import next from 'next';
 import { loadEnvConfig } from '@next/env';
 
-// Custom Node entry (SPEC §5.5): one process serves the Next.js app, the
+// Custom Node entry: one process serves the Next.js app, the
 // Auth.js routes, graphile-worker, and the WebSocket upgrade handler. Next 16's
 // App Router cannot upgrade sockets inside a route handler, so the WS server is
 // attached to the shared HTTP server here. All realtime logic lives in

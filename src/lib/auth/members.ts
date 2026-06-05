@@ -24,7 +24,7 @@ export type AdminMemberRow = {
 };
 
 /**
- * Stage 16.3. Characters an admin / manager can act on. Scoped via
+ * Characters an admin / manager can act on. Scoped via
  * `characterScopeFilterFor` so a `global` scope returns every `ap_character`
  * and a `corp` scope returns only the manager's own corp.
  *

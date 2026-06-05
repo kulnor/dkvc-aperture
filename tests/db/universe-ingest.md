@@ -1,6 +1,6 @@
 ## universe-ingest.test.ts
 
-**Purpose:** Phase-0 gate (SPEC §9) — proves static-data parity against the pinned SDE build after `pnpm sde:bootstrap`.
+**Purpose:** Proves static-data parity against the pinned SDE build after `pnpm sde:bootstrap`.
 **File:** `tests/db/universe-ingest.test.ts`
 
 ### Running

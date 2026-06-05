@@ -1,6 +1,6 @@
 ## CorpPicker
 
-**Purpose:** Stage 16.5 admin-only client component that lets a global-scope admin choose which corp's rights matrix is rendered on `/admin/settings`. Writes the chosen corp id to the `?corp=` query string and `router.push`es; the server component re-runs with the new selection.
+**Purpose:** Admin-only client component that lets a global-scope admin choose which corp's rights matrix is rendered on `/admin/settings`. Writes the chosen corp id to the `?corp=` query string and `router.push`es; the server component re-runs with the new selection.
 **File:** `src/components/admin/CorpPicker.tsx`
 
 ### Props

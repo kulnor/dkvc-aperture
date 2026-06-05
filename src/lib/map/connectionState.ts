@@ -8,7 +8,7 @@ import type { MapConnectionEdge } from './loadMap';
  * scopes never expire — the EOL state machine only applies to wormholes.
  *
  * These are read on the client to render the EOL countdown badge and the
- * "Expires in X" inspector hint; Stage 11's reap / EOL-expiry jobs use the
+ * "Expires in X" inspector hint; the reap / EOL-expiry jobs use the
  * same constants on the server.
  */
 

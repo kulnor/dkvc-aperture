@@ -3,12 +3,12 @@ import { withInstrumentation } from '../withInstrumentation';
 import type { JobModule } from '../registry';
 
 /**
- * Stage 14. graphile-worker task: dispatch one map event to every Discord
+ * graphile-worker task: dispatch one map event to every Discord
  * webhook configured for its map. Enqueued by `commitMapEvent` after the
  * `ap_map_event` row is inserted (only when the map has at least one
  * `ap_map_webhook` row — see the `EXISTS` short-circuit in mutations/core.ts).
  *
- * Stage 16.4 adds a second payload shape — `{ test: true; webhookId; sentAt }`
+ * A second payload shape — `{ test: true; webhookId; sentAt }`
  * — enqueued by the admin panel's "test fire" button. It exercises the same
  * dispatcher chain (so `last_status` lights up identically) but targets a
  * single webhook with a synthetic `[test]` message and skips the event-row

@@ -1,15 +1,15 @@
 import { pgEnum } from 'drizzle-orm/pg-core';
 
-// SPEC §6.5. The remaining map/connection enums are declared in Stage 6 and
-// reuse these two, which `ap_character` (Stage 2) needs at table-create time.
+// These two enums are needed by `ap_character` at table-create time; the
+// remaining map/connection enums below reuse them.
 
-/** Per-character moderation state. Collapses the legacy nullable `kicked`/`banned` timestamps. */
+/** Per-character moderation state. */
 export const characterStatus = pgEnum('character_status', ['active', 'kicked', 'banned']);
 
-/** In-app authority level. Replaces the legacy `role` lookup table. */
+/** In-app authority level. */
 export const authzLevel = pgEnum('authz_level', ['member', 'manager', 'admin']);
 
-/** What kinds of systems a map is allowed to hold. SPEC §6.5. */
+/** What kinds of systems a map is allowed to hold. */
 export const mapScope = pgEnum('map_scope', ['wh', 'k_space', 'none', 'all']);
 
 /** Map ownership/visibility class. */
@@ -33,7 +33,7 @@ export const connectionScope = pgEnum('connection_scope', [
   'abyssal',
 ]);
 
-/** Wormhole remaining-mass band. Replaces the legacy JSON `massStatus` flag. */
+/** Wormhole remaining-mass band. */
 export const whMass = pgEnum('wh_mass', ['fresh', 'reduced', 'critical']);
 
 /** Per-jump mass class of a wormhole (max ship size). Nullable for non-WH links. */
@@ -49,8 +49,8 @@ export const whJumpMass = pgEnum('wh_jump_mass', ['s', 'm', 'l', 'xl']);
 export const eolStage = pgEnum('eol_stage', ['none', 'eol', 'critical']);
 
 /**
- * Outbound chat channel for `ap_map_webhook`. Stage 14 ships Discord only;
- * adding `'slack'` later is one `ALTER TYPE ap_webhook_channel ADD VALUE` plus
+ * Outbound chat channel for `ap_map_webhook`. Currently Discord only;
+ * adding `'slack'` is one `ALTER TYPE ap_webhook_channel ADD VALUE` plus
  * a sibling `src/lib/integrations/slack.ts`.
  */
 export const apWebhookChannel = pgEnum('ap_webhook_channel', ['discord']);
@@ -63,8 +63,7 @@ export const apWebhookChannel = pgEnum('ap_webhook_channel', ['discord']);
 export const apWebhookEvent = pgEnum('ap_webhook_event', ['history', 'rally']);
 
 /**
- * Stage 15. The six rights a corp may grant its members on `ap_corporation_right`.
- * Names match the legacy `right.name` strings (SPEC §6.5, 09-permissions-and-admin.md).
+ * The six rights a corp may grant its members on `ap_corporation_right`.
  * `map_create` is a global capability checked against the actor's corp rights;
  * the remaining five are per-map.
  */
@@ -98,7 +97,7 @@ export const signatureGroupKey = pgEnum('signature_group_key', [
 ]);
 
 /**
- * Stage 15. Where an `ap_role` row originates.
+ * Where an `ap_role` row originates.
  * - `builtin` — created by the app itself (e.g. seed roles, admin-panel hand-grants).
  * - `corp_title` — mirrored from an EVE corporation title pulled via
  *   `esi-characters.read_titles.v1`; `external_ref` is `'<corporation_id>:<title_id>'`.
@@ -108,7 +107,7 @@ export const signatureGroupKey = pgEnum('signature_group_key', [
 export const roleSource = pgEnum('role_source', ['builtin', 'corp_title', 'external']);
 
 /**
- * Stage 17.2. The mutation recorded in `ap_structure_event` — the append-only
+ * The mutation recorded in `ap_structure_event` — the append-only
  * accountability log for manual structure intel. Structures are deployment-global
  * and editable by any authenticated user, so every create/update/delete is
  * stamped with the acting character to identify griefers. (Structures have no
@@ -118,7 +117,7 @@ export const roleSource = pgEnum('role_source', ['builtin', 'corp_title', 'exter
 export const structureEventKind = pgEnum('structure_event_kind', ['create', 'update', 'delete']);
 
 /**
- * Stage 17.10. The auto-tagging scheme a map runs (`ap_map.tag_scheme`).
+ * The auto-tagging scheme a map runs (`ap_map.tag_scheme`).
  * - `none` — no auto-tagging; the `tag` column is manual-only.
  * - `abc` — per-WH-class sequential letters (A, B, C, … per class).
  * - `0121` — positional chain numbering off the map's Home system.
@@ -130,14 +129,14 @@ export const structureEventKind = pgEnum('structure_event_kind', ['create', 'upd
 export const tagScheme = pgEnum('tag_scheme', ['none', 'abc', '0121']);
 
 /**
- * Permissions-overhaul. Whether the deployment admits any EVE login (`open`,
- * the legacy behaviour) or only allowlisted principals (`restricted`, the new
- * default). Read by the Auth.js `signIn` gate and stored on `ap_instance`.
+ * Whether the deployment admits any EVE login (`open`) or only allowlisted
+ * principals (`restricted`, the default). Read by the Auth.js `signIn` gate and
+ * stored on `ap_instance`.
  */
 export const accessMode = pgEnum('access_mode', ['open', 'restricted']);
 
 /**
- * Permissions-overhaul. What kind of entity an access grant / instance owner
+ * What kind of entity an access grant / instance owner
  * names. `character`, `corporation`, `alliance` carry EVE ids; `role` carries
  * an `ap_role.id`. `ap_instance_owner` constrains itself to corp/alliance via
  * a CHECK; `ap_access_grant` accepts all four.
@@ -150,18 +149,18 @@ export const accessPrincipal = pgEnum('access_principal', [
 ]);
 
 /**
- * Permissions-overhaul. The reach of an `ap_access_grant` row. `instance`
+ * The reach of an `ap_access_grant` row. `instance`
  * grants (login/admin/manage) carry NULL `map_id`; `map` grants (view/edit,
- * reserved for the later sharing feature) carry a non-NULL `map_id`. The
+ * reserved for the sharing feature) carry a non-NULL `map_id`. The
  * scope↔map_id pairing is enforced by a CHECK.
  */
 export const accessScope = pgEnum('access_scope', ['instance', 'map']);
 
 /**
- * Permissions-overhaul. What an access grant permits. `login`/`admin`/`manage`
- * are instance-scoped and used now (allowlist entry / super-admin / manager
- * hand-grant); `view`/`edit` are map-scoped and reserved for the later
- * temporary-sharing feature — declared now so adding sharing needs no
+ * What an access grant permits. `login`/`admin`/`manage`
+ * are instance-scoped (allowlist entry / super-admin / manager
+ * hand-grant); `view`/`edit` are map-scoped and reserved for the
+ * temporary-sharing feature — declared so adding sharing needs no
  * `ALTER TYPE access_capability ADD VALUE`. The capability↔scope pairing is
  * enforced by a CHECK.
  */

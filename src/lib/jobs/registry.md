@@ -27,9 +27,9 @@ Builds graphile-worker cron items for modules whose `cron` is set. The identifie
 ### Notes
 - No `taskDirectory` - explicit imports keep wiring greppable and TypeScript-checked.
 - Per-task cron expressions live on each task module.
-- Stage 13 registers `sov-fw-refresh`, the hourly sovereignty / faction-warfare ESI refresh task.
-- Stage 14 registers `webhook-dispatch`, a non-cron task enqueued by `commitMapEvent` per `ap_map_event` insert on maps with at least one configured Discord webhook.
-- Stage 15.6 registers `character-cleanup`, the 5-minute cron that clears expired kicks and resyncs stale `authz_level` rows against ESI (replaces legacy `cleanUpCharacterData`).
-- Stage 16.6 registers `sde-ingest`, a non-cron task wrapping `runIngest` so the setup wizard can trigger a static-data refresh on-demand.
+- Registers `sov-fw-refresh`, the hourly sovereignty / faction-warfare ESI refresh task.
+- Registers `webhook-dispatch`, a non-cron task enqueued by `commitMapEvent` per `ap_map_event` insert on maps with at least one configured Discord webhook.
+- Registers `character-cleanup`, the 5-minute cron that clears expired kicks and resyncs stale `authz_level` rows against ESI.
+- Registers `sde-ingest`, a non-cron task wrapping `runIngest` so the setup wizard can trigger a static-data refresh on-demand.
 - Registers `csv-ingest`, a non-cron task wrapping `runCsvIngest` so the setup wizard can re-ingest the vendored wormhole CSVs (statics/overrides/classes) without re-running the full SDE ingest.
-- Stage 11.6 registered a `structure-resolve` ESI stub; **Stage 17.1 retired it** — ESI cannot return other corps' structures, so structure intel is manual entry (`ap_structure`) with no recurring resolve job.
+- ESI cannot return other corps' structures, so structure intel is manual entry (`ap_structure`) with no recurring resolve job.

@@ -1,6 +1,6 @@
 ## statistics/route.ts
 
-**Purpose:** `GET /api/statistics` — global activity statistics for the Stage 17.7 Statistics dialog.
+**Purpose:** `GET /api/statistics` — global activity statistics for the Statistics dialog.
 **File:** `src/app/api/statistics/route.ts`
 
 ---

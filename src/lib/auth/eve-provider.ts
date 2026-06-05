@@ -28,7 +28,7 @@ export type EveProfile = EveAccessTokenClaims;
 /**
  * Auth.js v5 custom EVE SSO provider. EVE issues a JWT access token and has no
  * userinfo endpoint, so the profile is derived from the verified access-token
- * claims (`jwks.ts`). SPEC §7.
+ * claims (`jwks.ts`).
  */
 export function eveProvider(): OAuthConfig<EveProfile> {
   return {
@@ -68,10 +68,10 @@ export function eveProvider(): OAuthConfig<EveProfile> {
  * Refresh a character's ESI access token, persisting the rotated refresh token
  * **before** returning the new access token to any caller.
  *
- * This ordering is the whole point of Stage 2 (SPEC §7, footgun #2): the legacy
- * app never persisted the rotated refresh token, so a crash between consuming
- * the new access token and writing the refresh token orphaned the character.
- * Here the DB write is awaited first; only then does the access token escape.
+ * This ordering is load-bearing: if the rotated refresh token were not persisted
+ * first, a crash between consuming the new access token and writing the refresh
+ * token would orphan the character. Here the DB write is awaited first; only then
+ * does the access token escape.
  *
  * Concurrency (the recurring-401 footgun): the worker location-poll and an open
  * browser session's Auth.js `jwt` callback both call this for the same

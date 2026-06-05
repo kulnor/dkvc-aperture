@@ -1,4 +1,4 @@
-// Stage 17.10 — Scheme A "ABC". Each WH class carries its own independent
+// Scheme A "ABC". Each WH class carries its own independent
 // sequence of letters (A, B, C, …); the lowest free letter is always assigned,
 // so deleting a tagged system reclaims its letter. K-space and class-less
 // systems are not tagged. Pure / db-free.

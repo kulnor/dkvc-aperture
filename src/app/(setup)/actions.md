@@ -25,7 +25,7 @@ Gated. Validates `name` against `onDemandJobModules()` from `src/lib/jobs/regist
 
 ---
 
-### Permissions-overhaul Stage 4 — instance access configuration
+### Instance access configuration
 All gated; all wrap [[instanceConfig]] and `revalidatePath('/setup')` so the server-rendered config table refreshes. EVE ids cross the client boundary as digit-strings and are parsed to `bigint` by the schemas (JS numbers can't hold a 64-bit id).
 
 ### setupSetAccessMode(mode: string): Promise<ActionResult>

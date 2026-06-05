@@ -1,4 +1,4 @@
-// Stage 17.10. The db-aware seam between the map mutation pathways and the pure
+// The db-aware seam between the map mutation pathways and the pure
 // tagging strategies. Builds a `TagContext` from the live map state, dispatches
 // to the strategy resolved from the registry, and (for the add path) writes the
 // assigned tag. No `import 'server-only'`: `locationCommit.ts` imports this under

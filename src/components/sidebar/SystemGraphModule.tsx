@@ -8,7 +8,7 @@ import { isWormholeSystem } from '@/lib/map/space';
 import type { MapSystemNode } from '@/lib/map/loadMap';
 import type { GraphRange, SystemStatsPoint } from '@/lib/map/stats';
 
-// Dotlan-style activity graphs for the selected K-space system (Stage 17.8):
+// Dotlan-style activity graphs for the selected K-space system:
 // small-multiple area charts over ap_system_stats (jumps / ship kills / NPC
 // kills). Wormholes have no K-space stats feed, so they show an n/a state
 // (matching KillStatsModule via the shared isWormholeSystem helper). Fetches

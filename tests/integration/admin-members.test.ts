@@ -7,7 +7,7 @@ import { db, pool } from '@/db/client';
 import { apCharacter, apCorporation, apUser } from '@/db/schema';
 
 /**
- * Stage 16.3 — admin member actions (real Postgres).
+ * Admin member actions (real Postgres).
  *
  * Drives `adminKickCharacter` / `adminBanCharacter` / `adminActivateCharacter`
  * / `adminGrantManager` / `adminRevokeManager` end to end against a live

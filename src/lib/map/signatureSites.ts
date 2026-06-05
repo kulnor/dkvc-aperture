@@ -7,7 +7,7 @@ import type { CosmicSignatureGroupKey } from '@/types';
  * rows — their site names are baked into the EVE client — so they can't be
  * DB-resolved; this hand-maintained list is the only place they exist.
  *
- * Ported from the legacy Pathfinder `signature_type.js`. CCP changes these
+ * CCP changes these
  * sites roughly twice a year; **to update, edit this file and redeploy** (no
  * migration, no ingest, no DB). The Wormhole group is intentionally absent —
  * wormhole types are DB-backed via `wormholeTypesForSystem` / `WormholeTypeSelect`.
@@ -16,9 +16,7 @@ import type { CosmicSignatureGroupKey } from '@/types';
  * which already encodes class: `C1`–`C6`, `C12` (Thera), `C13` (Shattered),
  * `C14`–`C18` (Drifter Sentinel/Barbican/Vidette/Conflux/Redoubt), and the
  * k-space bands `H` / `L` / `0.0` / `P`. Suggestions are only provided where
- * the legacy data did; everything else falls back to free text.
- *
- * Names marked in-game-verified in the legacy source are kept verbatim.
+ * the catalog has entries; everything else falls back to free text.
  */
 
 // Combat sites ===============================================================
@@ -324,7 +322,7 @@ const SITE_CATALOG: Record<string, ClassSites> = {
   H: { ghost: HS_GHOST },
   L: { ghost: LS_GHOST },
   '0.0': { ghost: NS_GHOST },
-  // Pochven (P) and Abyssal (A) have no cosmic-site entries in the legacy data.
+  // Pochven (P) and Abyssal (A) have no cosmic-site entries.
 };
 
 /**

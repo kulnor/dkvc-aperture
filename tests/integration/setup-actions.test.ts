@@ -6,7 +6,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vites
 import { db, pool } from '@/db/client';
 
 /**
- * Stage 16.6 — setup wizard Server Actions (real Postgres).
+ * Setup wizard Server Actions (real Postgres).
  *
  * Covers:
  *   - `setupUnlockAction` with an empty `SETUP_PASSWORD` rejects (no

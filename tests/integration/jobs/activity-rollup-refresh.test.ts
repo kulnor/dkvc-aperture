@@ -8,7 +8,7 @@ import { apJobRun, apMap, apMapEvent } from '@/db/schema';
 import { activityRollupRefresh } from '@/lib/jobs/tasks/activityRollupRefresh';
 
 /**
- * Stage 11.4 gate (sub-stage plan):
+ * Coverage:
  *   "After seeding events, the job populates `ap_activity_rollup`; a second
  *    run after new events updates row counts without blocking reads."
  *

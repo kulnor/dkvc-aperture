@@ -1,6 +1,6 @@
 ## jwks.ts
 
-**Purpose:** Verify EVE SSO JWT access tokens against CCP's published JWK set, with the SPEC §7 one-re-fetch-per-10s cap.
+**Purpose:** Verify EVE SSO JWT access tokens against CCP's published JWK set, with a one-re-fetch-per-10s cap.
 **File:** `src/lib/auth/jwks.ts`
 
 ---

@@ -1,13 +1,13 @@
 ## characterCleanup.ts
 
-**Purpose:** Stage 15.6 cron-driven character maintenance. Handles two responsibilities the legacy `cleanUpCharacterData` job ran: timed-kick expiry and periodic authz resync against ESI. Lands the legacy task deferred from Stage 11.
+**Purpose:** Cron-driven character maintenance. Handles two responsibilities: timed-kick expiry and periodic authz resync against ESI.
 **File:** `src/lib/jobs/tasks/characterCleanup.ts`
 
 ---
 
 ### characterCleanup: JobModule
 - `name`: `'character-cleanup'`
-- `cron`: `apertureConfig.CHARACTER_CLEANUP_CRON` (default `*/5 * * * *` — 5-minute cadence keeps post-expiry login latency below the legacy minimum 5-minute kick duration).
+- `cron`: `apertureConfig.CHARACTER_CLEANUP_CRON` (default `*/5 * * * *` — 5-minute cadence keeps post-expiry login latency below the 5-minute minimum kick duration).
 - `run`: `withInstrumentation('character-cleanup', cleanup)` — `ap_job_run` carries per-tick metrics.
 
 ### Phases

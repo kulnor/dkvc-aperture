@@ -17,7 +17,7 @@ async function main() {
   const registeredNames = new Set(modules.map((m) => m.name));
 
   const lines: string[] = [];
-  lines.push(`Stage 11 job status (last ${WINDOW_HOURS}h):`);
+  lines.push(`Job status (last ${WINDOW_HOURS}h):`);
   lines.push('');
 
   const headers = ['TASK', 'CRON', 'LAST RUN', 'RUNS', 'OK', 'FAIL', 'ABNDND', 'AVG', 'FLAGS'];

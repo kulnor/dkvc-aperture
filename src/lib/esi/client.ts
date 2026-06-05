@@ -12,7 +12,7 @@ import { canRequest, recordFailure, recordSuccess } from './breaker';
 import { inDowntimeWindow } from './downtime';
 
 /**
- * The Stage 4 ESI client substrate.
+ * The ESI client substrate.
  *
  * `esiCall` is the one entrypoint: it dispatches an opKey (resolved to a swagger
  * method/path via `routes.ts`), attaches a character bearer token when the op
@@ -80,7 +80,7 @@ export class EsiTokenError extends Error {
   /**
    * Raised when a character-authed call can't resolve a usable access token —
    * either the row has no stored token, the refresh-token exchange failed, or
-   * decryption blew up. The Stage 12 location-poll uses this to stop polling
+   * decryption blew up. The location-poll uses this to stop polling
    * a character whose token has gone bad; re-enabling tracking later requires
    * the user to re-authenticate.
    */

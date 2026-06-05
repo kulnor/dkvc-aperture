@@ -5,8 +5,7 @@ import type { MapSystemNode } from '@/lib/map/loadMap';
 import type { HubRoute } from '@/lib/map/route';
 
 // Read-only route module: gate jumps from the selected system to the configured
-// trade hubs. No find-route dialog or inputs — the interactive finder arrives
-// with edit affordances in a later stage.
+// trade hubs. No find-route dialog or inputs.
 
 export function RouteModule({
   system,

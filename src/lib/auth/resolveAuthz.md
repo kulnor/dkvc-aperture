@@ -8,7 +8,7 @@
 ### resolveAuthzLevel(input: ResolveAuthzInput): Promise<AuthzLevel>
 
 Returns the `max` (`member < manager < admin`) of:
-- **derived** — `isDirector ? 'manager' : 'member'`. Any in-game corp Director resolves to corp-scoped `manager`, **regardless of instance ownership** (`ap_instance_owner` is NOT consulted — that is a Stage 3 login-gating concern).
+- **derived** — `isDirector ? 'manager' : 'member'`. Any in-game corp Director resolves to corp-scoped `manager`, **regardless of instance ownership** (`ap_instance_owner` is NOT consulted — that is a login-gating concern).
 - **explicit** — the highest unexpired instance-scoped `ap_access_grant` for this character: `capability='admin' ⇒ admin`, `capability='manage' ⇒ manager`.
 
 Global `admin` is therefore reachable **only** via an explicit `capability='admin'` grant; nothing derives it.

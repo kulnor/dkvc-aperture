@@ -5,7 +5,7 @@ import { env } from '@/lib/env';
 
 // EVE SSO issues a JWT *access token* (no OIDC id_token). We verify it against
 // CCP's published JWK set. `createRemoteJWKSet`'s `cooldownDuration` enforces
-// the "one re-fetch per 10s" cap (SPEC §7 / footgun #3) on unknown-kid reloads,
+// the "one re-fetch per 10s" cap on unknown-kid reloads,
 // while still refreshing on a signature failure after the cooldown elapses.
 
 function jwksUri(): URL {

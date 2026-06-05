@@ -1,4 +1,4 @@
-// Stage 17.10 — Scheme B "0121". Positional chain numbering off the Home
+// Scheme B "0121". Positional chain numbering off the Home
 // system: a tag is `parent_tag + next_unused_child_index` (indices start at 1).
 // First hole off Home → `1`; first off `1` → `11`; second off `1` → `12`. The
 // parent is resolved from the connection that links an untagged system to an

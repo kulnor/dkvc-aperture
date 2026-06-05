@@ -14,7 +14,7 @@ import {
 } from '@/lib/auth/rights';
 
 /**
- * Stage 16.5 admin actions on `ap_corporation_right`. Two operations exposed
+ * Admin actions on `ap_corporation_right`. Two operations exposed
  * at `/admin/settings`: upsert one (corp, right) row to a new
  * `min_authz_level`, or delete the row (= no grant for that right on that
  * corp).

@@ -19,4 +19,4 @@ A `<nav>` containing one `<Link>` per admin section: Dashboard (`/admin`), Maps 
 - `cn` from `@/lib/utils`.
 
 ### Notes
-- Maps / Members / Settings target pages are added in sub-stages 16.2 / 16.3 / 16.5. Clicking them before those stages land yields a Next.js 404; that's expected per the sub-stage 16.1 scope.
+- Clicking a target page that does not exist yields a Next.js 404.

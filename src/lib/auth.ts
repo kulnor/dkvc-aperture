@@ -14,7 +14,7 @@ import { AUTH_COOKIE_OPTIONS } from '@/lib/cookies';
 import { esiCall } from '@/lib/esi/client';
 import { characterPublicSchema } from '@/lib/esi/decoders';
 
-// Auth.js v5, stateless JWT sessions (no DB session store, no Redis — SPEC §7).
+// Auth.js v5, stateless JWT sessions (no DB session store, no Redis).
 // The JWT carries only the active character/user ids; ESI tokens never leave
 // the DB row.
 
@@ -83,8 +83,8 @@ async function persistLogin(
 }
 
 /**
- * Resolve the character the session should land on — the account's "main"
- * (Stage 17.5). Every login lands on the main regardless of which character
+ * Resolve the character the session should land on — the account's "main".
+ * Every login lands on the main regardless of which character
  * actually SSO'd in; the human is one identity. On the first-ever login of an
  * account (or a pre-0018 account with no main yet) the authenticated character
  * is adopted as the main. A stored main that is no longer an active character
@@ -129,16 +129,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   // A denied sign-in (the `signIn` callback below returning false) redirects
   // here with `?error=AccessDenied` instead of the raw Auth.js error endpoint.
   pages: { error: '/access-denied' },
-  // SPEC §11 Q9 — make the cookie contract explicit at the call site rather
-  // than relying on Auth.js defaults. Flags live in `@/lib/cookies` so any
-  // bespoke signed cookie can read from the same constant.
+  // Make the cookie contract explicit at the call site rather than relying on
+  // Auth.js defaults. Flags live in `@/lib/cookies` so any bespoke signed
+  // cookie can read from the same constant.
   cookies: {
     sessionToken: { options: AUTH_COOKIE_OPTIONS },
     callbackUrl: { options: AUTH_COOKIE_OPTIONS },
     csrfToken: { options: AUTH_COOKIE_OPTIONS },
   },
   callbacks: {
-    // Permissions-overhaul Stage 3. The login gate — runs before `jwt`, so a
+    // The login gate — runs before `jwt`, so a
     // denial issues no session/JWT and `persistLogin`/`syncCharacterAuthz`
     // (below) never run: no `ap_character` row is created for a rejected sign-in.
     async signIn({ profile }) {
@@ -185,8 +185,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         );
         await clearLinkCookie();
         // Land on the account's main, not necessarily the character that SSO'd
-        // in (Stage 17.5). The "add character" flow therefore returns you to
-        // your main after registering the new alt — consistent with the model.
+        // in. The "add character" flow therefore returns you to your main after
+        // registering the new alt — consistent with the model.
         const mainCharacterId = await resolveMainCharacter(userId, eve.characterId);
         token.characterId = mainCharacterId.toString();
         token.userId = userId;
@@ -203,7 +203,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             ? Math.floor(mainRow.exp.getTime() / 1000)
             : expiresAt;
         }
-        // Stage 15. Promote / demote authz, refresh affiliation, mirror corp
+        // Promote / demote authz, refresh affiliation, mirror corp
         // titles. Best-effort: ESI failure logs a warning but does not block
         // login — the user can still see the maps they already had access to.
         try {

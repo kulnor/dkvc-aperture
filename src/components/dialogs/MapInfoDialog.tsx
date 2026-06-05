@@ -21,7 +21,7 @@ import type {
 } from '@/types';
 
 /**
- * Map Info dialog (Stage 17.4) — a four-tab live snapshot of the open map.
+ * Map Info dialog — a four-tab live snapshot of the open map.
  * Reads entirely from the canvas's `viewData` (kept current by realtime
  * `mapUpdate` apply) and the presence store; no server call. Triggered from the
  * `MapCanvas` toolbar so it always sees the live map.

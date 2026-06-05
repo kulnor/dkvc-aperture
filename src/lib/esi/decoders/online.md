@@ -1,6 +1,6 @@
 ## online.ts
 
-**Purpose:** Zod decoder for `getCharacterOnline`. Stage 12.1 location-poll uses this to gate its cadence (online → 5s, offline → 60s).
+**Purpose:** Zod decoder for `getCharacterOnline`. The location-poll uses this to gate its cadence (online → 5s, offline → 60s).
 **File:** `src/lib/esi/decoders/online.ts`
 
 ---

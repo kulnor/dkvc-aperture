@@ -6,9 +6,9 @@ import type { MapSystemNode } from '@/lib/map/loadMap';
 import type { SystemStatsSummary } from '@/lib/map/stats';
 
 // Read-only kill-stats module: rolling-24h jumps / ship / pod / faction kills for
-// the selected system, read from ap_system_stats. K-space only (matches legacy
-// system_graph); J-space shows n/a. Renders a zero state until the Stage 11
-// stats-refresh job populates the table.
+// the selected system, read from ap_system_stats. K-space only;
+// J-space shows n/a. Renders a zero state until the stats-refresh job
+// populates the table.
 
 const ROWS: { key: keyof SystemStatsSummary; label: string }[] = [
   { key: 'jumps', label: 'Jumps' },

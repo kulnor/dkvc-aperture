@@ -1,6 +1,6 @@
 ## corpRights.ts
 
-**Purpose:** Stage 16.5 read-side helpers for the `/admin/settings` corp-rights matrix. Returns corps an admin/manager may pick from, and the full six-right matrix for a single corp with "missing" rights surfaced as `null`.
+**Purpose:** Read-side helpers for the `/admin/settings` corp-rights matrix. Returns corps an admin/manager may pick from, and the full six-right matrix for a single corp with "missing" rights surfaced as `null`.
 **File:** `src/lib/admin/corpRights.ts`
 
 ---

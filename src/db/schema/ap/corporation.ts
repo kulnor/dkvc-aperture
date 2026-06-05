@@ -1,6 +1,6 @@
 import { bigint, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
 
-// Stage 15. Minimal corporation row — created on demand by
+// Minimal corporation row — created on demand by
 // `syncCharacterAuthz` whenever a character's `corporation_id` resolves and no
 // matching row exists yet. Serves as the FK target for `ap_corporation_right`
 // (the per-corp rights matrix) and `ap_role.corporation_id` (corp-title roles).

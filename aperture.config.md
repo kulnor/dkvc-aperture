@@ -1,60 +1,56 @@
 ## aperture.config.ts
 
-**Purpose:** Single source of truth for hard-coded app constants the spec says must NOT be runtime config (job cadences, JWK cap, downtime window, channel prefix, map ceilings).
+**Purpose:** Single source of truth for hard-coded app constants that must not be runtime config (job cadences, breaker thresholds, wormhole lifetimes, channel/path names, map ceilings). Nothing here is read from `process.env`.
 **File:** `aperture.config.ts`
 
 ---
 
 ### apertureConfig
-A frozen `as const` object exposed by named export. Later stages append fields here; nothing here is read from `process.env`.
+A frozen `as const` object exposed as a named export. Grouped by concern:
 
-Stage 0 seeds:
-- `LOCATION_POLL_ONLINE_MS` — server-side location-poll cadence while a character is online (SPEC §5.3).
-- `LOCATION_POLL_OFFLINE_MS` — cadence while offline.
-- `JWK_REFETCH_MIN_INTERVAL_MS` — JWK-set refetch cap from SPEC §7 / footgun #3.
-- `CCP_SSO_DOWNTIME_WINDOW_MIN` — minutes around 11:00 UTC tolerated as expected ESI outage.
-- `MAP_EVENT_NOTIFY_CHANNEL_PREFIX` — `pg_notify` channel prefix for `ap_map_event` fanout (SPEC §5.2 / §6.5).
-- `MAX_MAPS_PER_SCOPE` — legacy `pathfinder.ini` ceilings, refined in Phase 1.
+**Location polling**
+- `LOCATION_POLL_ONLINE_MS` / `LOCATION_POLL_OFFLINE_MS` — server-side location-poll cadence by character online state.
+
+**ESI / SSO**
+- `JWK_REFETCH_MIN_INTERVAL_MS` — minimum interval between JWK-set refetches.
+- `CCP_SSO_DOWNTIME`, `CCP_SSO_DOWNTIME_WINDOW_MIN`, `CCP_SSO_DOWNTIME_BUFFER_MIN` — daily ESI downtime window (calls expected to fail).
+- `ESI_BREAKER_FAILURE_THRESHOLD`, `ESI_BREAKER_COOLDOWN_MS`, `ESI_REQUEST_TIMEOUT_MS` — per-operationId circuit breaker tuning + request timeout.
+- `ESI_DATASOURCE` — `tranquility` (live) vs `singularity` (test).
+- `SSO_AUTHORIZE_PATH` / `SSO_TOKEN_PATH` / `SSO_JWKS_PATH` — EVE SSO endpoint paths joined onto `env.AUTH_EVE_SSO_BASE`.
+- `SSO_EXPECTED_ISSUER` — accepted `iss` claim values (bare host + scheme-prefixed form).
+- `SSO_TOKEN_REFRESH_BUFFER_S` — refresh the access token this many seconds before expiry.
+- `ESI_SCOPES` — default scope list requested at login.
+
+**Third-party integrations (read-side)**
+- `INTEGRATION_REQUEST_TIMEOUT_MS`, `INTEGRATION_USER_AGENT` — shared timeout + UA for zKillboard / EVE-Scout / GitHub.
+- `ZKB_R2Z2_BASE`, `ZKB_FEED_POLL_MS` (≥6s hard floor), `ZKB_FEED_INDEX_REFRESH_MS`, `ZKB_FEED_MAX_CATCHUP` — zKillboard R2Z2 live-feed config.
+- `GITHUB_CHANGELOG_REPO`, `GITHUB_CHANGELOG_REVALIDATE_S` — GitHub releases changelog feed.
+
+**Realtime / WebSocket**
+- `MAP_EVENT_NOTIFY_CHANNEL_PREFIX` — `pg_notify` channel prefix for `ap_map_event` fanout.
+- `WS_PATH` — WebSocket upgrade path on the same Next.js deployment.
+- `WS_HEARTBEAT_MS`, `WS_RECONNECT_BASE_MS`, `WS_RECONNECT_MAX_MS`, `WS_HEALTH_STALE_MS` — heartbeat, client reconnect backoff, and the staleness threshold that flips the degraded-mode banner.
+
+**Map limits & display**
+- `ROUTE_HUBS` — trade hubs the route module reports jump distance to (EVE system IDs).
+- `MAX_MAPS_PER_SCOPE` — per-scope ceilings for `ap_map.scope`.
 - `MAX_SYSTEMS_PER_MAP` — applied where `ap_map_system.visible = true`.
 
-Stage 2 (auth) adds:
-- `SSO_AUTHORIZE_PATH` / `SSO_TOKEN_PATH` / `SSO_JWKS_PATH` — EVE SSO endpoint paths joined onto `env.AUTH_EVE_SSO_BASE` (TQ vs SISI host is env-configurable).
-- `SSO_EXPECTED_ISSUER` — accepted `iss` claim values on the JWT access token (array: bare host + scheme-prefixed form).
-- `SSO_TOKEN_REFRESH_BUFFER_S` — refresh the access token this many seconds before expiry (120s, matches legacy).
-- `ESI_SCOPES` — default scope list requested at login; widened by later hot-path stages.
+**Authz / character cleanup**
+- `CHARACTER_CLEANUP_CRON`, `CHARACTER_AUTHZ_RESYNC_STALE_AFTER_MS`, `CHARACTER_AUTHZ_RESYNC_BATCH_SIZE` — cadence and throttle for the `character-cleanup` job's kick-expiry + authz resync passes.
+- `AUTHZ_ADMIN_ROLE` — the ESI corporation role (`Director`) that resolves a character to `manager`.
 
-Stage 4 (ESI client) adds:
-- `CCP_SSO_DOWNTIME` — CCP daily downtime start, UTC `HH:MM` (legacy `CCP_SSO_DOWNTIME`).
-- `CCP_SSO_DOWNTIME_BUFFER_MIN` — extra minutes padded onto each side of the downtime window (legacy `DOWNTIME_BUFFER`).
-- `ESI_BREAKER_FAILURE_THRESHOLD` — consecutive per-operationId failures that trip a breaker open.
-- `ESI_BREAKER_COOLDOWN_MS` — open-breaker wait before a half-open trial request.
-- `ESI_REQUEST_TIMEOUT_MS` — per-request ESI timeout (5s, matches legacy Guzzle).
-- `ESI_DATASOURCE` — ESI `datasource` query param (`tranquility` vs `singularity`).
+**Wormhole / signature lifetimes**
+- `WORMHOLE_EOL_LIFETIME_MS` (4h + 15m buffer), `WORMHOLE_EOL_CRITICAL_LIFETIME_MS` (1h + 15m), `WORMHOLE_DEFAULT_LIFETIME_MS` (48h) — drive the canvas countdowns and the reap-job purge thresholds.
+- `SIGNATURE_DEFAULT_TTL_MS` — default `expires_at` offset for new signatures (5 days).
 
-Stage 10 (paste readers & connection lifecycle) adds:
-- `WORMHOLE_EOL_LIFETIME_MS` — time from the `eol` (4h) stage stamp to reap (legacy `EXPIRE_CONNECTIONS_EOL`, 15300s / 4h15m). Read by Stage 11's EOL-expiry cron and the canvas EOL countdown.
-- `WORMHOLE_EOL_CRITICAL_LIFETIME_MS` — time from the `critical` (1h) stage stamp to reap (4_500_000 ms / 1h15m; same 15-min safety buffer as the 4h stage). The newer of EVE's two EOL warnings selects this over `WORMHOLE_EOL_LIFETIME_MS`.
-- `WORMHOLE_DEFAULT_LIFETIME_MS` — default WH connection lifetime from creation (legacy `EXPIRE_CONNECTIONS_WH`, 172800s / 48h). Drives the "expires in X" hint before EOL is flagged, and the Stage 11 expired-wormhole cleanup cron's age cap.
-- `SIGNATURE_DEFAULT_TTL_MS` — default `expires_at` offset for newly created signatures (legacy `EXPIRE_SIGNATURES`, 259200s / 5d; matches SPEC §347).
+**Job runtime / instrumentation**
+- `JOB_WORKER_CONCURRENCY`, `JOB_POLL_INTERVAL_MS` — graphile-worker concurrency and fallback poll cadence (LISTEN/NOTIFY drives the fast path).
+- `JOB_INSTRUMENTATION_ERROR_MAX_LENGTH`, `JOB_INSTRUMENTATION_NOTES_MAX_BYTES` — caps for `ap_job_run.error_text` / `notes`.
+- `MAP_PURGE_GRACE_DAYS` — grace window before hard-purging soft-deleted maps at downtime.
+- `JOB_DELETE_BATCH_SIZE` — per-run cap for row-by-row cleanup jobs (bounds the pg_notify burst at downtime).
 
-Stage 11 (graphile-worker runtime) adds:
-- `JOB_WORKER_CONCURRENCY` — how many task handlers may run in parallel per worker process.
-- `JOB_POLL_INTERVAL_MS` — fallback poll cadence for scheduled retries (LISTEN/NOTIFY drives the fast path).
-- `JOB_INSTRUMENTATION_ERROR_MAX_LENGTH` — cap for `ap_job_run.error_text` (truncates `Error.message`).
-- `JOB_INSTRUMENTATION_NOTES_MAX_BYTES` — cap for `ap_job_run.notes` (`JSON.stringify` length).
-- `MAP_PURGE_GRACE_DAYS` — 30, legacy `DAYS_UNTIL_MAP_DELETION`; grace window before hard-purging soft-deleted maps at downtime.
-- `JOB_DELETE_BATCH_SIZE` — per-run cap for the row-by-row cleanup jobs (bounds the pg_notify burst at downtime; leftovers picked up on the next run).
-- EOL-expiry and expired-wormhole thresholds reuse the Stage 10 ms constants above (`WORMHOLE_EOL_LIFETIME_MS`, `WORMHOLE_DEFAULT_LIFETIME_MS`); the jobs convert ms → seconds at the SQL `make_interval` site so the canvas countdown and the cron threshold share one source of truth.
-- Per-task cron expressions live as `cron` strings on each task module in `src/lib/jobs/tasks/`, **not** here — they are graphile-worker concerns, not cross-cutting app knobs.
+Per-task cron expressions live as `cron` strings on each task module in `src/lib/jobs/tasks/`, not here.
 
 ### ApertureConfig
-Inferred type alias for `typeof apertureConfig` so consumers don't need to import the runtime value just to type a parameter.
-
-Stage 13 adds `INTEGRATION_REQUEST_TIMEOUT_MS` for read-side third-party clients and `GITHUB_CHANGELOG_REPO` for the GitHub changelog feed. Stage 17 adds `GITHUB_CHANGELOG_REVALIDATE_S` — the server-side cache lifetime (seconds) for the GitHub releases fetch.
-
-Stage 17.8 (zKillboard live feed → underglow) adds:
-- `INTEGRATION_USER_AGENT` — `User-Agent` for read-side integration requests (zKB rejects a blank UA with 403); now also used by `zkb.ts`.
-- `ZKB_R2Z2_BASE` — base URL of zKillboard's R2Z2 ephemeral feed (RedisQ replacement).
-- `ZKB_FEED_POLL_MS` — delay between feed sweeps; R2Z2 mandates ≥6s (hard floor).
-- `ZKB_FEED_INDEX_REFRESH_MS` — how often the feed rebuilds its `solarSystemId → mapIds` index from active maps.
-- `ZKB_FEED_MAX_CATCHUP` — max sequence files pulled per tick (bounds a burst; the feed is live-only, no backfill).
+Inferred type alias for `typeof apertureConfig` so consumers can type a parameter without importing the runtime value.

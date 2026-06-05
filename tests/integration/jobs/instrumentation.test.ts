@@ -9,7 +9,7 @@ import { withInstrumentation } from '@/lib/jobs/withInstrumentation';
 import { apertureConfig } from '../../../aperture.config';
 
 /**
- * Stage 11.1 smoke gate (sub-stage plan):
+ * Smoke gate:
  *   "A minimal smoke-test task runs end-to-end through `withInstrumentation`,
  *    leaving one `ap_job_run` row."
  * Plus the failure path + the notes/error caps from withInstrumentation.ts.

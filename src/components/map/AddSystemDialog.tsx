@@ -16,7 +16,7 @@ import type { SystemSearchResult } from '@/types';
 const DEBOUNCE_MS = 200;
 
 /**
- * "Add system manually" dialog (SPEC §6.5) — search the universe by name and
+ * "Add system manually" dialog — search the universe by name and
  * place a solar system on the map without a tracked character jumping a
  * wormhole into it. Selecting a result calls `onAdd(systemId)`; `MapCanvas`
  * owns the actual POST + optimistic apply and the placement position.

@@ -19,16 +19,16 @@ import {
 } from './formatters';
 
 /**
- * Stage 14. Single-event Discord webhook dispatch. Invoked by the
+ * Single-event Discord webhook dispatch. Invoked by the
  * `webhook-dispatch` graphile-worker task (one call per `ap_map_event` insert
  * on a map with at least one `ap_map_webhook` row).
  *
- * Per the rebuild contract ("never block the underlying map mutation"), the
+ * To never block the underlying map mutation, the
  * dispatcher NEVER throws — every per-webhook outcome is recorded on the
  * `ap_map_webhook` row's status columns and surfaced in the returned notes.
  * No automatic retries: graphile-worker would re-deliver to webhooks that
  * already succeeded, causing duplicate messages. `consecutive_failures`
- * accumulates across events; the Stage 16 admin UI is where auto-disable
+ * accumulates across events; the admin UI is where auto-disable
  * policy lives.
  */
 
@@ -43,7 +43,7 @@ export interface WebhookDispatchNotes {
   skipped: number;
   /** `true` when the event row could not be found at dispatch time (purged or never existed). */
   missingEvent?: true;
-  /** `true` for the synthetic test-fire path triggered by the Stage 16 admin UI. */
+  /** `true` for the synthetic test-fire path triggered by the admin UI. */
   test?: true;
   /** `true` when a test fire targeted a webhook id that no longer exists. */
   missingWebhook?: true;
@@ -127,7 +127,7 @@ export async function runWebhookDispatch(
 }
 
 /**
- * Stage 16.4 admin test-fire. Sends a synthetic `[test]` Discord payload to one
+ * Admin test-fire. Sends a synthetic `[test]` Discord payload to one
  * webhook and writes the outcome back to the same `ap_map_webhook` row a real
  * dispatch would touch (`last_status`, `last_error`, `last_attempted_at`,
  * `consecutive_failures`). Never throws.
@@ -292,7 +292,7 @@ async function collectSystemRefs(event: MapEventPayload): Promise<{
     case 'signature.delete':
       // Update / delete payloads don't carry `mapSystemId`. Resolving it would
       // require an extra join on `ap_map_signature` (and the row is gone for
-      // delete); defer richer signature context to Stage 17's UX sweep.
+      // delete); richer signature context is deferred.
       break;
     default:
       break;

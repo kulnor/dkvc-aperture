@@ -7,7 +7,7 @@ import { withInstrumentation } from '../withInstrumentation';
 import type { JobModule } from '../registry';
 
 /**
- * Stage 11.2. Signature-reap cron: delete `ap_map_signature` rows whose
+ * Signature-reap cron: delete `ap_map_signature` rows whose
  * `expires_at` is in the past, on maps that are not soft-deleted. Each delete
  * fires through `commitMapEvent` so the row removal becomes a `signature.delete`
  * event — client tabs apply the disappearance the same way they handle a
@@ -15,8 +15,6 @@ import type { JobModule } from '../registry';
  *
  * Bounded by `JOB_DELETE_BATCH_SIZE` per run; any leftovers are picked up on
  * the next tick. Per-row transactions: one bad row never poisons the rest.
- *
- * Replaces legacy `Cron\MapUpdate::deleteSignatures` (`@halfHour`). SPEC §6.5.
  */
 
 const NAME = 'signature-reap';

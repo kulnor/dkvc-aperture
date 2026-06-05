@@ -23,7 +23,7 @@ import { buildSystemNode } from './systemNode';
 import type { MapEventPayload } from '@/lib/realtime/protocol';
 
 /**
- * Stage 17.6 map JSON import/export.
+ * Map JSON import/export.
  *
  * `buildMapExport` serialises a map's current state (metadata + behaviour
  * toggles + visible systems + connections + signatures) into a versioned,
@@ -43,8 +43,7 @@ import type { MapEventPayload } from '@/lib/realtime/protocol';
  * `eol_at` from `eol_stage` (stamped now when non-`none`), and `created_at`
  * defaults. Re-importing the same file
  * is idempotent for systems (upsert on `(map_id, system_id)`) but APPENDS
- * connections (they have no natural unique key) — matching the legacy
- * "schema versioning not explicit" looseness.
+ * connections (they have no natural unique key).
  */
 
 // v2: connection `isEol` boolean replaced by the `eolStage` enum (0031).

@@ -1,6 +1,6 @@
 ## abc.ts
 
-**Purpose:** Scheme A "ABC" — per-WH-class sequential-letter tagging (Stage 17.10). Pure / db-free.
+**Purpose:** Scheme A "ABC" — per-WH-class sequential-letter tagging. Pure / db-free.
 **File:** `src/lib/tagging/abc.ts`
 
 ---

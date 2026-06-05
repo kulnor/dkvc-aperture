@@ -1,6 +1,6 @@
 ## activity.ts
 
-**Purpose:** Server-side reader that turns the `ap_activity_rollup` materialized view into the Statistics dialog's per-character, scope-filtered, period-bucketed activity table + sparkline series (Stage 17.7).
+**Purpose:** Server-side reader that turns the `ap_activity_rollup` materialized view into the Statistics dialog's per-character, scope-filtered, period-bucketed activity table + sparkline series.
 **File:** `src/lib/stats/activity.ts`
 
 ---

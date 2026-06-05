@@ -1,6 +1,6 @@
 ## crypto.ts
 
-**Purpose:** AES-256-GCM AEAD for the ESI tokens stored on `ap_character`. The only place tokens are wrapped/unwrapped. SPEC §7.
+**Purpose:** AES-256-GCM AEAD for the ESI tokens stored on `ap_character`. The only place tokens are wrapped/unwrapped.
 **File:** `src/lib/crypto.ts`
 
 ---

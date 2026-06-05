@@ -7,15 +7,13 @@ import { db } from '@/db/client';
 import { apAccessGrant } from '@/db/schema';
 
 /**
- * Permissions-overhaul Stage 2. The single resolver that decides a character's
- * cached `ap_character.authz_level`. Replaces the legacy "Director ⇒ admin,
- * else preserve any hand-set manager" derivation.
+ * The single resolver that decides a character's cached
+ * `ap_character.authz_level`.
  *
- * The rule (load-bearing — see `docs/plans/permissions-overhaul.md`):
+ * The rule (load-bearing):
  *   - **Any** in-game corp Director ⇒ corp-scoped `manager` — regardless of
  *     whether their corp owns the instance. Ownership (`ap_instance_owner`) is
- *     a *login-gating* concern (Stage 3) and is intentionally NOT consulted
- *     here.
+ *     a *login-gating* concern and is intentionally NOT consulted here.
  *   - **Global `admin` is reachable only via an explicit hand-assigned
  *     `ap_access_grant` (`capability='admin'`).** Nothing derives it.
  *   - The result is the `max` of the derived level and the explicit grant level

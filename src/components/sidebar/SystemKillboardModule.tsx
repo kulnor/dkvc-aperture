@@ -8,10 +8,10 @@ import type { MapSystemNode } from '@/lib/map/loadMap';
 import type { KillboardKill } from '@/lib/map/killboard';
 import { formatAgoFromMs } from '@/lib/map/relativeTime';
 
-// Recent-kills feed for the selected system (Stage 17.8). Fetches the zkb-backed
+// Recent-kills feed for the selected system. Fetches the zkb-backed
 // /api/system/[id]/killboard on selection, with a manual refresh. Works for all
 // systems including wormholes (zKillboard tracks J-space kills). Kills live in
-// local state keyed by killmailId so the Stage 17.8b live killstream can prepend
+// local state keyed by killmailId so the live killstream can prepend
 // into the same list without a refetch.
 
 const KILL_LIMIT = 20;

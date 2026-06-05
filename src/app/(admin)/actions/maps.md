@@ -1,6 +1,6 @@
 ## maps.ts (admin server actions)
 
-**Purpose:** Stage 16.2 admin actions on `ap_map` rows. Three operations exposed at `/admin/maps`: soft-delete (sets `deleted_at`), restore (clears `deleted_at`), and purge-now (admin-only hard delete that skips the 30-day `map-purge` cron grace). All gated by `isManagerOrAdmin` + `adminVisibilityScope`, not the corp-right matrix — the admin panel is the manager/admin's override path.
+**Purpose:** Admin actions on `ap_map` rows. Three operations exposed at `/admin/maps`: soft-delete (sets `deleted_at`), restore (clears `deleted_at`), and purge-now (admin-only hard delete that skips the 30-day `map-purge` cron grace). All gated by `isManagerOrAdmin` + `adminVisibilityScope`, not the corp-right matrix — the admin panel is the manager/admin's override path.
 **File:** `src/app/(admin)/actions/maps.ts`
 
 ---
@@ -9,7 +9,7 @@
 Validates the id, gates on `isManagerOrAdmin`, scope-checks the map via `mapScopeFilterFor`, then runs `commitMapEvent({ kind: 'map.delete' })` with a `mutate` that sets `deleted_at = now()` on the matching non-deleted row. Returns the same payload shape (`{ kind: 'map.delete', id, deletedAt }`) as the user-facing `deleteMapAction` so downstream subscribers don't need to discriminate by caller. Revalidates `/admin/maps` and `/maps`. Refuses to act on an already-soft-deleted map with a clear error.
 
 ### adminRestoreMap(mapId: string): Promise<ActionResult<MapEventPayload>>
-Same gates as soft-delete. Clears `deleted_at`, bumps `updated_at`, emits `map.restore` (Stage 16.2 new event kind; payload `{ id }`). Refuses to act on a map that is not soft-deleted. Revalidates `/admin/maps` and `/maps`.
+Same gates as soft-delete. Clears `deleted_at`, bumps `updated_at`, emits `map.restore` (payload `{ id }`). Refuses to act on a map that is not soft-deleted. Revalidates `/admin/maps` and `/maps`.
 
 ### adminPurgeMap(mapId: string): Promise<ActionResult<MapEventPayload>>
 **Admin only** (managers cannot skip the grace). Requires the map to already be soft-deleted (`deleted_at IS NOT NULL`) — active maps must be soft-deleted first.
@@ -24,11 +24,11 @@ Returns the synthesized `{ kind: 'map.purge', eventId, id }` payload (the row th
 ---
 
 ### Depends on
-- `auth` / `isAdmin` / `isManagerOrAdmin` / `adminVisibilityScope` / `mapScopeFilterFor` — `@/lib/auth/rights` (16.1).
+- `auth` / `isAdmin` / `isManagerOrAdmin` / `adminVisibilityScope` / `mapScopeFilterFor` — `@/lib/auth/rights`.
 - `commitMapEvent` — `@/lib/map/mutations/core`.
 - `apMap` — `@/db/schema`.
 
 ### Notes
 - The actions deliberately bypass the corp-right matrix. The admin panel exists to give managers/admins authority over their scope without each corp having to grant `map_delete` to its own admin-level members.
 - Manager scope check returns the generic `"Map not found."` instead of `"Forbidden."` to avoid leaking the existence of a corp-scoped map to an out-of-scope manager.
-- No backwards-compat shim for the legacy `/admin?cmd=…` URLs — Stage 16 is a fresh surface.
+- The admin panel is a fresh surface; it has no `?cmd=…`-style URL routes.

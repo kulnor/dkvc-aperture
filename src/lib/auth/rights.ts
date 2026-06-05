@@ -18,7 +18,7 @@ import {
 import type { MapRight } from '@/types';
 
 /**
- * Stage 15. The single rights module every controller imports. `requireSession`
+ * The single rights module every controller imports. `requireSession`
  * still owns "is this user logged in"; this file answers "given an
  * authenticated character, can they perform action X on map Y".
  *
@@ -35,11 +35,10 @@ import type { MapRight } from '@/types';
  *
  * For mutation: pass step 1-3 AND the right is granted by `ap_corporation_right`
  * for the actor's corp (with `min_authz_level <= actor's authz_level`), EXCEPT
- * `map_delete` / `map_share` which require owner-or-admin (not corp-right-grantable),
- * codifying the SPEC §11 Q8 fix.
+ * `map_delete` / `map_share` which require owner-or-admin (not corp-right-grantable).
  *
- * Maps with all three owner columns NULL (created before Stage 15 wiring) are
- * treated as admin-only — defensive default, surfaces unowned rows for repair.
+ * Maps with all three owner columns NULL are treated as admin-only — defensive
+ * default, surfaces unowned rows for repair.
  */
 
 const AUTHZ_ORDINAL: Record<'member' | 'manager' | 'admin', number> = {
@@ -137,7 +136,7 @@ export async function canViewMap(characterId: bigint, mapId: bigint): Promise<bo
   const map = await loadMap(mapId);
   if (!map) return false;
 
-  // Unowned legacy map (all three owner columns NULL) → admin only.
+  // Unowned map (all three owner columns NULL) → admin only.
   if (
     map.ownerCharacterId === null &&
     map.ownerCorporationId === null &&
@@ -165,8 +164,7 @@ export async function canViewMap(characterId: bigint, mapId: bigint): Promise<bo
  *     `ap_corporation_right` row in the actor's own corp with
  *     `min_authz_level <= actor's authz_level`. Every right (`map_update`,
  *     `map_delete`, `map_share`, `map_import`, `map_export`) is grantable
- *     via this matrix — closing SPEC §11 Q8 by server-enforcing the same
- *     check the legacy UI assumed.
+ *     via this matrix, server-enforced on every controller.
  *
  * `map_create` is checked by `canCreateMap` (no target map).
  */
@@ -186,7 +184,7 @@ export async function canMutateMap(
   const map = await loadMap(mapId);
   if (!map) return false;
 
-  // Unowned legacy map (all three owner columns NULL) → admin only.
+  // Unowned map (all three owner columns NULL) → admin only.
   if (
     map.ownerCharacterId === null &&
     map.ownerCorporationId === null &&
@@ -219,7 +217,7 @@ export async function canMutateMap(
 }
 
 /**
- * Stage 15. Can this character spawn a new map? Pure corp-right check against
+ * Can this character spawn a new map? Pure corp-right check against
  * the actor's own corp; no per-target lookup. Admin always allowed.
  */
 export async function canCreateMap(characterId: bigint): Promise<boolean> {
@@ -241,7 +239,7 @@ export async function canCreateMap(characterId: bigint): Promise<boolean> {
 }
 
 /**
- * Owner-or-admin gate, bypassing the corp-right matrix. Stage 17.10 uses this to
+ * Owner-or-admin gate, bypassing the corp-right matrix. Used to
  * restrict map-level auto-tagging config (scheme + Home) to the map owner or a
  * global admin — strictly tighter than `map_update`, which a corp may grant to
  * ordinary members. Returns false for non-existent / soft-deleted / unowned maps.
@@ -281,7 +279,7 @@ export type RightGuard =
  *
  * 401 — no session.
  * 404 — map missing / soft-deleted, OR the actor has no view access (avoid
- *       leaking existence; the legacy app returned 403 here which leaks).
+ *       leaking existence; a 403 here would leak it).
  * 403 — the actor can see the map but lacks the right.
  */
 export async function requireMapRight(
@@ -430,7 +428,7 @@ export async function adminVisibilityScope(
 
 /**
  * SQL `where` clause that restricts `ap_map` rows to those visible to an
- * `AdminVisibilityScope`. Stage 16: shared by the admin dashboard counts
+ * `AdminVisibilityScope`. Shared by the admin dashboard counts
  * (`src/app/(admin)/admin/page.tsx`) and the admin maps list
  * (`src/lib/map/loadMap.ts#listAdminMaps`).
  *

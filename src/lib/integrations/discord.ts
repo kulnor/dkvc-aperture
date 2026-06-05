@@ -1,7 +1,7 @@
 import { apertureConfig } from '../../../aperture.config';
 
 /**
- * Stage 14 Discord webhook client. Thin POST wrapper around `fetch` —
+ * Discord webhook client. Thin POST wrapper around `fetch` —
  * Discord webhooks return 204 No Content on success and a small JSON error
  * body otherwise, so there is no response schema to decode and no circuit
  * breaker (one webhook URL is one channel; per-URL `consecutive_failures` on
@@ -10,7 +10,7 @@ import { apertureConfig } from '../../../aperture.config';
  * Spec: https://discord.com/developers/docs/resources/webhook#execute-webhook
  */
 
-/** Minimal subset of the Discord webhook payload Stage 14 uses. */
+/** Minimal subset of the Discord webhook payload the dispatcher uses. */
 export interface DiscordWebhookEmbedField {
   name: string;
   value: string;
