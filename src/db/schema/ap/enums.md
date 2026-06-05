@@ -29,6 +29,9 @@
 ### whJumpMass
 `pgEnum('wh_jump_mass', ['s', 'm', 'l', 'xl'])` — per-jump mass class (max ship size) of a wormhole. Nullable on `ap_map_connection` (non-WH links leave it null).
 
+### routeSafety
+`pgEnum('route_safety', ['shortest', 'safer', 'less_safe'])` — route-planner safety preference (EVE autopilot semantics) on `ap_user.route_safety`, default `shortest`. `shortest` ignores security; `safer` heavily penalizes low/null/J-space transit in the Dijkstra weighting but still routes through it when forced (a reachable destination is never reported unreachable); `less_safe` inverts the penalty. Added migration 0036 (routes-module). Consumed by `src/lib/map/routePlanner.ts`.
+
 ### eolStage
 `pgEnum('eol_stage', ['none', 'eol', 'critical'])` — end-of-life stage of a wormhole connection. Replaces the earlier `is_eol` boolean (migration 0031) to support EVE's two decay warnings: `eol` (~4h, "reaching the end of its natural lifetime") and `critical` (~1h, the newer final stage); `none` is a hole not yet decaying. On `ap_map_connection`, default `none`. The stage selects which lifetime constant (`WORMHOLE_EOL_LIFETIME_MS` vs `WORMHOLE_EOL_CRITICAL_LIFETIME_MS`) drives the countdown + EOL-expiry reap. `eol_at` is re-stamped on each stage change.
 

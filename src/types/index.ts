@@ -20,6 +20,7 @@ import type {
   apMapSystem,
   apMapTrackingSeed,
   apRole,
+  apRouteDestination,
   apStructure,
   apStructureEvent,
   apSystemStats,
@@ -48,9 +49,11 @@ import type {
   mapRight,
   mapType,
   roleSource,
+  routeSafety,
   signatureGroupKey,
   structureEventKind,
   tagScheme,
+  whJumpMass,
 } from '@/db/schema/ap/enums';
 
 export type UniverseRegion = InferSelectModel<typeof universeRegion>;
@@ -97,6 +100,9 @@ export type NewUniverseWormhole = InferInsertModel<typeof universeWormhole>;
 
 export type ApUser = InferSelectModel<typeof apUser>;
 export type NewApUser = InferInsertModel<typeof apUser>;
+
+export type ApRouteDestination = InferSelectModel<typeof apRouteDestination>;
+export type NewApRouteDestination = InferInsertModel<typeof apRouteDestination>;
 
 export type ApCharacter = InferSelectModel<typeof apCharacter>;
 export type NewApCharacter = InferInsertModel<typeof apCharacter>;
@@ -180,9 +186,11 @@ export type AuthzLevel = (typeof authzLevel.enumValues)[number];
 export type MapRight = (typeof mapRight.enumValues)[number];
 export type MapType = (typeof mapType.enumValues)[number];
 export type RoleSource = (typeof roleSource.enumValues)[number];
+export type RouteSafety = (typeof routeSafety.enumValues)[number];
 export type SignatureGroupKey = (typeof signatureGroupKey.enumValues)[number];
 export type StructureEventKind = (typeof structureEventKind.enumValues)[number];
 export type TagScheme = (typeof tagScheme.enumValues)[number];
+export type WhJumpMass = (typeof whJumpMass.enumValues)[number];
 
 // Permissions-overhaul enum unions.
 export type AccessMode = (typeof accessMode.enumValues)[number];
@@ -217,6 +225,61 @@ export type SignatureIndicatorAccountSettings = {
   userThresholdMinutes: number | null;
   showStale: boolean;
   showUnscanned: boolean;
+};
+
+// routes-module. Configurable multi-hop route planner: shortest path from a
+// picked character's current system to saved destinations, over K-space
+// stargates + the live wormhole chain (+ optional EVE-Scout). Computed by
+// `src/lib/map/routePlanner.ts`, rendered by `RoutePlannerModule`.
+
+/**
+ * Per-account route-planner settings (resolved from `ap_user`). `minShipClass`
+ * is the smallest hull that must fit every wormhole on the route (`null` ⇒ no
+ * minimum); the three `avoid*` flags drop reduced/critical-mass and EOL holes;
+ * `includeEveScout` folds the public Thera/Turnur network into the graph.
+ */
+export type RoutePrefs = {
+  safety: RouteSafety;
+  minShipClass: WhJumpMass | null;
+  avoidReduced: boolean;
+  avoidCritical: boolean;
+  avoidEol: boolean;
+  includeEveScout: boolean;
+};
+
+/**
+ * One system on a computed route. `via` is how this hop was *entered* from the
+ * previous one (`origin` for the starting system); `connectionId` is the
+ * `ap_map_connection.id` for a mapped wormhole/jumpbridge hop (null for gate /
+ * eve_scout / origin); `onMap` marks systems present on the current map; `tag`
+ * is the map's per-system label (`ap_map_system.tag`), null when off-map/untagged.
+ */
+export type RouteHop = {
+  systemId: number;
+  name: string;
+  security: string | null;
+  via: 'origin' | 'gate' | 'wh' | 'jumpbridge' | 'eve_scout';
+  connectionId: number | null;
+  onMap: boolean;
+  tag: string | null;
+};
+
+/** A computed route from the origin to one destination. `jumps = hops.length - 1`. */
+export type RoutePlan = {
+  destinationSystemId: number;
+  destinationName: string;
+  reachable: boolean;
+  jumps: number;
+  hops: RouteHop[];
+};
+
+/** A saved destination joined to its solar-system display fields, for the panel. */
+export type RouteDestinationView = {
+  id: number;
+  systemId: number;
+  name: string;
+  security: string | null;
+  label: string | null;
 };
 
 // Read-only map view-model types (shaped in src/lib/map/loadMap.ts).

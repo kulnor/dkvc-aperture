@@ -246,6 +246,13 @@
       "when": 1779628800000,
       "tag": "0035_signature_indicators",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1779630000000,
+      "tag": "0036_route_planner",
+      "breakpoints": true
     }
   ]
 }

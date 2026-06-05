@@ -40,6 +40,15 @@ export const whMass = pgEnum('wh_mass', ['fresh', 'reduced', 'critical']);
 export const whJumpMass = pgEnum('wh_jump_mass', ['s', 'm', 'l', 'xl']);
 
 /**
+ * Route-planner safety preference, mirroring EVE's in-game autopilot. `shortest`
+ * ignores security (fewest jumps); `safer` heavily penalizes low/null/J-space
+ * transit but still routes through it when that's the only path (a reachable
+ * destination is never reported unreachable); `less_safe` inverts the penalty to
+ * prefer low/null. Stored per-account on `ap_user.route_safety`.
+ */
+export const routeSafety = pgEnum('route_safety', ['shortest', 'safer', 'less_safe']);
+
+/**
  * End-of-life stage of a wormhole connection. EVE surfaces two decay warnings:
  * `eol` ("reaching the end of its natural lifetime", ~4h left) and the newer
  * `critical` final stage (~1h left). `none` is a hole not yet decaying. The

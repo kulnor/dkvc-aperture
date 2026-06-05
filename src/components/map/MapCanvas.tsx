@@ -28,10 +28,11 @@ import type {
   MapSystemNode,
   MapViewData,
   PanelId,
+  RouteDestinationView,
+  RoutePrefs,
   SignatureIndicatorPrefs,
   StructureIntel,
 } from '@/types';
-import type { HubRoute } from '@/lib/map/route';
 import type { SystemStatsSummary } from '@/lib/map/stats';
 import type { SystemIntelSummary } from '@/lib/map/intel';
 import { applyEvent } from '@/lib/map/applyEvent';
@@ -68,7 +69,7 @@ import {
 } from '@/lib/structures/client';
 import { mapUpdateLoadSchema } from '@/lib/realtime/protocol';
 import { useMapSubscription, useRealtime } from '@/lib/realtime/useRealtime';
-import { RouteModule } from '@/components/sidebar/RouteModule';
+import { RoutePlannerModule } from '@/components/sidebar/RoutePlannerModule';
 import { KillStatsModule } from '@/components/sidebar/KillStatsModule';
 import { SystemGraphModule } from '@/components/sidebar/SystemGraphModule';
 import { SystemKillboardModule } from '@/components/sidebar/SystemKillboardModule';
@@ -143,7 +144,6 @@ type SubchainSigOffer = {
 
 export function MapCanvas({
   data,
-  routes,
   stats,
   intel,
   structures: initialStructures,
@@ -152,10 +152,13 @@ export function MapCanvas({
   signatureIndicators,
   canConfigureTagging,
   viewerCharacterIds,
+  viewerCharacters,
+  mainCharacterId,
+  routePrefs,
+  routeDestinations,
   mapLayout,
 }: {
   data: MapViewData;
-  routes: Record<number, HubRoute[]>;
   stats: Record<number, SystemStatsSummary>;
   intel: Record<number, SystemIntelSummary>;
   structures: Record<number, StructureIntel[]>;
@@ -167,6 +170,14 @@ export function MapCanvas({
   canConfigureTagging: boolean;
   /** Viewer's account character ids — matched against presence for the CTRL+V fast-paste location check. */
   viewerCharacterIds: number[];
+  /** Viewer's active characters (id + name) for the route planner's source picker. */
+  viewerCharacters: { id: number; name: string }[];
+  /** The account's main character id (route planner's default source), or null. */
+  mainCharacterId: number | null;
+  /** Per-account route-planner settings (routes-module). */
+  routePrefs: RoutePrefs;
+  /** The account's saved route destinations (routes-module). */
+  routeDestinations: RouteDestinationView[];
   /**
    * Saved per-account dashboard layout (map-layout-builder), or `null` to use
    * `DEFAULT_MAP_LAYOUT`.
@@ -1158,9 +1169,13 @@ export function MapCanvas({
         );
       case 'route':
         return (
-          <RouteModule
-            system={selectedSystem}
-            routes={selectedSystem ? routes[selectedSystem.systemId] : undefined}
+          <RoutePlannerModule
+            mapId={mapId}
+            viewerCharacters={viewerCharacters}
+            mainCharacterId={mainCharacterId}
+            initialPrefs={routePrefs}
+            initialDestinations={routeDestinations}
+            connections={viewData.connections}
           />
         );
       case 'intel':

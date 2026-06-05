@@ -1,5 +1,6 @@
 import { bigint, boolean, integer, jsonb, pgTable, timestamp } from 'drizzle-orm/pg-core';
 import type { MapLayoutConfig } from '@/types';
+import { routeSafety, whJumpMass } from './enums';
 
 // Auth principal: a user owns one or more characters. One user is created per
 // newly-seen character; additional characters can be linked onto an existing
@@ -30,6 +31,17 @@ export const apUser = pgTable('ap_user', {
   showUnscannedSignatureIndicator: boolean('show_unscanned_signature_indicator')
     .notNull()
     .default(true),
+  // routes-module: per-account route-planner settings. Personal config (not map
+  // data), applied to every map. `routeSafety` follows EVE autopilot semantics;
+  // `routeMinShipClass` NULL ⇒ no minimum (any hole passes); the three avoid
+  // toggles exclude reduced/critical-mass and EOL wormholes; `routeIncludeEveScout`
+  // folds the public EVE-Scout Thera/Turnur network into the routed graph.
+  routeSafety: routeSafety('route_safety').notNull().default('shortest'),
+  routeMinShipClass: whJumpMass('route_min_ship_class'),
+  routeAvoidReduced: boolean('route_avoid_reduced').notNull().default(false),
+  routeAvoidCritical: boolean('route_avoid_critical').notNull().default(false),
+  routeAvoidEol: boolean('route_avoid_eol').notNull().default(false),
+  routeIncludeEveScout: boolean('route_include_eve_scout').notNull().default(false),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });

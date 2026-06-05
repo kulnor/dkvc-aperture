@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { MapCanvas } from '@/components/map/MapCanvas';
 import { loadMapForView, loadMapSettings } from '@/lib/map/loadMap';
-import { routesForSystems } from '@/lib/map/route';
+import { loadRouteConfig } from '@/lib/map/routeConfig';
 import { statsForSystems } from '@/lib/map/stats';
 import { intelForSystems } from '@/lib/map/intel';
 import { structuresForSystems } from '@/lib/structures/read';
@@ -10,6 +10,7 @@ import { isMapOwnerOrAdmin } from '@/lib/auth/rights';
 import {
   getAccountCharacters,
   getConnectionTravelAnimation,
+  getMainCharacterId,
   getMapLayout,
   getSignatureIndicatorPrefs,
   requireSession,
@@ -48,7 +49,6 @@ export default async function MapPage({ params }: { params: Promise<{ slug?: str
 
   const systemIds = data.systems.map((s) => s.systemId);
   const [
-    routes,
     stats,
     intel,
     structures,
@@ -58,8 +58,9 @@ export default async function MapPage({ params }: { params: Promise<{ slug?: str
     canConfigureTagging,
     accountCharacters,
     mapLayout,
+    routeConfig,
+    mainCharacterId,
   ] = await Promise.all([
-    routesForSystems(systemIds),
     statsForSystems(systemIds),
     intelForSystems(systemIds),
     structuresForSystems(systemIds),
@@ -69,12 +70,15 @@ export default async function MapPage({ params }: { params: Promise<{ slug?: str
     isMapOwnerOrAdmin(BigInt(session.characterId), mapId),
     getAccountCharacters(session.userId),
     getMapLayout(session.userId),
+    loadRouteConfig(session.userId),
+    getMainCharacterId(session.userId),
   ]);
 
-  // Match the CTRL+V paste target against where any of the viewer's pilots are.
-  const viewerCharacterIds = accountCharacters
-    .filter((c) => c.status === 'active')
-    .map((c) => Number(c.id));
+  // Active characters drive both the CTRL+V paste location check (ids) and the
+  // route planner's source-character picker (id + name).
+  const activeCharacters = accountCharacters.filter((c) => c.status === 'active');
+  const viewerCharacterIds = activeCharacters.map((c) => Number(c.id));
+  const viewerCharacters = activeCharacters.map((c) => ({ id: Number(c.id), name: c.name }));
 
   // Non-null because `loadMapForView` already succeeded for the same viewer/map.
   if (!settings) {
@@ -86,7 +90,6 @@ export default async function MapPage({ params }: { params: Promise<{ slug?: str
   return (
     <MapCanvas
       data={data}
-      routes={routes}
       stats={stats}
       intel={intel}
       structures={structures}
@@ -95,6 +98,10 @@ export default async function MapPage({ params }: { params: Promise<{ slug?: str
       signatureIndicators={signatureIndicators}
       canConfigureTagging={canConfigureTagging}
       viewerCharacterIds={viewerCharacterIds}
+      viewerCharacters={viewerCharacters}
+      mainCharacterId={mainCharacterId == null ? null : Number(mainCharacterId)}
+      routePrefs={routeConfig.prefs}
+      routeDestinations={routeConfig.destinations}
       mapLayout={mapLayout}
     />
   );

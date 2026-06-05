@@ -7,7 +7,6 @@
 | Prop | Type | Required | Description |
 |---|---|---|---|
 | data | MapViewData | yes | Initial map + systems + connections + signatures (from `loadMapForView`). |
-| routes | Record<number, HubRoute[]> | yes | Precomputed hub jumps keyed by EVE system id. |
 | stats | Record<number, SystemStatsSummary> | yes | Precomputed 24h kill stats keyed by EVE system id. |
 | intel | Record<number, SystemIntelSummary> | yes | Read-side integration intel keyed by EVE system id. |
 | structures | Record<number, StructureIntel[]> | yes | Manual structure intel keyed by EVE system id (page-loaded seed; not realtime-synced). |
@@ -16,6 +15,10 @@
 | signatureIndicators | SignatureIndicatorPrefs | yes | The viewer's resolved stale/unscanned indicator prefs (effective threshold + the two toggles). Feeds `MapSignatureIndicatorProvider`. |
 | canConfigureTagging | boolean | yes | Owner/admin gate: passed to `MapSettingsDialog` to show the Tagging tab. |
 | viewerCharacterIds | number[] | yes | The viewer's account character ids; passed to `SignaturePasteHotkey` for the CTRL+V fast-paste location check. |
+| viewerCharacters | { id: number; name: string }[] | yes | The viewer's active characters (id + name); feeds the route planner's source-character picker. |
+| mainCharacterId | number \| null | yes | The account's main character id (route planner's default source), or null. |
+| routePrefs | RoutePrefs | yes | Per-account route-planner settings (routes-module); seeds `RoutePlannerModule`. |
+| routeDestinations | RouteDestinationView[] | yes | The account's saved route destinations (routes-module). |
 | mapLayout | MapLayoutConfig \| null | no | The viewer's saved per-account dashboard layout (map-layout-builder). Seeds the live layout state (run through `ensurePanelsPlaced` for forward-compat); `null` ⇒ `DEFAULT_MAP_LAYOUT`. |
 
 ### Renders
@@ -78,7 +81,7 @@ A free-form dashboard (the page scrolls). A full-width toolbar row sits above a 
 - `react-grid-layout` — `Layout` / `ResponsiveLayouts` types for `handleLayoutChange`/`mergeLayouts`.
 - `@/lib/map/subchainGraph` — `computeSubchain` for the client-side delete-subchain preview/highlight; `computeDisconnected` for the delete-disconnected preview/highlight.
 - `@/components/dialogs/MapInfoDialog`, `@/components/dialogs/MapSettingsDialog`, `./AddSystemDialog`, `@/components/ui/button`
-- `RouteModule`, `KillStatsModule`, `InspectorModule`, `SignatureModule`
+- `RoutePlannerModule`, `KillStatsModule`, `InspectorModule`, `SignatureModule`
 - `IntelModule`, `StructureModule`, `SystemGraphModule`, `SystemKillboardModule` (both self-fetch per-selected-system from `/api/system/[id]/…`)
 - `TagsModule`, `TheraModule` (global, always-on; `TheraModule` self-fetches `/api/map/[id]/thera` and folds synced edges via `onBulkPaste`)
 - Structure REST wrappers in `@/lib/structures/client`
