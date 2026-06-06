@@ -10,6 +10,7 @@
 | placeholder | string | no | Shown when value is null. |
 | className | string | no | Class on the idle span. |
 | inputClassName | string | no | Class on the editor input. |
+| style | CSSProperties | no | Inline style applied to both the idle span and the editing input (e.g. an inline colour). |
 | ariaLabel | string | no | Accessibility label for both states. |
 | maxLength | number | no | Forwarded to the input. |
 | onCommit | (next: string \| null) => void | yes | Fires on Enter when the value changed; empty input commits as null. |

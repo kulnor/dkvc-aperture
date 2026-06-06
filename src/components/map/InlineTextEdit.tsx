@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState, type KeyboardEvent } from 'react';
+import { useRef, useState, type CSSProperties, type KeyboardEvent } from 'react';
 import { cn } from '@/lib/utils';
 
 /**
@@ -18,6 +18,7 @@ export function InlineTextEdit({
   placeholder,
   className,
   inputClassName,
+  style,
   ariaLabel,
   maxLength,
   onCommit,
@@ -26,6 +27,8 @@ export function InlineTextEdit({
   placeholder?: string;
   className?: string;
   inputClassName?: string;
+  /** Applied to both the idle span and the editing input (e.g. an inline colour). */
+  style?: CSSProperties;
   ariaLabel?: string;
   maxLength?: number;
   onCommit: (next: string | null) => void;
@@ -72,6 +75,7 @@ export function InlineTextEdit({
         onBlur={cancel}
         maxLength={maxLength}
         aria-label={ariaLabel}
+        style={style}
         className={cn(
           'nodrag nopan h-5 rounded border border-ring/60 bg-background px-1 text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring/40',
           inputClassName,
@@ -85,6 +89,7 @@ export function InlineTextEdit({
       onDoubleClick={startEdit}
       aria-label={ariaLabel}
       className={cn('select-none', className)}
+      style={style}
       title="Double-click to edit"
     >
       {value ?? placeholder ?? ''}

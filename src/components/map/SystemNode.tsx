@@ -54,32 +54,58 @@ export function SystemNode({ data, selected }: NodeProps & { data: SystemNodeDat
   const glow = useUnderglowForSystem(data.id);
   const sigIndicator = useSignatureIndicator(data.id, isWormhole);
 
-  // Compose the box-shadow from the Home accent ring (inner) and the selection
-  // halo, so a selected Home tile shows both. Empty → undefined so the Tailwind
-  // `ring-1` shows as the resting state.
+  const classColor = systemClassColor(data.security);
+
+  // Compose the box-shadow as concentric rings: the resting ring is the system's
+  // status colour (replacing the old neutral Tailwind `ring-1`), with the Home
+  // accent and the selection halo stacking outside it at larger spreads so all
+  // three can show at once. A soft drop shadow sits behind for slight elevation.
   const home = homeAccentColor();
   const boxShadow = [
+    `0 0 0 1px ${color}`,
     data.isHome ? `0 0 0 2px ${home}` : '',
     selected ? `0 0 0 4px ${color}40, 0 0 16px 3px ${color}cc` : '',
+    '0 1px 2px 0 rgb(0 0 0 / 0.05)',
   ]
     .filter(Boolean)
     .join(', ');
 
+  // Visible connection handles: large enough to grab at a glance, tinted with
+  // the status colour and ringed against the node surface. `zIndex: -1` renders
+  // them behind the tile so the inner sliver tucks under the node and the dot
+  // never covers tile content; the per-side transforms push the bulk of each
+  // dot outside its edge. The left dot gets an extra -4px to clear the thick
+  // class-coloured stripe drawn on that edge.
+  const handleBase = {
+    width: 12,
+    height: 12,
+    background: color,
+    border: '2px solid var(--map-node)',
+    zIndex: -1,
+  };
+  // Hidden at rest; fade in only while the tile is hovered.
+  const handleClass = 'opacity-0 transition-opacity duration-100 group-hover:opacity-[0.85]';
+  const handleStyles = {
+    top: { ...handleBase, transform: 'translate(-50%, -75%)' },
+    right: { ...handleBase, transform: 'translate(75%, -50%)' },
+    bottom: { ...handleBase, transform: 'translate(-50%, 75%)' },
+    left: { ...handleBase, transform: 'translate(calc(-75% - 4px), -50%)' },
+  };
+
   return (
     <div
-      className="relative min-w-36 cursor-pointer rounded-md bg-map-node text-xs text-card-foreground shadow-sm ring-1 transition-[box-shadow,outline,transform] duration-50"
+      className="group relative min-w-30 cursor-pointer rounded-md bg-map-node text-xs text-card-foreground transition-[box-shadow,outline,transform] duration-50"
       style={{
-        borderLeft: `4px solid ${color}`,
+        borderLeft: `4px solid ${classColor}`,
         // Selected tiles get a prominent halo in their status colour: a solid
         // offset ring plus a soft outer glow, so selection reads at a glance
         // regardless of the (often muted) status stripe. `${color}NN` appends an
         // 8-digit-hex alpha to the status hex.
         outline: selected ? `2px solid ${color}` : 'none',
         outlineOffset: selected ? '3px' : undefined,
-        boxShadow: boxShadow || undefined,
+        boxShadow,
         transform: selected ? 'scale(1.01)' : undefined,
       }}
-      title={`${data.regionName} › ${data.constellationName}`}
     >
       {/* Persistent rally underglow, derived straight from map state so it lives
           exactly as long as `rallyAt` is set. Kept separate from the transient
@@ -91,85 +117,99 @@ export function SystemNode({ data, selected }: NodeProps & { data: SystemNodeDat
         ageMs={sigIndicator.ageMs}
         unscanned={sigIndicator.unscanned}
       />
-      <Handle type="source" position={Position.Top} style={{ opacity: 0.2 }} />
-      <Handle type="source" position={Position.Right} style={{ opacity: 0.2 }} />
-      <Handle type="source" position={Position.Bottom} style={{ opacity: 0.2 }} />
-      <Handle type="source" position={Position.Left} style={{ opacity: 0.2 }} />
+      <Handle type="source" position={Position.Top} className={handleClass} style={handleStyles.top} />
+      <Handle type="source" position={Position.Right} className={handleClass} style={handleStyles.right} />
+      <Handle type="source" position={Position.Bottom} className={handleClass} style={handleStyles.bottom} />
+      <Handle type="source" position={Position.Left} className={handleClass} style={handleStyles.left} />
 
-      <div className="flex items-center px-2 py-1">
-        <span
-          className="rounded bg-muted px-1 py-0.5 font-mono text-sm font-bold leading-none"
-          style={{ color: systemClassColor(data.security) }}
-        >
-          {securityLabel(data)}
-        </span>
-        {onAliasOrTagCommit ? (
-          <InlineTextEdit
-            value={data.tag}
-            placeholder=""
-            ariaLabel="Tag"
-            maxLength={50}
-            onCommit={(next) => onAliasOrTagCommit(data.id, 'tag', next)}
-            className="rounded bg-primary/15 px-1 py-0.5 text-sm font-bold font-mono leading-none text-primary empty:hidden"
-            inputClassName="w-14"
-          />
-        ) : (
-          data.tag && (
-            <span className="rounded bg-primary/15 px-1 py-0.5 text-sm font-bold text-primary">
-              {data.tag}
-            </span>
-          )
-        )}
-        {onAliasOrTagCommit ? (
-          <InlineTextEdit
-            value={data.alias}
-            placeholder={data.name}
-            ariaLabel="Alias"
-            maxLength={100}
-            onCommit={(next) => onAliasOrTagCommit(data.id, 'alias', next)}
-            className="flex-1 truncate text-xs px-2 text-foreground"
-            inputClassName="w-full"
-          />
-        ) : (
-          <span className="flex-1 truncate text-xs text-foreground">
-            {data.alias ?? data.name}
-          </span>
-        )}
-        {pilots.length > 0 && <PresenceBadge pilots={pilots} />}
-        {data.tradeHub && (
-          <IndicatorPill
-            className="text-emerald-400 ring-emerald-400/40"
-            label={`${data.tradeHub.jumps} jump${data.tradeHub.jumps === 1 ? '' : 's'} to ${data.tradeHub.name}`}
+      <div className="flex items-stretch">
+        {/* Left column: security class + tag, the visual leads, sized up and
+            stacked so they read at a glance when zoomed out. */}
+        <div className="flex flex-col items-center justify-center gap-0.5 border-r border-foreground/10 px-1.5 leading-none">
+          <span
+            className="font-mono text-lg font-bold leading-none"
+            style={{ color: systemClassColor(data.security) }}
           >
-            {data.tradeHub.jumps}j
-          </IndicatorPill>
-        )}
-        {data.isHome && (
-          <Home className="size-3" style={{ color: home }} aria-label="Home system" />
-        )}
-        {data.locked && <Lock className="size-3 text-muted-foreground" />}
-      </div>
+            {securityLabel(data)}
+          </span>
+          {onAliasOrTagCommit ? (
+            <InlineTextEdit
+              value={data.tag}
+              placeholder=""
+              ariaLabel="Tag"
+              maxLength={50}
+              onCommit={(next) => onAliasOrTagCommit(data.id, 'tag', next)}
+              className="font-mono text-sm font-bold leading-none empty:hidden"
+              style={{ color: systemClassColor(data.security) }}
+              inputClassName="w-12"
+            />
+          ) : (
+            data.tag && (
+              <span
+                className="font-mono text-sm font-bold leading-none"
+                style={{ color: systemClassColor(data.security) }}
+              >
+                {data.tag}
+              </span>
+            )
+          )}
+        </div>
 
-      <div className="flex items-center gap-1 border-t border-foreground/10 px-2 py-0.5 text-[10px] text-muted-foreground">
-        {isWormhole ? (
-          <>
-            {data.statics.length > 0 && (
-              <span className="flex items-center gap-1">
-                {data.statics.map((cls, i) => (
-                  <span key={i} className="font-bold" style={{ color: systemClassColor(cls) }}>{cls}</span>
-                ))}
+        {/* Right column: system name on top, statics / region underneath. */}
+        <div className="flex min-w-0 flex-1 flex-col justify-center py-0.5">
+          <div className="flex items-center gap-1 px-2">
+            {onAliasOrTagCommit ? (
+              <InlineTextEdit
+                value={data.alias}
+                placeholder={data.name}
+                ariaLabel="Alias"
+                maxLength={100}
+                onCommit={(next) => onAliasOrTagCommit(data.id, 'alias', next)}
+                className="flex-1 truncate font-mono tracking-[0.02em] text-base text-foreground"
+                inputClassName="w-full"
+              />
+            ) : (
+              <span className="flex-1 truncate font-mono tracking-[0.01em] text-base text-foreground">
+                {data.alias ?? data.name}
               </span>
             )}
-            {data.effect && (
-              <EffectIndicator
-                effect={data.effect as SystemEffectKey}
-                classId={classIdFromSecurity(data.security)}
-              />
+            {pilots.length > 0 && <PresenceBadge pilots={pilots} />}
+            {data.tradeHub && (
+              <IndicatorPill
+                className="text-emerald-400 ring-emerald-400/40"
+                label={`${data.tradeHub.jumps} jump${data.tradeHub.jumps === 1 ? '' : 's'} to ${data.tradeHub.name}`}
+              >
+                {data.tradeHub.jumps}j
+              </IndicatorPill>
             )}
-          </>
-        ) : (
-          <span className="truncate">{data.regionName}</span>
-        )}
+            {data.isHome && (
+              <Home className="size-3" style={{ color: home }} aria-label="Home system" />
+            )}
+            {data.locked && <Lock className="size-3 text-muted-foreground" />}
+          </div>
+
+          <div className="flex items-center gap-1 px-2 text-[10px] text-muted-foreground">
+            {isWormhole ? (
+              <>
+                {data.statics.length > 0 && (
+                  <span className="flex items-center gap-1">
+                    {data.statics.map((cls, i) => (
+                      <span key={i} className="font-bold" style={{ color: systemClassColor(cls) }}>{cls}</span>
+                    ))}
+                  </span>
+                )}
+                {data.effect && (
+                  <EffectIndicator
+                    effect={data.effect as SystemEffectKey}
+                    classId={classIdFromSecurity(data.security)}
+                  />
+                )}
+              </>
+            ) : (
+              <span className="truncate">{data.regionName}</span>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
