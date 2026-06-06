@@ -29,6 +29,10 @@ export interface SecurityInput {
 
 /** EVE rounds security status to one decimal (e.g. 0.439 → 0.4, 0.45 → 0.5). */
 export function roundSecurity(securityStatus: number): number {
+  // A positive true sec below 0.05 is never nullsec: EVE rounds it up to 0.1
+  // (e.g. Vestouve at ~0.04 is lowsec, not 0.0). Plain Math.round would floor
+  // it to 0.0 and misclassify the system.
+  if (securityStatus > 0 && securityStatus < 0.05) return 0.1;
   return Math.round(securityStatus * 10) / 10;
 }
 

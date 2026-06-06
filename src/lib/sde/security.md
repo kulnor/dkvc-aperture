@@ -18,4 +18,4 @@ Returns the label: `A` (Abyssal, region `[12000000,13000000)`), `P` (Pochven, re
 ---
 
 ### roundSecurity(securityStatus: number): number
-Rounds to one decimal place (EVE convention, e.g. `0.439 → 0.4`, `0.45 → 0.5`).
+Rounds to one decimal place (EVE convention, e.g. `0.439 → 0.4`, `0.45 → 0.5`). A positive true sec below `0.05` rounds **up** to `0.1`, never down to `0.0` — EVE never classifies a positive-security system as nullsec (e.g. Vestouve at ~`0.04` is lowsec).
