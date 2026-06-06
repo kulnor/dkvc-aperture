@@ -14,8 +14,8 @@ import { universeStargateEdge } from '@/db/schema';
  * (each stargate pair lives as two rows) but we check both orderings
  * defensively in case a future SDE ingest stops mirroring them.
  *
- * Classifications outside `gate`/`wormhole`/`teleport` (e.g. cyno, jump bridge,
- * abyssal trace) are NOT modelled here — the rebuild treats every non-gate,
+ * Classifications outside `gate`/`wormhole`/`teleport`/`abyssal` (e.g. cyno,
+ * jump bridge) are NOT modelled here — the rebuild treats every other non-gate,
  * in-space transition as a wormhole. Those rarer cases land alongside the
  * broader intel module work in later stages.
  *
@@ -25,9 +25,14 @@ import { universeStargateEdge } from '@/db/schema';
  * arrives **docked** — you can never exit a wormhole already docked, so a
  * docked arrival in a non-gate-adjacent system is a teleport-to-station, not a
  * traversal. Gated to k-space destinations because clones can only live there.
+ *
+ * `abyssal` covers any transition where either endpoint is an abyssal system
+ * (`universe_system.security = 'A'`). Abyssals are reached only through
+ * single-use filaments, so the link can never be re-traversed by anyone else —
+ * it isn't a real chain edge. We never map abyssal systems or their links.
  */
 
-export type JumpClass = 'gate' | 'wormhole' | 'teleport';
+export type JumpClass = 'gate' | 'wormhole' | 'teleport' | 'abyssal';
 
 export interface ClassifyJumpArgs {
   fromSystemId: number;
@@ -45,17 +50,27 @@ export async function classifyJump(args: ClassifyJumpArgs): Promise<JumpClass> {
     // it's plainly not a jump — return 'gate' so no map writes happen.
     return 'gate';
   }
-  const probe = await db.execute<{ adjacent: boolean; to_security: string | null }>(
+  const probe = await db.execute<{
+    adjacent: boolean;
+    abyssal: boolean;
+    to_security: string | null;
+  }>(
     sql`SELECT
           EXISTS (
             SELECT 1 FROM universe_stargate_edge
             WHERE (from_system_id = ${args.fromSystemId} AND to_system_id = ${args.toSystemId})
                OR (from_system_id = ${args.toSystemId} AND to_system_id = ${args.fromSystemId})
           ) AS adjacent,
+          EXISTS (
+            SELECT 1 FROM universe_system
+            WHERE id IN (${args.fromSystemId}, ${args.toSystemId}) AND security = 'A'
+          ) AS abyssal,
           (SELECT security FROM universe_system WHERE id = ${args.toSystemId}) AS to_security`,
   );
   const row = probe.rows[0];
   if (row?.adjacent) return 'gate';
+  // Either endpoint abyssal = single-use filament trace, never a chain edge.
+  if (row?.abyssal) return 'abyssal';
   // Docked arrival in k-space = teleport-to-clone, never a wormhole traversal.
   if (args.arrivedDocked && row?.to_security != null && KSPACE_LABELS.has(row.to_security)) {
     return 'teleport';

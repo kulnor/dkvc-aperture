@@ -6,12 +6,13 @@
 ---
 
 ### type JumpClass
-`'gate' | 'wormhole' | 'teleport'`. Aperture treats every non-gate, in-space transition as a wormhole. `teleport` is a non-gate transition where the pilot arrives **docked** in k-space — pod self-destruct ("pod express"), getting podded by hostiles, or a jump clone. Rarer in-space cases (cyno, jump bridge, abyssal trace) are not modelled here and still fall through to `wormhole`.
+`'gate' | 'wormhole' | 'teleport' | 'abyssal'`. Aperture treats every non-gate, in-space transition as a wormhole unless it matches a more specific class. `teleport` is a non-gate transition where the pilot arrives **docked** in k-space — pod self-destruct ("pod express"), getting podded by hostiles, or a jump clone. `abyssal` is any transition where **either** endpoint is an abyssal system (`security = 'A'`); abyssals are entered only via single-use filaments, so the link is never a re-traversable chain edge and is never mapped. Rarer in-space cases (cyno, jump bridge) are not modelled here and still fall through to `wormhole`.
 
 ### classifyJump({ fromSystemId, toSystemId, arrivedDocked }): Promise<JumpClass>
-Single SQL probe that returns both the `universe_stargate_edge` bidirectional adjacency `EXISTS` (defensive against a future SDE ingest that stops mirroring each gate pair) **and** the destination's `universe_system.security` label, in one round-trip.
+Single SQL probe that returns the `universe_stargate_edge` bidirectional adjacency `EXISTS` (defensive against a future SDE ingest that stops mirroring each gate pair), an `EXISTS` over either endpoint having `universe_system.security = 'A'` (abyssal), **and** the destination's `universe_system.security` label — all in one round-trip.
 
 - gate-adjacent → `'gate'`.
+- either endpoint abyssal → `'abyssal'`. Filament-only access, so it's never a real chain connection; the caller folds nothing onto the map.
 - not adjacent, `arrivedDocked`, and destination is k-space (`security ∈ {H, L, 0.0}`) → `'teleport'`. You can never exit a wormhole already docked, so a docked arrival in a non-gate-adjacent system is a teleport-to-station, never a traversal. Gated to k-space because medical/jump clones can only live there.
 - otherwise → `'wormhole'`.
 
