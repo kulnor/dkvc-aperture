@@ -51,15 +51,15 @@ const MISSING_CELL =
 const columnHelper = createColumnHelper<MapSignature>();
 
 const colHeaderClass: Record<string, string> = {
-  sigId: 'w-24 px-2 py-1 text-left',
-  groupKey: 'w-32 px-3 py-1 text-left',
-  type: 'w-56 px-3 py-1 text-left',
-  description: 'px-3 py-1 text-left',
-  leadsTo: 'w-44 px-3 py-1 text-left',
-  ttl: 'w-16 px-1 py-1 text-left',
-  createdAt: 'w-24 px-1 py-1 text-left',
-  updatedAt: 'w-24 px-1 py-1 text-left',
-  actions: 'w-10 px-1 py-1',
+  sigId: 'w-24 px-2 py-0.5 text-left',
+  groupKey: 'w-32 px-3 py-0.5 text-left',
+  type: 'w-56 px-3 py-0.5 text-left',
+  description: 'px-3 py-0.5 text-left',
+  leadsTo: 'w-44 px-3 py-0.5 text-left',
+  ttl: 'w-16 px-1 py-0.5 text-left',
+  createdAt: 'w-24 px-1 py-0.5 text-left',
+  updatedAt: 'w-24 px-1 py-0.5 text-left',
+  actions: 'w-10 px-1 py-0.5',
 };
 
 function buildGroupChangePatch(
@@ -347,7 +347,7 @@ function SignaturePanelBody({
         header: 'Sig',
         enableSorting: true,
         cell: ({ row }) => (
-          <span className="px-2 py-1 font-mono text-xs">{row.original.sigId}</span>
+          <span className="px-2 py-px font-mono text-xs">{row.original.sigId}</span>
         ),
       }),
       columnHelper.accessor('groupKey', {
@@ -357,7 +357,7 @@ function SignaturePanelBody({
           const sig = row.original;
           const groupMissing = sig.groupKey === null;
           return (
-            <div className={`px-1 py-0.5${groupMissing ? ` ${MISSING_CELL}` : ''}`}>
+            <div className={`px-1 py-px${groupMissing ? ` ${MISSING_CELL}` : ''}`}>
               <SignatureGroupSelect
                 value={sig.groupKey}
                 onValueChange={(nextKey) => {
@@ -378,7 +378,7 @@ function SignaturePanelBody({
             sig.groupKey !== null &&
             (sig.groupKey === 'wormhole' ? sig.typeId === null : !sig.name);
           return (
-            <div className={`px-1 py-0.5${typeMissing ? ` ${MISSING_CELL}` : ''}`}>
+            <div className={`px-1 py-px${typeMissing ? ` ${MISSING_CELL}` : ''}`}>
               <TypeCell
                 mapId={mapId}
                 system={system}
@@ -396,11 +396,11 @@ function SignaturePanelBody({
         cell: ({ row }) => {
           const sig = row.original;
           return (
-            <div className="px-1 py-0.5">
+            <div className="px-1 py-px">
               <EditableTextCell
                 value={sig.description ?? ''}
                 onCommit={(next) => onPatch(sig.id, { description: next || null })}
-                className="h-7 text-sm"
+                className="h-6 text-sm"
                 placeholder="—"
               />
             </div>
@@ -414,7 +414,7 @@ function SignaturePanelBody({
           const sig = row.original;
           const leadsToMissing = sig.groupKey === 'wormhole' && sig.mapConnectionId === null;
           return (
-            <div className={`px-1 py-0.5${leadsToMissing ? ` ${MISSING_CELL}` : ''}`}>
+            <div className={`px-1 py-px${leadsToMissing ? ` ${MISSING_CELL}` : ''}`}>
               <ConnectionSelect
                 system={system}
                 connections={connections}
@@ -438,7 +438,7 @@ function SignaturePanelBody({
         id: 'ttl',
         header: 'TTL',
         cell: ({ row }) => (
-          <span className="px-1 py-0.5 text-xs text-muted-foreground">
+          <span className="px-1 py-px text-xs text-muted-foreground">
             {formatRelativeIso(row.original.expiresAt)}
           </span>
         ),
@@ -447,7 +447,7 @@ function SignaturePanelBody({
         header: 'Created',
         enableSorting: true,
         cell: ({ row }) => (
-          <span className="px-1 py-0.5 text-xs text-muted-foreground">
+          <span className="px-1 py-px text-xs text-muted-foreground">
             {formatAgoIso(row.original.createdAt)}
           </span>
         ),
@@ -456,7 +456,7 @@ function SignaturePanelBody({
         header: 'Updated',
         enableSorting: true,
         cell: ({ row }) => (
-          <span className="px-1 py-0.5 text-xs text-muted-foreground">
+          <span className="px-1 py-px text-xs text-muted-foreground">
             {formatAgoIso(row.original.updatedAt)}
           </span>
         ),
@@ -465,15 +465,15 @@ function SignaturePanelBody({
         id: 'actions',
         header: '',
         cell: ({ row }) => (
-          <div className="px-1 py-0.5 text-right">
+          <div className="px-1 py-px text-right">
             <Button
               type="button"
               variant="ghost"
-              size="icon"
+              size="icon-xs"
               aria-label="Delete signature"
               onClick={() => onDelete(row.original.id)}
             >
-              <Trash2 className="size-4" />
+              <Trash2 className="size-3.5" />
             </Button>
           </div>
         ),
@@ -529,7 +529,7 @@ function SignaturePanelBody({
         onScanFilterChange={setScanFilter}
       />
       <div className="overflow-hidden rounded-md ring-1 ring-foreground/10">
-        <table className="w-full text-sm">
+        <table className="w-full text-sm [&_[data-slot=input]]:h-6 [&_[data-slot=select-trigger]]:h-6">
           <thead className="bg-muted/40 text-[11px] uppercase text-muted-foreground">
             {table.getHeaderGroups().map((hg) => (
               <tr key={hg.id}>
