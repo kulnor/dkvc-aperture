@@ -11,15 +11,15 @@
 | systems | MapSystemNode[] | yes | All placed systems; used to resolve EVE ids → map systems. |
 | connections | MapConnectionEdge[] | yes | All edges; used to find the folded WH connection and rule out gate jumps. |
 | signatures | MapSignature[] | yes | All sigs; the candidate list is the source system's wormhole sigs. |
-| viewerCharacterIds | number[] | yes | The viewer's own characters — only their jumps fire the prompt. |
+| viewerCharacters | { id: number; name: string }[] | yes | The viewer's own characters — only their jumps fire the prompt, and the jumper's name is shown in the title. |
 | onPatchSignature | (signatureId: string, patch: { mapConnectionId: string }) => void | yes | Commits the "Leads to" binding (MapCanvas's optimistic `onSignaturePatch`). |
 | onConnectionPatch | (connectionId: string, patch: UpdateConnectionBody) => void | yes | Auto-sets the folded connection's jump-mass size from the picked sig's type (MapCanvas's optimistic `onConnectionPatch`). |
 
 ### Renders
-A small dismissible `Card` pinned to the canvas top-left (`absolute left-2 top-2 z-10`, `nodrag nopan`), titled "Jumped into <dest> — which signature?", with one outline button per candidate sig (`sigId` + WH code / "no type") and an `X` dismiss. Renders `null` when there's no active prompt or zero candidates.
+A small dismissible `Card` pinned to the canvas top-left (`absolute left-2 top-2 z-10`, `nodrag nopan`), titled "<character> jumped into <dest> — which signature?" (the jumping pilot is named so alts moving around the chain aren't confused), with one outline button per candidate sig (`sigId` + WH code / "no type") and an `X` dismiss. Renders `null` when there's no active prompt or zero candidates.
 
 ### Behaviour & Interactions
-- Subscribes via `useTraversals`; ignores jumps whose `characterId` isn't in `viewerCharacterIds`.
+- Subscribes via `useTraversals`; ignores jumps whose `characterId` isn't one of `viewerCharacters` (the matched character's `name` is shown in the prompt title).
 - Ignores the jump unless the source system is on the map, the two systems have no `stargate` connection between them, and a `wh`-scope connection between them exists (the server-folded hole).
 - Dedupes by `from→to` EVE-system key, so a fleet jumping the same hole shows one prompt.
 - On open, loads the source system's `typeId → targetClass` and `typeId → jumpMassClass` maps via `fetchWormholeTypes` (warm cache) — the first filters candidates, the second drives the connection-size auto-set.

@@ -1050,7 +1050,7 @@ export function MapCanvas({
               systems={viewData.systems}
               connections={viewData.connections}
               signatures={viewData.signatures}
-              viewerCharacterIds={viewerCharacterIds}
+              viewerCharacters={viewerCharacters}
               onPatchSignature={onSignaturePatch}
               onConnectionPatch={onConnectionPatch}
             />

@@ -39,6 +39,7 @@ export function transitCandidates(args: {
 type Prompt = {
   /** `from→to` EVE-system key; dedupes a fleet jumping the same hole together. */
   key: string;
+  characterName: string;
   sourceMapSystemId: string;
   sourceUniverseSystemId: number;
   destLabel: string;
@@ -62,7 +63,7 @@ export function TransitSignaturePrompt({
   systems,
   connections,
   signatures,
-  viewerCharacterIds,
+  viewerCharacters,
   onPatchSignature,
   onConnectionPatch,
 }: {
@@ -70,7 +71,7 @@ export function TransitSignaturePrompt({
   systems: MapSystemNode[];
   connections: MapConnectionEdge[];
   signatures: MapSignature[];
-  viewerCharacterIds: number[];
+  viewerCharacters: { id: number; name: string }[];
   onPatchSignature: (signatureId: string, patch: { mapConnectionId: string }) => void;
   onConnectionPatch: (connectionId: string, patch: UpdateConnectionBody) => void;
 }) {
@@ -87,14 +88,15 @@ export function TransitSignaturePrompt({
 
   // The traversal callback reads the latest props through this ref so a
   // re-render (new systems/connections) doesn't re-subscribe the listener.
-  const latest = useRef({ systems, connections, viewerCharacterIds });
+  const latest = useRef({ systems, connections, viewerCharacters });
   useEffect(() => {
-    latest.current = { systems, connections, viewerCharacterIds };
+    latest.current = { systems, connections, viewerCharacters };
   });
 
   useTraversals((t) => {
-    const { systems, connections, viewerCharacterIds } = latest.current;
-    if (!viewerCharacterIds.includes(t.characterId)) return;
+    const { systems, connections, viewerCharacters } = latest.current;
+    const character = viewerCharacters.find((c) => c.id === t.characterId);
+    if (!character) return; // only the viewer's own pilots fire the prompt
 
     const source = systems.find((s) => s.systemId === t.fromSystemId);
     const dest = systems.find((s) => s.systemId === t.toSystemId);
@@ -112,6 +114,7 @@ export function TransitSignaturePrompt({
 
     setPrompt({
       key: `${t.fromSystemId}->${t.toSystemId}`,
+      characterName: character.name,
       sourceMapSystemId: source.id,
       sourceUniverseSystemId: source.systemId,
       destLabel: dest.alias ?? dest.name,
@@ -152,7 +155,7 @@ export function TransitSignaturePrompt({
     <Card className="nodrag nopan absolute left-2 top-2 z-10 max-w-xs gap-2 p-3 text-sm shadow-lg">
       <div className="flex items-start justify-between gap-2">
         <span className="font-medium">
-          Jumped into {prompt.destLabel} — which signature?
+          {prompt.characterName} jumped into {prompt.destLabel} — which signature?
         </span>
         <Button
           type="button"
