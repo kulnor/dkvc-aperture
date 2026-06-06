@@ -30,6 +30,11 @@ import {
   viewableMapPredicate,
   type AdminVisibilityScope,
 } from '@/lib/auth/rights';
+import { apertureConfig } from '../../../aperture.config';
+
+const HUB_NAME_BY_ID = new Map<number, string>(
+  apertureConfig.ROUTE_HUBS.map((h) => [h.systemId, h.name]),
+);
 
 type SystemStatus = (typeof systemStatus.enumValues)[number];
 type ConnectionScope = (typeof connectionScope.enumValues)[number];
@@ -58,6 +63,8 @@ export type MapSystemNode = {
   constellationName: string;
   /** Target-class labels for each wormhole static (e.g. `["C3", "C5"]`); empty for k-space. */
   statics: string[];
+  /** Nearest trade hub within high-sec range (precomputed at SDE ingest); null when none. */
+  tradeHub: { name: string; jumps: number } | null;
   locked: boolean;
   /** ISO timestamp when the rally point was set; null when no rally is active. */
   rallyAt: string | null;
@@ -250,6 +257,8 @@ export async function loadMapForView(
       security: universeSystem.security,
       trueSec: universeSystem.trueSec,
       effect: universeSystem.effect,
+      nearestTradeHubId: universeSystem.nearestTradeHubId,
+      nearestTradeHubJumps: universeSystem.nearestTradeHubJumps,
       constellationName: universeConstellation.name,
       regionName: universeRegion.name,
     })
@@ -328,6 +337,13 @@ export async function loadMapForView(
       regionName: s.regionName,
       constellationName: s.constellationName,
       statics: staticsBySystem.get(s.systemId) ?? [],
+      tradeHub:
+        s.nearestTradeHubId != null && s.nearestTradeHubJumps != null
+          ? {
+              name: HUB_NAME_BY_ID.get(s.nearestTradeHubId) ?? 'trade hub',
+              jumps: s.nearestTradeHubJumps,
+            }
+          : null,
       locked: s.locked,
       rallyAt: s.rallyAt ? s.rallyAt.toISOString() : null,
       positionX: s.positionX,

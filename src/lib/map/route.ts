@@ -1,7 +1,6 @@
 import 'server-only';
-import { db } from '@/db/client';
-import { universeStargateEdge } from '@/db/schema';
 import { apertureConfig } from '../../../aperture.config';
+import { bfs, loadGateGraph } from './gateGraph';
 
 /** Gate-jump distance from one system to a single trade hub. */
 export type HubRoute = {
@@ -49,41 +48,4 @@ export async function routesForSystems(
 export async function jumpsToHubs(systemId: number): Promise<HubRoute[]> {
   const all = await routesForSystems([systemId]);
   return all[systemId] ?? [];
-}
-
-async function loadGateGraph(): Promise<Map<number, number[]>> {
-  const edges = await db
-    .select({ from: universeStargateEdge.fromSystemId, to: universeStargateEdge.toSystemId })
-    .from(universeStargateEdge);
-  const adjacency = new Map<number, number[]>();
-  // Stargates are bidirectional; index both directions defensively in case the
-  // SDE only lists one.
-  for (const e of edges) {
-    pushEdge(adjacency, e.from, e.to);
-    pushEdge(adjacency, e.to, e.from);
-  }
-  return adjacency;
-}
-
-function pushEdge(adjacency: Map<number, number[]>, from: number, to: number): void {
-  const list = adjacency.get(from);
-  if (list) list.push(to);
-  else adjacency.set(from, [to]);
-}
-
-function bfs(adjacency: Map<number, number[]>, source: number): Map<number, number> {
-  const dist = new Map<number, number>([[source, 0]]);
-  const queue: number[] = [source];
-  let head = 0;
-  while (head < queue.length) {
-    const current = queue[head++]!;
-    const currentDist = dist.get(current)!;
-    for (const next of adjacency.get(current) ?? []) {
-      if (!dist.has(next)) {
-        dist.set(next, currentDist + 1);
-        queue.push(next);
-      }
-    }
-  }
-  return dist;
 }

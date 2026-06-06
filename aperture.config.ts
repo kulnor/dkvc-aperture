@@ -95,13 +95,18 @@ export const apertureConfig = {
   /**
    * Major trade hubs the read-only route module reports gate-jump distance to.
    * EVE solar-system IDs. Ordered for display.
+   *
+   * `proximityJumps` is the high-sec-only gate-jump radius within which an HS
+   * system earns a trade-hub proximity badge on the map. It is precomputed at
+   * SDE ingest (`computeHubProximity`), not per page load. Jita gets a wider
+   * radius than the regional hubs to reflect its dominance as a market.
    */
   ROUTE_HUBS: [
-    { systemId: 30000142, name: 'Jita' },
-    { systemId: 30002187, name: 'Amarr' },
-    { systemId: 30002659, name: 'Dodixie' },
-    { systemId: 30002510, name: 'Rens' },
-    { systemId: 30002053, name: 'Hek' },
+    { systemId: 30000142, name: 'Jita', proximityJumps: 10 },
+    { systemId: 30002187, name: 'Amarr', proximityJumps: 5 },
+    { systemId: 30002659, name: 'Dodixie', proximityJumps: 5 },
+    { systemId: 30002510, name: 'Rens', proximityJumps: 5 },
+    { systemId: 30002053, name: 'Hek', proximityJumps: 5 },
   ],
 
   /** Per-scope ceilings for `ap_map.scope`. */

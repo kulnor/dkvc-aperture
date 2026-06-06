@@ -24,6 +24,7 @@ describe('mapEventPayloadSchema', () => {
       regionName: 'The Forge',
       constellationName: 'Kimotoro',
       statics: [],
+      tradeHub: null,
       locked: false,
       rallyAt: null,
       positionX: 10,

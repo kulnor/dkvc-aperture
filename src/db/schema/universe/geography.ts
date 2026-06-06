@@ -1,4 +1,5 @@
 import {
+  type AnyPgColumn,
   doublePrecision,
   index,
   integer,
@@ -38,6 +39,14 @@ export const universeSystem = pgTable('universe_system', {
   x: doublePrecision('x'),
   y: doublePrecision('y'),
   z: doublePrecision('z'),
+  // Nearest configured trade hub reachable via a high-sec-only gate route within
+  // the hub's proximity radius; null when no hub qualifies. Derived at SDE
+  // ingest by `computeHubProximity`, not raw CCP data.
+  nearestTradeHubId: integer('nearest_trade_hub_id').references(
+    (): AnyPgColumn => universeSystem.id,
+    { onDelete: 'set null' },
+  ),
+  nearestTradeHubJumps: integer('nearest_trade_hub_jumps'),
 });
 
 export const universeStargateEdge = pgTable(

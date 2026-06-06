@@ -136,6 +136,14 @@ export function SystemNode({ data, selected }: NodeProps & { data: SystemNodeDat
           </span>
         )}
         {pilots.length > 0 && <PresenceBadge pilots={pilots} />}
+        {data.tradeHub && (
+          <IndicatorPill
+            className="text-emerald-400 ring-emerald-400/40"
+            label={`${data.tradeHub.jumps} jump${data.tradeHub.jumps === 1 ? '' : 's'} to ${data.tradeHub.name}`}
+          >
+            {data.tradeHub.jumps}j
+          </IndicatorPill>
+        )}
         {data.isHome && (
           <Home className="size-3" style={{ color: home }} aria-label="Home system" />
         )}

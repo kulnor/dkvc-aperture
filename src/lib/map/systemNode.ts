@@ -9,6 +9,11 @@ import {
   universeWormhole,
 } from '@/db/schema';
 import type { MapEventPatch } from '@/lib/realtime/protocol';
+import { apertureConfig } from '../../../aperture.config';
+
+const HUB_NAME_BY_ID = new Map<number, string>(
+  apertureConfig.ROUTE_HUBS.map((h) => [h.systemId, h.name]),
+);
 
 // No `import 'server-only'`: pure read-side helper, consumed by both the
 // user-driven mutation wrappers (`src/lib/map/mutations/systems.ts`, which DOES
@@ -43,6 +48,8 @@ export async function buildSystemNode(
       security: universeSystem.security,
       trueSec: universeSystem.trueSec,
       effect: universeSystem.effect,
+      nearestTradeHubId: universeSystem.nearestTradeHubId,
+      nearestTradeHubJumps: universeSystem.nearestTradeHubJumps,
       constellationName: universeConstellation.name,
       regionName: universeRegion.name,
     })
@@ -74,6 +81,13 @@ export async function buildSystemNode(
     // Resolve to the far-side system class (matches loadMap's loadStatics);
     // fall back to the raw WH code only when the class is unknown (K162-style).
     statics: staticRows.map((s) => s.targetClass ?? s.name).filter((c): c is string => !!c),
+    tradeHub:
+      row.nearestTradeHubId != null && row.nearestTradeHubJumps != null
+        ? {
+            name: HUB_NAME_BY_ID.get(row.nearestTradeHubId) ?? 'trade hub',
+            jumps: row.nearestTradeHubJumps,
+          }
+        : null,
     locked: row.locked,
     rallyAt: row.rallyAt ? row.rallyAt.toISOString() : null,
     positionX: row.positionX,

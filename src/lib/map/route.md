@@ -17,6 +17,7 @@ Convenience wrapper around `routesForSystems([systemId])`.
 ### Notes
 - Stargates are treated as undirected (both directions indexed) so single-direction SDE rows don't break routing.
 - Loads the full gate edge table per call; acceptable for read-only page loads. Caching is a later concern.
+- Gate-graph loading + BFS now live in the shared `gateGraph.ts` helper (also used by the SDE hub-proximity precompute).
 
 ### Depends on
-- `@/db/client` (`db`), `@/db/schema` (`universeStargateEdge`), `aperture.config` (`ROUTE_HUBS`).
+- `./gateGraph` (`loadGateGraph`, `bfs`), `aperture.config` (`ROUTE_HUBS`).

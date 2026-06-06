@@ -24,6 +24,7 @@ import {
   universeWormhole,
 } from '@/db/schema';
 import { deriveSecurityLabel, roundSecurity } from './security';
+import { computeHubProximity } from './hubProximity';
 import { SYSTEM_EFFECT_BY_ID } from '@/lib/eve/systemEffectAssignments';
 
 /**
@@ -640,6 +641,9 @@ export async function runIngest(): Promise<IngestResult> {
   counts.systemStatics = await ingestSystemStatics(systemIds, typeIds);
   counts.typeOverrides = await ingestTypeOverrides(wormholeCodeToTypeId);
   counts.wormholes = await ingestWormholeCatalog(wormholeCodeToTypeId);
+
+  console.log('Computing trade-hub proximity ...');
+  counts.hubProximity = await computeHubProximity();
 
   return { build: SDE_BUILD, counts };
 }

@@ -3,6 +3,7 @@ import { sql } from 'drizzle-orm';
 import { afterAll, describe, expect, it } from 'vitest';
 import { db, pool } from '@/db/client';
 import { SDE_BUILD } from '@/lib/sde/ingest';
+import { apertureConfig } from '../../aperture.config';
 
 /**
  * Requires a migrated DB populated by `pnpm sde:bootstrap`
@@ -106,6 +107,73 @@ describe.skipIf(!run)(`universe ingest gate (SDE build ${SDE_BUILD})`, () => {
       SELECT count(DISTINCT sid)::int AS reachable, max(hops)::int AS maxhops FROM r`);
     expect(route.maxhops).toBe(5);
     expect(route.reachable).toBeGreaterThan(50);
+  });
+
+  it('badges Perimeter as 1 jump from Jita', async () => {
+    const row = await scalar<{ hub: number; jumps: number }>(sql`
+      SELECT nearest_trade_hub_id AS hub, nearest_trade_hub_jumps AS jumps
+      FROM universe_system WHERE id = 30000144`); // Perimeter
+    expect(row.hub).toBe(30000142); // Jita
+    expect(row.jumps).toBe(1);
+  });
+
+  it('leaves hub systems and non-HS systems unbadged', async () => {
+    // Jita itself is distance 0 from a hub → excluded.
+    const jita = await scalar<{ n: number }>(sql`
+      SELECT count(*)::int AS n FROM universe_system
+      WHERE id = 30000142 AND nearest_trade_hub_id IS NULL`);
+    expect(jita.n).toBe(1);
+
+    // Only high-sec systems ever get a hub.
+    const nonHs = await scalar<{ n: number }>(sql`
+      SELECT count(*)::int AS n FROM universe_system
+      WHERE nearest_trade_hub_id IS NOT NULL AND security <> 'H'`);
+    expect(nonHs.n).toBe(0);
+  });
+
+  it('respects per-hub thresholds and valid hub ids', async () => {
+    const rows = await db.execute(sql`
+      SELECT nearest_trade_hub_id AS hub, nearest_trade_hub_jumps AS jumps
+      FROM universe_system WHERE nearest_trade_hub_id IS NOT NULL`);
+    const thresholds = new Map<number, number>(
+      apertureConfig.ROUTE_HUBS.map((h) => [h.systemId, h.proximityJumps]),
+    );
+    const assigned = rows.rows as { hub: number; jumps: number }[];
+    expect(assigned.length).toBeGreaterThan(0);
+    for (const r of assigned) {
+      const threshold = thresholds.get(r.hub);
+      expect(threshold).toBeDefined();
+      expect(r.jumps).toBeGreaterThanOrEqual(1);
+      expect(r.jumps).toBeLessThanOrEqual(threshold!);
+    }
+  });
+
+  it('routes to Jita strictly through high-sec', async () => {
+    // HS-only BFS from Jita: every hop must land on an HS system, so by
+    // induction the whole path (incl. both endpoints) is HS. Stored distances
+    // for Jita-assigned systems must equal this — a route dipping through
+    // low/null-sec would give a different (or no) distance.
+    const result = await scalar<{ mismatches: number; unreachable: number }>(sql`
+      WITH RECURSIVE r(sid, hops) AS (
+        SELECT 30000142, 0
+        UNION
+        SELECT e.to_system_id, r.hops + 1
+        FROM r
+        JOIN universe_stargate_edge e ON e.from_system_id = r.sid
+        JOIN universe_system hs ON hs.id = e.to_system_id AND hs.security = 'H'
+        WHERE r.hops < 10
+      ),
+      hs_dist AS (SELECT sid, min(hops) AS hops FROM r GROUP BY sid)
+      SELECT
+        count(*) FILTER (
+          WHERE d.sid IS NOT NULL AND s.nearest_trade_hub_jumps <> d.hops
+        )::int AS mismatches,
+        count(*) FILTER (WHERE d.sid IS NULL)::int AS unreachable
+      FROM universe_system s
+      LEFT JOIN hs_dist d ON d.sid = s.id
+      WHERE s.nearest_trade_hub_id = 30000142`);
+    expect(result.mismatches).toBe(0);
+    expect(result.unreachable).toBe(0);
   });
 
   it('honors attr-3974 overrides through the effective view', async () => {
