@@ -39,6 +39,29 @@ import { apertureConfig } from '../../../aperture.config';
 
 type ScanFilter = 'all' | 'scanned' | 'unscanned';
 
+/** Filter preferences are shared across all systems and persist across sessions. */
+const FILTER_STORAGE_KEY = 'aperture:signatures:filter';
+
+type PersistedFilter = {
+  groups: (SignatureGroupKey | null)[];
+  scan: ScanFilter;
+};
+
+function loadPersistedFilter(): PersistedFilter {
+  try {
+    const raw = localStorage.getItem(FILTER_STORAGE_KEY);
+    if (!raw) return { groups: [], scan: 'all' };
+    const parsed = JSON.parse(raw) as Partial<PersistedFilter>;
+    return {
+      groups: Array.isArray(parsed.groups) ? parsed.groups : [],
+      scan:
+        parsed.scan === 'scanned' || parsed.scan === 'unscanned' ? parsed.scan : 'all',
+    };
+  } catch {
+    return { groups: [], scan: 'all' };
+  }
+}
+
 /**
  * Recolors the cell's control border to `destructive` so an unfilled required
  * field (group / type / leads-to) reads red at a glance — the cue
@@ -324,8 +347,18 @@ function SignaturePanelBody({
     [rows],
   );
 
-  const [groupFilter, setGroupFilter] = useState<Set<SignatureGroupKey | null>>(new Set());
-  const [scanFilter, setScanFilter] = useState<ScanFilter>('all');
+  const [persistedFilter] = useState(loadPersistedFilter);
+  const [groupFilter, setGroupFilter] = useState<Set<SignatureGroupKey | null>>(
+    () => new Set(persistedFilter.groups),
+  );
+  const [scanFilter, setScanFilter] = useState<ScanFilter>(persistedFilter.scan);
+
+  useEffect(() => {
+    localStorage.setItem(
+      FILTER_STORAGE_KEY,
+      JSON.stringify({ groups: [...groupFilter], scan: scanFilter } satisfies PersistedFilter),
+    );
+  }, [groupFilter, scanFilter]);
 
   const filteredRows = useMemo(() => {
     let result = rows;
