@@ -14,22 +14,22 @@ import { useTraversals } from './MapPresenceContext';
  * the hole the pilot just transited. A sig qualifies when its WH type can lead
  * to the destination's class (`targetClass === destClass`), when its type
  * leads anywhere (`targetClass == null`, e.g. K162), or when it has no type set
- * yet (`typeId == null`). Sigs already bound to this very connection are
- * dropped — there's nothing to populate. Exported for unit testing.
+ * yet (`typeId == null`). Sigs already bound to any connection are dropped —
+ * each sig is one wormhole, so an assigned one can't be the hole just jumped.
+ * Exported for unit testing.
  */
 export function transitCandidates(args: {
   signatures: MapSignature[];
   sourceMapSystemId: string;
-  connectionId: string;
   destClass: string | null;
   /** `universe_wormhole.type_id` → destination class label; absent ⇒ unknown ⇒ treated as "leads anywhere". */
   targetClassByTypeId: Map<number, string | null>;
 }): MapSignature[] {
-  const { signatures, sourceMapSystemId, connectionId, destClass, targetClassByTypeId } = args;
+  const { signatures, sourceMapSystemId, destClass, targetClassByTypeId } = args;
   return signatures.filter((s) => {
     if (s.groupKey !== 'wormhole') return false;
     if (s.mapSystemId !== sourceMapSystemId) return false;
-    if (s.mapConnectionId === connectionId) return false;
+    if (s.mapConnectionId != null) return false; // already assigned to a hole
     if (s.typeId == null) return true;
     const targetClass = targetClassByTypeId.get(s.typeId) ?? null;
     return targetClass == null || targetClass === destClass;
@@ -88,13 +88,13 @@ export function TransitSignaturePrompt({
 
   // The traversal callback reads the latest props through this ref so a
   // re-render (new systems/connections) doesn't re-subscribe the listener.
-  const latest = useRef({ systems, connections, viewerCharacters });
+  const latest = useRef({ systems, connections, signatures, viewerCharacters });
   useEffect(() => {
-    latest.current = { systems, connections, viewerCharacters };
+    latest.current = { systems, connections, signatures, viewerCharacters };
   });
 
   useTraversals((t) => {
-    const { systems, connections, viewerCharacters } = latest.current;
+    const { systems, connections, signatures, viewerCharacters } = latest.current;
     const character = viewerCharacters.find((c) => c.id === t.characterId);
     if (!character) return; // only the viewer's own pilots fire the prompt
 
@@ -111,6 +111,8 @@ export function TransitSignaturePrompt({
     if (incident.some((c) => c.scope === 'stargate')) return;
     const wh = incident.find((c) => c.scope === 'wh');
     if (!wh) return; // the folded WH connection isn't here yet — skip this jump
+    // Hole is already mapped (a sig points at this connection) — nothing to ask.
+    if (signatures.some((s) => s.mapConnectionId === wh.id)) return;
 
     setPrompt({
       key: `${t.fromSystemId}->${t.toSystemId}`,
@@ -145,7 +147,6 @@ export function TransitSignaturePrompt({
   const candidates = transitCandidates({
     signatures,
     sourceMapSystemId: prompt.sourceMapSystemId,
-    connectionId: prompt.connectionId,
     destClass: prompt.destClass,
     targetClassByTypeId,
   });

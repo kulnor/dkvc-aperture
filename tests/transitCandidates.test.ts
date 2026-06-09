@@ -22,7 +22,6 @@ function sig(overrides: Partial<MapSignature>): MapSignature {
 
 const base = {
   sourceMapSystemId: 'src',
-  connectionId: 'conn-1',
   destClass: 'C3',
 };
 
@@ -77,8 +76,18 @@ describe('transitCandidates', () => {
     expect(out).toEqual([]);
   });
 
-  it('excludes a sig already bound to this connection', () => {
+  it('excludes a sig already bound to a connection', () => {
     const s = sig({ id: 'bound', typeId: 100, mapConnectionId: 'conn-1' });
+    const out = transitCandidates({
+      ...base,
+      signatures: [s],
+      targetClassByTypeId: new Map([[100, 'C3']]),
+    });
+    expect(out).toEqual([]);
+  });
+
+  it('excludes a sig bound to a different hole', () => {
+    const s = sig({ id: 'other-hole', typeId: 100, mapConnectionId: 'conn-other' });
     const out = transitCandidates({
       ...base,
       signatures: [s],
