@@ -19,8 +19,10 @@ and a cumulative total. Loading / failed / empty states are inline text.
 - **Read-only.** The log is server-derived from the location-poll; there is no add/delete control.
 - Lazy `GET`s `/api/map/{mapId}/connections/{id}/mass-log` on mount and whenever `connection.id`
   changes (the parent also remounts via `key={connection.id}`).
-- Subscribes to `useRealtime().lastEvent`; on a `connectionMassLog` envelope whose `connectionId`
-  matches the open connection, it **refetches** the list.
+- Registers a `useRealtimeEvents` listener; on a `connectionMassLog` envelope whose `connectionId`
+  matches the open connection, it **refetches** the list. A monotonic `reqSeq` ref makes the latest
+  refetch win, so a burst of jump events (each delivered exactly once, no `lastEvent` coalescing)
+  can't land an older response after a newer one.
 - Mass is shown in kilotonnes (1 kt = 1e6 kg), matching `JumpInfoDialog`.
 
 ### Limitation
@@ -29,8 +31,8 @@ so this shows the cumulative absolute + the `jumpMassClass` ceiling only.
 
 ### Emits / Calls
 - `fetchConnectionMassLog({ mapId, connectionId })` — `src/lib/map/client.ts`.
-- `useRealtime()` — for the `connectionMassLog` refetch trigger.
+- `useRealtimeEvents()` — for the `connectionMassLog` refetch trigger.
 
 ### Depends On
-- `connectionMassLogLoadSchema` (`src/lib/realtime/protocol.ts`) — validates the realtime load.
+- `connectionMassLogLoadSchema`, `Envelope` (`src/lib/realtime/protocol.ts`) — validates the realtime load.
 - `formatAgoFromMs` (`src/lib/map/relativeTime.ts`).

@@ -26,6 +26,7 @@ A free-form dashboard (the page scrolls). A full-width toolbar row sits above a 
 
 ### Behaviour & Interactions
 - `viewData` is seeded from `data` and mutated by both realtime events and local optimistic patches; the canvas is the single source of canvas-render state.
+- Realtime apply: `useRealtimeEvents` (not the old `lastEvent` state) filters inbound envelopes to `task === 'mapUpdate'`, validates with `mapUpdateLoadSchema`, dedupes by `eventId`, and folds the payload via `setViewData(prev => applyEvent(prev, payload))`. Because every envelope is delivered exactly once (not coalesced through a `useState` slot), a same-tick burst — e.g. a wormhole jump's `system.added` + `connection.create` + trailing `characterUpdate` — applies all of them in order; the functional update composes so the connection is never dropped. (This closes the "new system shows but its connection is missing until refresh" bug.)
 - `appliedEventIds` ref dedupes the initiating tab's own realtime echo by `eventId`.
 - `runOptimistic(optimisticPayload, run)` snapshots `viewData`, applies the payload through `applyEvent` locally, fires the network call, and either records the returned `eventId` (success) or restores the snapshot **and triggers `resync()`** (failure). Used for PATCH / DELETE.
 - `awaitServer(run)` posts and, on success, applies the server's `MapEventPayload` through `applyEvent` and records its `eventId`; on failure it triggers `resync()`. Used for POST.
@@ -60,7 +61,7 @@ A free-form dashboard (the page scrolls). A full-width toolbar row sits above a 
 
 ### Emits / Calls
 - `onNodesChange` — xyflow callback; applies `NodeChange[]` to the nodes state via `applyNodeChanges`.
-- `useMapSubscription` / `useRealtime` — subscribe + consume live events.
+- `useMapSubscription` / `useRealtimeEvents` — subscribe to the map channel + consume live `mapUpdate` envelopes (every envelope delivered once, no coalescing).
 - `applyEvent` — pure reducer applied for every event and every optimistic patch.
 - `@/lib/map/client` — all the mutation wrappers (system / connection / signature / subchain / disconnected) + `fetchWormholeTypes` (via the inspector) + `fetchMapSnapshot` (via the `resync()` failsafe).
 
@@ -90,8 +91,8 @@ A free-form dashboard (the page scrolls). A full-width toolbar row sits above a 
 - Structure REST wrappers in `@/lib/structures/client`
 - `applyEvent` (`@/lib/map/applyEvent`)
 - `@/lib/map/placement` — `GRID_SIZE`, `findOpenPosition`, `overlaps`, `snapToGrid` (aliased `snapPointToGrid` to avoid clashing with the ReactFlow `snapToGrid` prop) for manual-add anchoring, drag nudge, and live grid snap.
-- `mapUpdateLoadSchema` (`@/lib/realtime/protocol`)
-- `useMapSubscription`, `useRealtime` (`@/lib/realtime/useRealtime`)
+- `mapUpdateLoadSchema`, `Envelope` (`@/lib/realtime/protocol`)
+- `useMapSubscription`, `useRealtimeEvents` (`@/lib/realtime/useRealtime`)
 - All mutation wrappers in `@/lib/map/client`
 
 ### Local State

@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ConnectionMassLogEntry, MapConnectionEdge } from '@/types';
 import { fetchConnectionMassLog } from '@/lib/map/client';
-import { useRealtime } from '@/lib/realtime/useRealtime';
-import { connectionMassLogLoadSchema } from '@/lib/realtime/protocol';
+import { useRealtimeEvents } from '@/lib/realtime/useRealtime';
+import { connectionMassLogLoadSchema, type Envelope } from '@/lib/realtime/protocol';
 import { formatAgoFromMs } from '@/lib/map/relativeTime';
 
 /**
@@ -47,22 +47,26 @@ export function ConnectionMassLog({
     };
   }, [mapId, connectionId]);
 
-  // Refetch when a peer logs a jump on this connection.
-  const { lastEvent } = useRealtime();
-  useEffect(() => {
-    if (!lastEvent || lastEvent.task !== 'connectionMassLog') return;
-    const parsed = connectionMassLogLoadSchema.safeParse(lastEvent.load);
-    if (!parsed.success || parsed.data.connectionId !== connectionId) return;
-    let cancelled = false;
-    void (async () => {
-      const result = await fetchConnectionMassLog({ mapId, connectionId });
-      if (cancelled || !result.ok) return;
-      setEntries(result.data);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [lastEvent, mapId, connectionId]);
+  // Refetch when a peer logs a jump on this connection. A monotonic request
+  // sequence makes the latest refetch win, so a burst of jump events can't land
+  // an older response after a newer one.
+  const reqSeq = useRef(0);
+  useRealtimeEvents(
+    useCallback(
+      (envelope: Envelope) => {
+        if (envelope.task !== 'connectionMassLog') return;
+        const parsed = connectionMassLogLoadSchema.safeParse(envelope.load);
+        if (!parsed.success || parsed.data.connectionId !== connectionId) return;
+        const seq = ++reqSeq.current;
+        void (async () => {
+          const result = await fetchConnectionMassLog({ mapId, connectionId });
+          if (!result.ok || seq !== reqSeq.current) return;
+          setEntries(result.data);
+        })();
+      },
+      [mapId, connectionId],
+    ),
+  );
 
   const cumulative = entries.length > 0 ? entries[entries.length - 1]!.cumulativeMass : 0;
 

@@ -11,8 +11,12 @@ import {
   type ReactNode,
 } from 'react';
 import type { MapPresenceEntry } from '@/lib/map/loadMap';
-import { characterUpdateLoadSchema, type CharacterUpdateLoad } from '@/lib/realtime/protocol';
-import { useRealtime } from '@/lib/realtime/useRealtime';
+import {
+  characterUpdateLoadSchema,
+  type CharacterUpdateLoad,
+  type Envelope,
+} from '@/lib/realtime/protocol';
+import { useRealtimeEvents } from '@/lib/realtime/useRealtime';
 
 // Client-side fan-in for the pilot-presence badge on `SystemNode`.
 //
@@ -230,13 +234,17 @@ export function MapPresenceProvider({
     store.seed(initial);
   }, [initial, store]);
 
-  const { lastEvent } = useRealtime();
-  useEffect(() => {
-    if (!lastEvent || lastEvent.task !== 'characterUpdate') return;
-    const parsed = characterUpdateLoadSchema.safeParse(lastEvent.load);
-    if (!parsed.success) return;
-    store.apply(parsed.data);
-  }, [lastEvent, store]);
+  useRealtimeEvents(
+    useCallback(
+      (envelope: Envelope) => {
+        if (envelope.task !== 'characterUpdate') return;
+        const parsed = characterUpdateLoadSchema.safeParse(envelope.load);
+        if (!parsed.success) return;
+        store.apply(parsed.data);
+      },
+      [store],
+    ),
+  );
 
   return <PresenceContext.Provider value={store}>{children}</PresenceContext.Provider>;
 }

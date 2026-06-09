@@ -15,9 +15,16 @@ import { envelopeSchema, type Envelope } from './protocol';
 
 /**
  * Client-side realtime façade. Boots the SharedWorker (one socket per origin),
- * exposes the connection status and the most recent envelope, and lets a page
- * subscribe / unsubscribe to map channels. Surfaces `lastEvent` but does
- * NOT merge it into the xyflow canvas.
+ * exposes the connection status, lets a page subscribe / unsubscribe to map
+ * channels, and fans every inbound envelope out to registered listeners.
+ *
+ * Envelopes are delivered through a synchronous listener registry, NOT through
+ * React state: each parsed envelope invokes every listener immediately in
+ * `port.onmessage`. This is deliberate — routing envelopes through a single
+ * `useState` slot would coalesce a same-tick burst (React batches state
+ * updates) down to the last one, silently dropping the intermediate events.
+ * The registry delivers all N. The façade still does NOT merge events into the
+ * xyflow canvas; consumers subscribe via `useRealtimeEvents` and own the apply.
  *
  * Degraded mode: the banner must never render silently stale.
  * `status` reflects the worker's socket state AND a staleness watchdog — if no
@@ -29,9 +36,10 @@ export type RealtimeStatus = 'connecting' | 'open' | 'closed' | 'degraded';
 
 type RealtimeContextValue = {
   status: RealtimeStatus;
-  lastEvent: Envelope | null;
   subscribe: (mapId: number) => void;
   unsubscribe: (mapId: number) => void;
+  /** Register an envelope listener; returns an unsubscribe fn. Stable identity. */
+  subscribeToEvents: (listener: (env: Envelope) => void) => () => void;
 };
 
 const RealtimeContext = createContext<RealtimeContextValue | null>(null);
@@ -42,7 +50,9 @@ type WorkerOutbound =
 
 export function RealtimeProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<RealtimeStatus>('connecting');
-  const [lastEvent, setLastEvent] = useState<Envelope | null>(null);
+  // Envelope listeners, invoked synchronously per inbound frame. Kept off React
+  // state so a same-tick burst delivers every event, not just the last.
+  const listenersRef = useRef<Set<(env: Envelope) => void>>(new Set());
   const portRef = useRef<MessagePort | null>(null);
   const lastSeenRef = useRef<number>(0);
   const socketStatusRef = useRef<RealtimeStatus>('connecting');
@@ -76,7 +86,7 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
         setStatus(data.status);
       } else {
         const result = envelopeSchema.safeParse(data.envelope);
-        if (result.success) setLastEvent(result.data);
+        if (result.success) for (const l of listenersRef.current) l(result.data);
       }
     };
     port.start();
@@ -108,9 +118,18 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
     portRef.current?.postMessage({ type: 'unsubscribe', mapId });
   }, []);
 
+  const subscribeToEvents = useCallback((listener: (env: Envelope) => void) => {
+    listenersRef.current.add(listener);
+    return () => {
+      listenersRef.current.delete(listener);
+    };
+  }, []);
+
+  // Value changes only when `status` changes — consumers no longer re-render
+  // per envelope (events flow through the listener registry instead).
   const value = useMemo<RealtimeContextValue>(
-    () => ({ status, lastEvent, subscribe, unsubscribe }),
-    [status, lastEvent, subscribe, unsubscribe],
+    () => ({ status, subscribe, unsubscribe, subscribeToEvents }),
+    [status, subscribe, unsubscribe, subscribeToEvents],
   );
 
   return <RealtimeContext.Provider value={value}>{children}</RealtimeContext.Provider>;
@@ -131,4 +150,22 @@ export function useMapSubscription(mapId: number | null): void {
     subscribe(mapId);
     return () => unsubscribe(mapId);
   }, [mapId, subscribe, unsubscribe]);
+}
+
+/**
+ * Run `listener` for every inbound realtime envelope, exactly once each, in
+ * arrival order — including same-tick bursts that a `useState` slot would
+ * coalesce. The listener may change every render without re-subscribing (held
+ * in a ref); the underlying subscription is stable for the component's lifetime.
+ */
+export function useRealtimeEvents(listener: (env: Envelope) => void): void {
+  const { subscribeToEvents } = useRealtime();
+  const ref = useRef(listener);
+  // Keep the latest listener without re-subscribing each render (matches the
+  // `useTraversals` ref pattern). Updated in an effect — refs must not be
+  // written during render.
+  useEffect(() => {
+    ref.current = listener;
+  });
+  useEffect(() => subscribeToEvents((env) => ref.current(env)), [subscribeToEvents]);
 }

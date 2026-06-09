@@ -68,8 +68,8 @@ import {
   deleteStructureOnServer,
   updateStructureOnServer,
 } from '@/lib/structures/client';
-import { mapUpdateLoadSchema } from '@/lib/realtime/protocol';
-import { useMapSubscription, useRealtime } from '@/lib/realtime/useRealtime';
+import { mapUpdateLoadSchema, type Envelope } from '@/lib/realtime/protocol';
+import { useMapSubscription, useRealtimeEvents } from '@/lib/realtime/useRealtime';
 import { RoutePlannerModule } from '@/components/sidebar/RoutePlannerModule';
 import { KillStatsModule } from '@/components/sidebar/KillStatsModule';
 import { SystemGraphModule } from '@/components/sidebar/SystemGraphModule';
@@ -337,18 +337,22 @@ export function MapCanvas({
   }, [saveLayout]);
 
   useMapSubscription(Number(data.map.id));
-  const { lastEvent } = useRealtime();
 
   // ---- Realtime apply (with dedupe of our own optimistic echoes) ----------
-  useEffect(() => {
-    if (!lastEvent || lastEvent.task !== 'mapUpdate') return;
-    const loadResult = mapUpdateLoadSchema.safeParse(lastEvent.load);
-    if (!loadResult.success || !loadResult.data.data) return;
-    const payload = loadResult.data.data;
-    if (appliedEventIds.current.has(payload.eventId)) return;
-    appliedEventIds.current.add(payload.eventId);
-    setViewData((prev) => applyEvent(prev, payload));
-  }, [lastEvent]);
+  // Every envelope is delivered exactly once via the listener registry, so a
+  // same-tick burst (e.g. a wormhole jump's system.added + connection.create +
+  // characterUpdate) applies all of them in order — no coalescing drop.
+  useRealtimeEvents(
+    useCallback((envelope: Envelope) => {
+      if (envelope.task !== 'mapUpdate') return;
+      const loadResult = mapUpdateLoadSchema.safeParse(envelope.load);
+      if (!loadResult.success || !loadResult.data.data) return;
+      const payload = loadResult.data.data;
+      if (appliedEventIds.current.has(payload.eventId)) return;
+      appliedEventIds.current.add(payload.eventId);
+      setViewData((prev) => applyEvent(prev, payload));
+    }, []),
+  );
 
   // ---- On-error resync failsafe ------------------------------------------
   //

@@ -15,7 +15,7 @@ Wraps the canvas subtree. Owns one `PresenceStore` instance.
 | initial | MapPresenceEntry[] | yes | The server-loaded initial roster from `loadMapPresence` (via `MapViewData.presence`). |
 | children | ReactNode | yes | The canvas subtree. |
 
-The provider seeds the store synchronously inside `useState`'s init so the first paint already shows badges; an effect re-seeds when the `initial` reference actually changes (e.g. soft navigation back to this map). It also subscribes to `useRealtime().lastEvent` and calls `store.apply()` for every parsed `characterUpdate` envelope.
+The provider seeds the store synchronously inside `useState`'s init so the first paint already shows badges; an effect re-seeds when the `initial` reference actually changes (e.g. soft navigation back to this map). It also registers a `useRealtimeEvents` listener and calls `store.apply()` for every parsed `characterUpdate` envelope — every envelope is delivered exactly once (no `lastEvent` coalescing), so a burst of presence updates in one tick all fold in rather than dropping to the last.
 
 ### usePresenceForSystem(systemId: number): readonly MapPresenceEntry[]
 
@@ -48,5 +48,5 @@ The store class is exported for unit testing. Relevant methods beyond the intern
 
 ### Depends On
 - `@/lib/map/loadMap` (`MapPresenceEntry` type)
-- `@/lib/realtime/protocol` (`characterUpdateLoadSchema`, `CharacterUpdateLoad`)
-- `@/lib/realtime/useRealtime` (`useRealtime`)
+- `@/lib/realtime/protocol` (`characterUpdateLoadSchema`, `CharacterUpdateLoad`, `Envelope`)
+- `@/lib/realtime/useRealtime` (`useRealtimeEvents`)
