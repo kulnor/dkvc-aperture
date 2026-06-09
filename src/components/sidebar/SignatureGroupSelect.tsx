@@ -22,10 +22,12 @@ export function SignatureGroupSelect({
   value,
   onValueChange,
   disabled,
+  triggerClassName,
 }: {
   value: SignatureGroupKey | null;
   onValueChange: (next: SignatureGroupKey | null) => void;
   disabled?: boolean;
+  triggerClassName?: string;
 }) {
   const items = useMemo(() => {
     const labels: Record<string, string> = { [NONE_VALUE]: 'unknown' };
@@ -45,7 +47,7 @@ export function SignatureGroupSelect({
       items={items}
       disabled={disabled}
     >
-      <SelectTrigger>
+      <SelectTrigger className={triggerClassName}>
         <SelectValue />
       </SelectTrigger>
       <SelectContent className="p-0.5">

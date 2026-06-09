@@ -12,6 +12,7 @@
 | value | string \| null | yes | Currently stored site name (`sig.name`). |
 | onValueChange | (next: string \| null) => void | yes | Called on commit with the trimmed value, or `null` when empty. |
 | disabled | boolean | no | Disables the input. |
+| inputClassName | string | no | Merged onto the `Input` (via `cn`) — used by `SignatureModule` (through `TypeCell`) to flatten the pill styling in-table. |
 
 ### Renders
 A text input with a portalled suggestion list (`<ul>` rendered via `createPortal` into `document.body`) shown on focus/typing. Portalling is necessary because the list lives inside an `overflow-hidden` table container (`SignatureModule`) which would otherwise clip an inline absolutely-positioned dropdown. Position is captured from the input's `getBoundingClientRect` on each open.

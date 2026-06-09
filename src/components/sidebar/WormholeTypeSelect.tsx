@@ -26,6 +26,7 @@ export function WormholeTypeSelect({
   value,
   onValueChange,
   disabled,
+  triggerClassName,
 }: {
   mapId: string;
   universeSystemId: number;
@@ -33,6 +34,7 @@ export function WormholeTypeSelect({
   value: number | null;
   onValueChange: (next: number | null) => void;
   disabled?: boolean;
+  triggerClassName?: string;
 }) {
   // Combine `loading` and `options` in one state object so the effect body only
   // calls `setState` from the async resolver — never synchronously during the
@@ -100,7 +102,7 @@ export function WormholeTypeSelect({
       items={items}
       disabled={disabled || loading}
     >
-      <SelectTrigger>
+      <SelectTrigger className={triggerClassName}>
         <SelectValue className="min-w-0 flex-1">
           {(val: string) => {
             const opt = val === NONE_VALUE ? undefined : options.find((o) => String(o.typeId) === val);

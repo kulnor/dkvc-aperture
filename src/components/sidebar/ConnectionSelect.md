@@ -15,6 +15,7 @@
 | disabled | boolean | no | Disables the trigger. Auto-disabled when no incident connections exist. |
 | targetClass | string \| null | no | Selected WH type's destination class (e.g. `LS`). When set, filters options to far ends matching that class; the bound `value` is always kept. `null`/omitted = no filter (e.g. K162 leads anywhere). |
 | excludeIds | string[] | no | Connection ids already claimed by another sig in this system. These are dropped from the list (1:1 sig↔connection binding); the current `value` is always exempt. |
+| triggerClassName | string | no | Merged onto the `SelectTrigger` (via `cn`) — used by `SignatureModule` to flatten the pill styling in-table. |
 
 ### Renders
 A shadcn `Select` listing each incident connection. Each option uses a flex `justify-between` layout: system name on the left, concatenated class+tag (e.g. "C2G") on the right. The class+tag span is bold and color-coded via `systemClassColor` (keyed on the far end's `security`) — the same palette the map uses for system-node statics; the whole label including the tag carries the colour. First option is an "—" sentinel mapped to `null`. The closed trigger mirrors the option layout (label left, color-coded class+tag right) via a `SelectValue` render function. Option rows and the popup are vertically compacted (`py-1` items, `p-0.5` content) to fit the dense Signatures module.

@@ -25,12 +25,14 @@ export function SiteTypeCombobox({
   value,
   onValueChange,
   disabled,
+  inputClassName,
 }: {
   security: string | null;
   groupKey: CosmicSignatureGroupKey;
   value: string | null;
   onValueChange: (next: string | null) => void;
   disabled?: boolean;
+  inputClassName?: string;
 }) {
   const [draft, setDraft] = useState(value ?? '');
   const [open, setOpen] = useState(false);
@@ -92,7 +94,7 @@ export function SiteTypeCombobox({
           setOpen(false);
           commit(draft);
         }}
-        className="h-8 text-sm"
+        className={cn('h-8 text-sm', inputClassName)}
         placeholder={placeholder}
         disabled={disabled}
       />

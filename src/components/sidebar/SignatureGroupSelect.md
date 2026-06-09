@@ -10,6 +10,7 @@
 | value | SignatureGroupKey \| null | yes | The currently selected group key, or `null` for "unknown". |
 | onValueChange | (next: SignatureGroupKey \| null) => void | yes | Fires when the user picks a different option. |
 | disabled | boolean | no | Disables the trigger. |
+| triggerClassName | string | no | Merged onto the `SelectTrigger` (via `cn`) — used by `SignatureModule` to flatten the pill styling in-table. |
 
 ### Renders
 A shadcn `Select` with eight options: an "unknown" sentinel (maps to `null`) followed by the seven entries of `SIGNATURE_GROUP_CATALOG`. Option rows and the popup are vertically compacted (`py-1` items, `p-0.5` content) to fit the dense Signatures module.

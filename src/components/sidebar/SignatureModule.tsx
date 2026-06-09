@@ -71,6 +71,18 @@ function loadPersistedFilter(): PersistedFilter {
 const MISSING_CELL =
   '[&_[data-slot=select-trigger]]:border-destructive [&_[data-slot=input]]:border-destructive';
 
+/**
+ * Strips the "pill" affordance off an in-table select trigger / text input so a
+ * row reads as static data at rest — no border, background, or shadow. The pill
+ * returns on hover, keyboard focus, or while the dropdown is open, which is the
+ * only time the cell is being edited. Merged onto the control via `cn` so
+ * tailwind-merge drops the conflicting base utilities (incl. `dark:` bg).
+ */
+const FLAT_TRIGGER =
+  'border-transparent bg-transparent shadow-none hover:border-border hover:bg-muted/50 focus-visible:border-ring data-[popup-open]:border-border data-[popup-open]:bg-muted/50 dark:bg-transparent dark:hover:bg-muted/50 dark:data-[popup-open]:bg-muted/50';
+const FLAT_INPUT =
+  'border-transparent bg-transparent shadow-none hover:border-border focus-visible:bg-background dark:bg-transparent dark:focus-visible:bg-input/30';
+
 const columnHelper = createColumnHelper<MapSignature>();
 
 const colHeaderClass: Record<string, string> = {
@@ -411,6 +423,7 @@ function SignaturePanelBody({
                   if (nextKey === sig.groupKey) return;
                   onPatch(sig.id, buildGroupChangePatch(sig, nextKey));
                 }}
+                triggerClassName={FLAT_TRIGGER}
               />
             </div>
           );
@@ -432,6 +445,8 @@ function SignaturePanelBody({
                 sig={sig}
                 onPatch={onPatch}
                 onSyncConnectionSize={syncConnectionSize}
+                triggerClassName={FLAT_TRIGGER}
+                inputClassName={FLAT_INPUT}
               />
             </div>
           );
@@ -447,7 +462,7 @@ function SignaturePanelBody({
               <EditableTextCell
                 value={sig.description ?? ''}
                 onCommit={(next) => onPatch(sig.id, { description: next || null })}
-                className="h-6 text-sm"
+                className={cn(FLAT_INPUT, 'h-6 text-sm')}
                 placeholder="—"
               />
             </div>
@@ -476,6 +491,7 @@ function SignaturePanelBody({
                   sig.typeId == null ? null : metaByTypeId.get(sig.typeId)?.targetClass ?? null
                 }
                 excludeIds={assignedConnectionIds}
+                triggerClassName={FLAT_TRIGGER}
               />
             </div>
           );
@@ -701,12 +717,16 @@ function TypeCell({
   sig,
   onPatch,
   onSyncConnectionSize,
+  triggerClassName,
+  inputClassName,
 }: {
   mapId: string;
   system: MapSystemNode;
   sig: MapSignature;
   onPatch: (signatureId: string, patch: UpdateSignatureBody) => void;
   onSyncConnectionSize: (typeId: number | null, connectionId: string | null) => void;
+  triggerClassName?: string;
+  inputClassName?: string;
 }) {
   if (sig.groupKey === null) {
     return (
@@ -727,6 +747,7 @@ function TypeCell({
           // Picking the type completes the inference when a connection is already linked.
           onSyncConnectionSize(typeId, sig.mapConnectionId);
         }}
+        triggerClassName={triggerClassName}
       />
     );
   }
@@ -737,6 +758,7 @@ function TypeCell({
       groupKey={sig.groupKey}
       value={sig.name}
       onValueChange={(next) => onPatch(sig.id, { name: next })}
+      inputClassName={inputClassName}
     />
   );
 }

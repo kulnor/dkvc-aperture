@@ -11,6 +11,7 @@
 | value | number \| null | yes | Selected `universe_wormhole.type_id`, or null when unset. |
 | onValueChange | (next: number \| null) => void | yes | Fires when the user picks a different option. |
 | disabled | boolean | no | Disables the trigger. |
+| triggerClassName | string | no | Merged onto the `SelectTrigger` (via `cn`) — used by `SignatureModule` to flatten the pill styling in-table. |
 
 ### Renders
 A shadcn `Select` populated with WH codes (e.g. "A239", "K162"). Each option uses a flex `justify-between` layout: WH name on the left, destination class on the right, rendered bold and color-coded via `systemClassColor` — the same palette the map uses for system-node statics. The closed trigger mirrors this layout (name left, color-coded class pushed to the right edge) via a `SelectValue` render function given `flex-1` so it stretches the full trigger width. The first item is a sentinel "Select type…" that maps to `null`. The system's statics (`isStatic`) are pinned to the top under a "Statics" label with a pin icon, followed by a divider and the remaining types in alphabetical order. Option rows and the popup are vertically compacted (`py-1` items, `p-0.5` content) to fit the dense Signatures module.

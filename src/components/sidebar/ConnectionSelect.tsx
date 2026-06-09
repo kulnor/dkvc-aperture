@@ -41,6 +41,7 @@ export function ConnectionSelect({
   disabled,
   targetClass,
   excludeIds,
+  triggerClassName,
 }: {
   system: MapSystemNode;
   connections: MapConnectionEdge[];
@@ -50,6 +51,7 @@ export function ConnectionSelect({
   disabled?: boolean;
   targetClass?: string | null;
   excludeIds?: string[];
+  triggerClassName?: string;
 }) {
   const options = useMemo(() => {
     const systemsById = new Map(systems.map((s) => [s.id, s]));
@@ -91,7 +93,7 @@ export function ConnectionSelect({
       items={items}
       disabled={disabled || options.length === 0}
     >
-      <SelectTrigger>
+      <SelectTrigger className={triggerClassName}>
         <SelectValue className="min-w-0 flex-1">
           {(val: string) => {
             const o = val === NONE_VALUE ? undefined : options.find((x) => x.id === val);
