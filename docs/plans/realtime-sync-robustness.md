@@ -15,7 +15,7 @@ The commit→fanout chain is sound and convergent under concurrency:
 
 Two gaps remain, both about **dropped-event recovery**, both above the socket:
 
-1. **Client-layer burst coalescing.** `RealtimeProvider` stores the most recent envelope in a single `useState` (`src/lib/realtime/useRealtime.tsx:45,79`); `MapCanvas` reacts via `useEffect([lastEvent])` (`src/components/map/MapCanvas.tsx:105-116`). If two envelopes land before React commits the render, only the last value survives the state slot — the intermediate event is dropped *client-side* even though the socket delivered it. Raw-`ws` transport does not coalesce, so the soak can't catch this; it needs its own test.
+1. **Client-layer burst coalescing.** `RealtimeProvider` stores the most recent envelope in a single `useState` (`src/lib/realtime/useRealtime.tsx:45,79`); every consumer reads it back through a `useEffect`. React batches state updates within a tick, so **when two or more envelopes are delivered before the effect commits, the state coalesces to the last one and every intermediate envelope is silently dropped** — even though the socket delivered all of them. Raw-`ws` transport does not coalesce, so the soak can't catch this; it needs its own test.
 
 2. **No reconnect backfill.** On a dropped socket the SharedWorker reconnects and *replays the subscription set* (`src/lib/realtime/sharedWorker.ts:69-74`) — it resumes **new** events only. Anything committed during the disconnect window is lost permanently; the banner warns but the canvas is never re-synced. `eventId` is a monotonic sequence (the ingredient for a fix) but is used today only for self-echo dedup.
 
@@ -27,15 +27,78 @@ The two stages are independent and should be run in separate sessions.
 
 **Mode:** Accept edits
 **Goal:** Every envelope the worker delivers reaches the consumer exactly once, regardless of React render batching. Replace the single-slot `lastEvent` with a synchronous listener fan-out.
-**Touches:** `src/lib/realtime/useRealtime.tsx` (+ `.md`), `src/components/map/MapCanvas.tsx` (+ `.md`), `src/lib/realtime/MapPresenceContext.tsx` if it also reads `lastEvent`, new `tests/unit/realtime-delivery.test.tsx` (+ `.md`).
+**Touches:** `src/lib/realtime/useRealtime.tsx`, `src/components/map/MapCanvas.tsx`, `src/components/map/MapPresenceContext.tsx`, `src/components/map/MapUnderglowBridge.tsx`, `src/components/sidebar/ConnectionMassLog.tsx` (+ companion `.md` for each), new `tests/unit/realtime-delivery.test.tsx` (+ `.md`).
 
-**Approach (already agreed — mechanical):**
-- In `RealtimeProvider`, keep a `useRef<Set<(e: Envelope) => void>>` of listeners. On each `port.onmessage` message envelope, call **every** listener synchronously (not via state). `status` stays `useState` (drives the banner); `lastEvent` state is removed (or kept only as a debug convenience — prefer removing it to avoid two delivery paths).
-- Add a hook `useRealtimeEvents(handler: (e: Envelope) => void): void` that registers/unregisters the handler in a `useEffect`. The handler must be wrapped by the caller in a stable ref or the hook must store the latest handler in a ref so re-registration isn't needed every render.
-- In `MapCanvas`, replace the `useEffect([lastEvent])` block with `useRealtimeEvents(onEnvelope)` where `onEnvelope` does exactly what the current effect does: ignore non-`mapUpdate`, `safeParse` the load, dedup via `appliedEventIds`, fold through `applyEvent`. Self-echo dedup is unchanged.
-- Audit every other reader of `useRealtime().lastEvent` (grep) and migrate them to `useRealtimeEvents`. The presence provider folds `characterUpdate` envelopes — migrate it too if it reads `lastEvent`.
+### The bug this closes (confirmed by code inspection + dev data)
 
-**Test (the assertion the gap currently fails):**
+**Reported symptom:** a tracked pilot jumps a freshly-discovered wormhole; the destination **system** appears on the map but the **connection** between it and the source system does not — two systems sit next to each other with no link. A browser **refresh fixes it**. Intermittent. Observed across several jumps (e.g. C5→0.0, C4→C3, C3→C4; concrete cases on dev map 7: `31002187 → 30002946`, `31001663 → 31001040`).
+
+**Root cause.** A real wormhole jump fans out **three** envelopes back-to-back from the poll (see `src/lib/jobs/tasks/locationPoll.ts` steps 7–8 and `src/lib/jobs/locationCommit.ts`):
+
+1. `system.added` (destination) — `task: 'mapUpdate'`
+2. `connection.create` (source→destination) — `task: 'mapUpdate'`
+3. `characterUpdate` (presence badge lands on the new node) — `task: 'characterUpdate'`
+
+When **`connection.create` and the trailing `characterUpdate` arrive in the same React batch**, `lastEvent` jumps straight to `characterUpdate`. The canvas effect (`MapCanvas.tsx:344`) runs once, sees `task !== 'mapUpdate'`, and returns — **`connection.create` is never applied.** `system.added` was applied a tick earlier, so the system stays; the edge is gone.
+
+Why this matches every observation:
+- **New system shows, no connection** — `connection.create` is the swallowed event; `system.added` survived.
+- **Intermittent** — depends on whether deliveries coalesce into one batch (buffered WS frames forwarded by the SharedWorker).
+- **Only a refresh fixes it** — the dropped envelope is gone forever; reload rebuilds `viewData` from the authoritative DB snapshot (`GET /api/map/[mapId]` → `loadMapForView`), which has the connection.
+- **`connectionCreated: true` server-side** — the event *was* emitted; it died in the client. Confirmed in `ap_job_run.notes` folds and `ap_map_event` rows on dev.
+
+### Blast radius — every consumer reads `lastEvent` the same way
+
+| File | Envelope task | Symptom of a dropped event |
+|---|---|---|
+| `src/components/map/MapCanvas.tsx:340-351` | `mapUpdate` | **the reported bug** — missing connection / system / signature mutation |
+| `src/components/map/MapPresenceContext.tsx:233-239` | `characterUpdate` | pilot presence skips / stale location badge |
+| `src/components/map/MapUnderglowBridge.tsx:30-42` | `systemNotification` | dropped kill/ping glow — **the comment at line 19 already documents this limitation** |
+| `src/components/sidebar/ConnectionMassLog.tsx:51-65` | `connectionMassLog` | missing mass-log row |
+
+`RealtimeStatusBanner.tsx` only reads `status` — unaffected.
+
+### Approach (already agreed — mechanical)
+
+Convert the façade from a **latest-value state** to an **event-emitter** that delivers every envelope exactly once, synchronously, outside React's batched state path.
+
+`src/lib/realtime/useRealtime.tsx`:
+- Add a listener registry: `const listenersRef = useRef<Set<(env: Envelope) => void>>(new Set())`.
+- In `port.onmessage` (envelope branch), after a successful parse, invoke every listener synchronously: `for (const l of listenersRef.current) l(result.data)`. Do **not** route map/presence/etc. events through React state.
+- Expose a **stable** `subscribeToEvents(listener): () => void` via `useCallback([], …)`.
+- **Remove `lastEvent`** from the context type and value, so the context value only changes when `status` changes (consumers no longer re-render per envelope). `status` stays `useState` (drives the banner).
+- Add a hook:
+  ```ts
+  export function useRealtimeEvents(listener: (env: Envelope) => void): void {
+    const { subscribeToEvents } = useRealtime();
+    const ref = useRef(listener);
+    ref.current = listener; // keep latest without re-subscribing each render
+    useEffect(() => subscribeToEvents((env) => ref.current(env)), [subscribeToEvents]);
+  }
+  ```
+
+Migrate **all four** consumers: replace each `useEffect(… [lastEvent])` with `useRealtimeEvents((envelope) => { … })`, keeping the exact same task-filter + parse + reducer/store-update body. Example (`MapCanvas`):
+
+```ts
+useRealtimeEvents(
+  useCallback((envelope: Envelope) => {
+    if (envelope.task !== 'mapUpdate') return;
+    const loadResult = mapUpdateLoadSchema.safeParse(envelope.load);
+    if (!loadResult.success || !loadResult.data.data) return;
+    const payload = loadResult.data.data;
+    if (appliedEventIds.current.has(payload.eventId)) return;
+    appliedEventIds.current.add(payload.eventId);
+    setViewData((prev) => applyEvent(prev, payload));
+  }, []),
+);
+```
+
+Delete the now-obsolete "only the latest `lastEvent`" comment in `MapUnderglowBridge.tsx`.
+
+**Why this is correct:** each consumer's handler ends in a *functional* state update (`setViewData(prev => applyEvent(prev, payload))`) or a ref/store mutation. Functional updates **compose**, so N envelopes delivered in one tick now apply all N in order instead of only the last. Self-echo dedup (via `appliedEventIds`) is unchanged.
+
+### Test (the assertion the gap currently fails)
+
 - jsdom: stub `globalThis.SharedWorker` with a fake exposing the port; render `RealtimeProvider` wrapping a probe component that registers `useRealtimeEvents(push → received[])`. Fire N `message` events on the port **within a single tick** (no `await` between them). Assert `received.length === N` and order preserved. The old single-slot implementation drops to `1`; the queue implementation passes.
 
 **Done when:** the new delivery test passes, `pnpm typecheck` + `pnpm lint` are clean, and `RUN_DB_TESTS=1 pnpm test realtime-soak` still green (no regression to the transport path).
@@ -66,6 +129,14 @@ Recommendation: **A**. It's smaller, has no LWW-ordering hazard, and reconnects 
 - Flip the soak's intent at the **real-client** layer, not the raw-`ws` observer: the soak's reconnect test (`tests/integration/realtime-soak.test.ts`, test #3) stays as-is — it documents the *transport* has no backfill, which remains true. Add a note in `realtime-soak.md` pointing to the new client-level reconnect test as the place that proves end-to-end recovery.
 
 **Done when:** the client reconnect test passes (resync on reconnect, no fetch on first open), `pnpm typecheck`/`pnpm lint` clean, and the soak suite still green. The degraded banner behaviour (Stage 1 unaffected) still shows during the disconnect and clears on recovery.
+
+---
+
+## Investigation dead-ends (do not re-tread)
+
+1. **"Re-add of a soft-removed system" theory** — that the fold re-shows a hidden system whose connection row still exists, suppressing `connection.create`. *Disproven:* the reported jumps had `connectionCreated: true` and emitted a valid `connection.create`. (A separate, milder reconciliation gap exists there, but it is **not** this bug.)
+2. **xyflow node/edge render race** — that xyflow drops an edge whose freshly-added node isn't measured yet and never re-derives it. *Disproven by reproduction:* driving the real fold (`system.added` + `connection.create` ~7–15 ms apart) 40× locally **always** rendered the edge. `ConnectionEdge` (`src/components/map/ConnectionEdge.tsx:98-124`) also falls back to xyflow geometry for unmeasured nodes and never returns null. The edge was never missing because xyflow dropped it — it was missing because the **event never reached `applyEvent`**.
+3. An earlier speculative edit to the `MapCanvas` edges `useMemo` (filter + key on `viewData.systems`) was made under theory #2 and **reverted** — it does not address the real cause.
 
 ---
 
