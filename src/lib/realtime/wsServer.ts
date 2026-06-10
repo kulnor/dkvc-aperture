@@ -7,6 +7,7 @@ import { apertureConfig } from '../../../aperture.config';
 import { canViewMap } from '@/lib/auth/rights';
 import { seedTrackingForMap } from '@/lib/jobs/tracking';
 import { bus } from './bus';
+import { addMapViewer, removeMapViewer } from './mapViewers';
 import { clientToServerMessageSchema, type ServerToClientMessage } from './protocol';
 
 /**
@@ -136,7 +137,10 @@ export function attachWsServer(httpServer: HttpServer): WebSocketServer {
     });
 
     ws.on('close', () => {
-      for (const off of state.subscriptions.values()) off();
+      for (const [id, off] of state.subscriptions) {
+        off();
+        removeMapViewer(id, state.session.userId);
+      }
       state.subscriptions.clear();
       clients.delete(ws);
     });
@@ -149,6 +153,10 @@ export function attachWsServer(httpServer: HttpServer): WebSocketServer {
       if (!state.subscriptions.has(id)) {
         const off = bus.subscribe(id, (message) => send(ws, message));
         state.subscriptions.set(id, off);
+        // This account now has the map open — count it toward the viewer roster.
+        // Keyed by account, not character: coverage extends to all of the
+        // account's alts (see mapViewers.ts).
+        addMapViewer(id, state.session.userId);
       }
     }
     // Per-map default (per-map-character-tracking plan): the first time this
@@ -167,6 +175,7 @@ export function attachWsServer(httpServer: HttpServer): WebSocketServer {
       if (off) {
         off();
         state.subscriptions.delete(id);
+        removeMapViewer(id, state.session.userId);
       }
     }
   }
