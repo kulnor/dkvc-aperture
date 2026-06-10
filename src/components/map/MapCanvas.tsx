@@ -84,8 +84,16 @@ import {
   SignatureModule,
   SignatureModuleHeaderActions,
 } from '@/components/sidebar/SignatureModule';
-import { Info, LayoutDashboard, Plus, RotateCcw, Settings, Trash2 } from 'lucide-react';
+import { Info, LayoutDashboard, Plus, RotateCcw, Settings, Trash2, User } from 'lucide-react';
+import { Tooltip } from '@base-ui/react/tooltip';
 import { Button } from '@/components/ui/button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   Menu,
   MenuCheckboxItem,
@@ -100,6 +108,7 @@ import { MapSettingsDialog } from '@/components/dialogs/MapSettingsDialog';
 import { AddSystemDialog } from './AddSystemDialog';
 import { ConnectionEdge, type ConnectionEdgeData } from './ConnectionEdge';
 import { MapPresenceProvider } from './MapPresenceContext';
+import { MapActiveCharProvider, useMapActiveChar } from './MapActiveCharContext';
 import { MapSignatureIndicatorProvider } from './MapSignatureIndicatorContext';
 import { SignaturePasteHotkey } from './SignaturePasteHotkey';
 import { TransitSignaturePrompt } from './TransitSignaturePrompt';
@@ -116,6 +125,65 @@ import { setMapLayoutAction } from '@/app/(app)/actions/account';
 
 // Debounce window for persisting layout edits (drag/resize/hide) to the server.
 const LAYOUT_SAVE_DEBOUNCE_MS = 600;
+
+// Compact character selector for the map toolbar. Must render inside
+// MapActiveCharProvider (which is inside MapPresenceProvider).
+function ActiveCharSelector() {
+  const { activeCharId, locatedChars, setPickedCharId } = useMapActiveChar();
+
+  if (locatedChars.length === 0) {
+    return (
+      <Tooltip.Root>
+        <Tooltip.Trigger
+          render={<span />}
+          className="inline-flex h-8 cursor-default items-center gap-1 rounded-md px-2 opacity-50"
+        >
+          <User className="size-3.5 shrink-0" />
+          <span className="text-muted-foreground text-sm">No characters</span>
+        </Tooltip.Trigger>
+        <Tooltip.Portal>
+          <Tooltip.Positioner sideOffset={4} side="bottom" align="center">
+            <Tooltip.Popup className="z-50 max-w-[16rem] rounded-md border bg-popover px-2 py-1 text-xs text-popover-foreground shadow-md">
+              No characters are currently tracked on this map. Character tracking requires an
+              in-game session with ESI location scope.
+            </Tooltip.Popup>
+          </Tooltip.Positioner>
+        </Tooltip.Portal>
+      </Tooltip.Root>
+    );
+  }
+
+  return (
+    <Tooltip.Root>
+      <Tooltip.Trigger render={<span className="inline-flex" />}>
+        <Select<string>
+          value={String(activeCharId ?? '')}
+          onValueChange={(v) => setPickedCharId(v ? Number(v) : null)}
+          items={Object.fromEntries(locatedChars.map((c) => [String(c.id), c.name]))}
+        >
+          <SelectTrigger className="h-8 w-auto px-2 text-sm gap-1">
+            <User className="size-3.5 shrink-0" />
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {locatedChars.map((c) => (
+              <SelectItem key={c.id} value={String(c.id)}>
+                {c.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </Tooltip.Trigger>
+      <Tooltip.Portal>
+        <Tooltip.Positioner sideOffset={4} side="bottom" align="center">
+          <Tooltip.Popup className="z-50 max-w-[18rem] rounded-md border bg-popover px-2 py-1 text-xs text-popover-foreground shadow-md">
+            Active character — controls map focus, route planning, and signature highlighting
+          </Tooltip.Popup>
+        </Tooltip.Positioner>
+      </Tooltip.Portal>
+    </Tooltip.Root>
+  );
+}
 
 // Union two breakpoints' layout arrays by item `i` (incoming wins). RGL only
 // reports geometry for panels currently rendered, so a hidden panel's slot (and
@@ -1223,8 +1291,7 @@ export function MapCanvas({
         return (
           <RoutePlannerModule
             mapId={mapId}
-            viewerCharacters={viewerCharacters}
-            mainCharacterId={mainCharacterId}
+            selectedSystemId={selectedSystem?.systemId ?? null}
             initialPrefs={routePrefs}
             initialDestinations={routeDestinations}
             connections={viewData.connections}
@@ -1283,6 +1350,7 @@ export function MapCanvas({
 
   return (
     <MapPresenceProvider initial={data.presence}>
+      <MapActiveCharProvider viewerCharacters={viewerCharacters} mainCharacterId={mainCharacterId}>
       <MapTravelProvider>
         <MapUnderglowProvider>
         <MapSignatureIndicatorProvider
@@ -1314,6 +1382,7 @@ export function MapCanvas({
               </div>
             </div>
             <div className="flex shrink-0 items-center gap-1">
+              <ActiveCharSelector />
               <PilotRosterButton viewData={viewData} />
               <Menu>
                 <MenuTrigger
@@ -1394,6 +1463,7 @@ export function MapCanvas({
         </MapSignatureIndicatorProvider>
         </MapUnderglowProvider>
       </MapTravelProvider>
+      </MapActiveCharProvider>
     </MapPresenceProvider>
   );
 }

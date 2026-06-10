@@ -24,7 +24,7 @@ import {
 import { systemClassColor } from '@/components/map/styling';
 import { searchSystemsOnServer } from '@/lib/map/client';
 import { requestJson } from '@/lib/http/fetchJson';
-import { usePresenceForMap } from '@/components/map/MapPresenceContext';
+import { useMapActiveChar } from '@/components/map/MapActiveCharContext';
 import {
   addRouteDestinationAction,
   removeRouteDestinationAction,
@@ -62,56 +62,55 @@ const SHIP_LABELS: Record<WhJumpMass, string> = {
 };
 const COMPUTE_DEBOUNCE_MS = 300;
 const SEARCH_DEBOUNCE_MS = 200;
+const ROUTE_SOURCE_KEY = 'aperture:routes:source';
+
+type RouteSource = 'character' | 'system';
+
+function readRouteSource(): RouteSource {
+  try {
+    const v = localStorage.getItem(ROUTE_SOURCE_KEY);
+    return v === 'system' ? 'system' : 'character';
+  } catch {
+    return 'character';
+  }
+}
 
 export function RoutePlannerModule({
   mapId,
-  viewerCharacters,
-  mainCharacterId,
+  selectedSystemId,
   initialPrefs,
   initialDestinations,
   connections,
 }: {
   mapId: string;
-  viewerCharacters: { id: number; name: string }[];
-  mainCharacterId: number | null;
+  selectedSystemId: number | null;
   initialPrefs: RoutePrefs;
   initialDestinations: RouteDestinationView[];
   connections: MapConnectionEdge[];
 }) {
+  const { activeCharSystemId } = useMapActiveChar();
+
   const [prefs, setPrefs] = useState<RoutePrefs>(initialPrefs);
   // `updatePrefs` is the only writer, so this ref tracks the latest prefs without
   // a render-phase functional updater (which can't host a transition).
   const prefsRef = useRef(initialPrefs);
   const [destinations, setDestinations] = useState<RouteDestinationView[]>(initialDestinations);
-  const [pickedCharId, setPickedCharId] = useState<number | null>(null);
   const [manualSource, setManualSource] = useState<SystemSearchResult | null>(null);
   const [plans, setPlans] = useState<RoutePlan[]>([]);
   const [computing, setComputing] = useState(false);
   const [, startPrefs] = useTransition();
 
-  // Reactive map of the viewer's online+located characters → current system id.
-  const presence = usePresenceForMap();
-  const viewerIds = useMemo(() => new Set(viewerCharacters.map((c) => c.id)), [viewerCharacters]);
-  const locatedByChar = useMemo(() => {
-    const m = new Map<number, number>();
-    for (const p of presence) if (viewerIds.has(p.characterId)) m.set(p.characterId, p.systemId);
-    return m;
-  }, [presence, viewerIds]);
-  const locatedChars = useMemo(
-    () => viewerCharacters.filter((c) => locatedByChar.has(c.id)),
-    [viewerCharacters, locatedByChar],
-  );
+  const [routeSource, setRouteSourceState] = useState<RouteSource>(readRouteSource);
 
-  // The effective source character: the picked one if still located, else the
-  // main if located, else the first located character.
-  const sourceCharId = useMemo(() => {
-    if (pickedCharId != null && locatedByChar.has(pickedCharId)) return pickedCharId;
-    if (mainCharacterId != null && locatedByChar.has(mainCharacterId)) return mainCharacterId;
-    return locatedChars[0]?.id ?? null;
-  }, [pickedCharId, locatedByChar, mainCharacterId, locatedChars]);
+  const setRouteSource = useCallback((v: RouteSource) => {
+    setRouteSourceState(v);
+    try { localStorage.setItem(ROUTE_SOURCE_KEY, v); } catch {}
+  }, []);
 
   const sourceSystemId =
-    sourceCharId != null ? (locatedByChar.get(sourceCharId) ?? null) : (manualSource?.id ?? null);
+    routeSource === 'character'
+      ? (activeCharSystemId ?? manualSource?.id ?? null)
+      : selectedSystemId;
 
   // Recompute key: any change to source / prefs / destinations / the chain.
   const connectionsKey = useMemo(
@@ -191,38 +190,23 @@ export function RoutePlannerModule({
         {/* Source + route settings. `@container` lets the three selects share one
             row once the card is wide enough, and stack when it's narrow. */}
         <div className="@container flex flex-col gap-2">
-          {locatedChars.length === 0 && (
-            <span className="text-muted-foreground">
-              No tracked character is located. Pick a start system:
-            </span>
-          )}
           <div className="grid grid-cols-1 gap-2 @md:grid-cols-3">
             <label className="flex flex-col gap-1">
               <span className="text-muted-foreground">From</span>
-              {locatedChars.length > 0 ? (
-                <Select<string>
-                  value={String(sourceCharId ?? '')}
-                  onValueChange={(v) => setPickedCharId(v ? Number(v) : null)}
-                  items={Object.fromEntries(locatedChars.map((c) => [String(c.id), c.name]))}
+              <div className="flex gap-1">
+                <ToggleChip
+                  active={routeSource === 'character'}
+                  onClick={() => setRouteSource('character')}
                 >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {locatedChars.map((c) => (
-                      <SelectItem key={c.id} value={String(c.id)}>
-                        {c.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              ) : (
-                <SystemSearchField
-                  mapId={mapId}
-                  placeholder={manualSource ? manualSource.name : 'Start system…'}
-                  onPick={(s) => setManualSource(s)}
-                />
-              )}
+                  Active character
+                </ToggleChip>
+                <ToggleChip
+                  active={routeSource === 'system'}
+                  onClick={() => setRouteSource('system')}
+                >
+                  Selected system
+                </ToggleChip>
+              </div>
             </label>
             <label className="flex flex-col gap-1">
               <span className="text-muted-foreground">Safety</span>
@@ -266,6 +250,23 @@ export function RoutePlannerModule({
               </Select>
             </label>
           </div>
+
+          {/* Fallback prompts when the chosen source has no system */}
+          {routeSource === 'character' && activeCharSystemId === null && (
+            <div className="flex flex-col gap-1">
+              <span className="text-muted-foreground">
+                No tracked character is located. Pick a start system:
+              </span>
+              <SystemSearchField
+                mapId={mapId}
+                placeholder={manualSource ? manualSource.name : 'Start system…'}
+                onPick={(s) => setManualSource(s)}
+              />
+            </div>
+          )}
+          {routeSource === 'system' && selectedSystemId === null && (
+            <span className="text-muted-foreground">Select a system on the map.</span>
+          )}
         </div>
 
         {/* Avoid toggles */}
