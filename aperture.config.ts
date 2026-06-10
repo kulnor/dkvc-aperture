@@ -154,6 +154,9 @@ export const apertureConfig = {
     // `/characters/{id}/search/` endpoint gates ALL categories behind this one
     // scope despite its structure-specific name.
     'esi-search.search_structures.v1',
+    // Powers the "Set destination" context-menu action — appends an on-map
+    // system as an autopilot waypoint on the active character's in-game route.
+    'esi-ui.write_waypoint.v1',
   ],
 
   /**

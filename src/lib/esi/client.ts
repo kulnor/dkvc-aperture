@@ -19,7 +19,9 @@ import { inDowntimeWindow } from './downtime';
  * requires one, gates on a per-endpoint circuit breaker, issues the request
  * with a hard timeout, honours ESI error-limit headers, tolerates the CCP
  * downtime window, and decodes the response through a caller-supplied Zod
- * schema. It contains no business logic — Stages 7/10/12/13 build on it.
+ * schema. Empty-body 2xx responses (204 from write ops like `setWaypoint`)
+ * decode as `null` — those callers pass `schema: z.null()`. It contains no
+ * business logic — Stages 7/10/12/13 build on it.
  *
  * Failure modes are distinct typed errors so callers can branch:
  *   - `EsiBreakerOpenError` — endpoint breaker is open; request was not sent.
@@ -242,7 +244,11 @@ export async function esiCall<T>(opKey: OpKey, opts: EsiCallOptions<T>): Promise
 
     if (res.ok) {
       recordSuccess(operationId);
-      const json = await res.json();
+      // Write ops (e.g. setWaypoint) answer 204 with an empty body — there's
+      // nothing to decode, so read text and treat empty as `null`. Such callers
+      // pass `schema: z.null()`.
+      const text = await res.text();
+      const json = text.length === 0 ? null : JSON.parse(text);
       const parsed = opts.schema.safeParse(json);
       if (!parsed.success) {
         throw new EsiDecodeError(operationId, parsed.error);

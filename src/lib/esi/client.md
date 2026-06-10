@@ -10,7 +10,7 @@ Resolves `OP_KEYS[opKey]` → swagger route (`resolveRoute`). Gates on `canReque
 - network/timeout error → `EsiDowntimeError` in window (no breaker hit) else `recordFailure` + `EsiHttpError`.
 - **401 on a character-auth op → token problem, not endpoint health.** The stored access token was stale / early-invalidated, so esiCall **force-refreshes once** (`forceRefreshCharacterToken` → `refreshAccessToken`, bypassing the expiry buffer) and retries the request. A 401 never calls `recordFailure` (the breaker stays clean). If the refreshed token *still* 401s → `EsiHttpError(operationId, 401, body)` (a transient CCP blip; the poll backs off and survives). If the forced refresh itself fails (dead refresh token) → `EsiTokenError`. The 401 body is currently logged via `console.warn` (TEMP diagnostic — remove after one capture).
 - other non-2xx → checks error budget (`EsiRateLimitError`), then downtime/`EsiHttpError` as above (breaker counted).
-- 2xx → `recordSuccess`, parse body through `opts.schema` (`EsiDecodeError` on failure).
+- 2xx → `recordSuccess`, then read the body as text; an **empty body (204 from write ops like `setWaypoint`) decodes as `null`** (those callers pass `schema: z.null()`), otherwise `JSON.parse`. Parse through `opts.schema` (`EsiDecodeError` on failure).
 
 Character-auth calls run at most twice (original + one forced-refresh retry); unauthed calls run once.
 

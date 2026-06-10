@@ -2,10 +2,13 @@
 
 import { Menu as MenuPrimitive } from '@base-ui/react/menu';
 import { ContextMenu } from '@base-ui/react/context-menu';
-import { Plus, Radar, Scissors, Trash2, Unlink } from 'lucide-react';
+import { Navigation, Plus, Radar, Scissors, Trash2, Unlink } from 'lucide-react';
+import { toast } from 'sonner';
 
 import type { MapContextMenuTarget, MapSystemNode, MapConnectionEdge } from '@/types';
 import type { UpdateSystemBody, UpdateConnectionBody } from '@/lib/map/client';
+import { setWaypointOnServer } from '@/lib/character/client';
+import { useMapActiveChar } from './MapActiveCharContext';
 import { computeDisconnected, neighborsOf } from '@/lib/map/subchainGraph';
 import {
   MenuItem,
@@ -216,6 +219,7 @@ function renderItems({
           isHome={homeMapSystemId === system.id}
           hasHome={homeMapSystemId !== null}
           removeCount={removeCount}
+          onClose={onClose}
           onPatch={(patch) => {
             onSystemPatch(system.id, patch);
             onClose();
@@ -293,6 +297,41 @@ function renderItems({
   }
 }
 
+/**
+ * "Set destination" — appends this system as an autopilot waypoint on the map's
+ * active character. Reads the active character from `MapActiveCharContext`
+ * directly (it isn't available to `MapCanvas`, which sits above the provider),
+ * so the action and the network call live here rather than flowing through a
+ * parent callback. Disabled when no character is active.
+ */
+function SetDestinationItem({
+  system,
+  onClose,
+}: {
+  system: MapSystemNode;
+  onClose: () => void;
+}) {
+  const { activeCharId } = useMapActiveChar();
+  return (
+    <MenuItem
+      icon={<Navigation className="size-3.5" />}
+      disabled={activeCharId === null}
+      onClick={() => {
+        if (activeCharId === null) return;
+        void setWaypointOnServer({
+          characterId: activeCharId,
+          destinationId: system.systemId,
+        }).then((result) => {
+          if (result.ok) toast.success(`Waypoint set to ${systemLabel(system)}`);
+        });
+        onClose();
+      }}
+    >
+      Set destination
+    </MenuItem>
+  );
+}
+
 function SystemItems({
   system,
   systems,
@@ -305,6 +344,7 @@ function SystemItems({
   onDeleteSubchain,
   onDeleteSubchainPick,
   onPing,
+  onClose,
 }: {
   system: MapSystemNode;
   systems: MapSystemNode[];
@@ -320,12 +360,16 @@ function SystemItems({
   onDeleteSubchain: () => void;
   onDeleteSubchainPick: (anchorId: string) => void;
   onPing: () => void;
+  /** Dismiss the menu — "Set destination" closes it itself (self-contained action). */
+  onClose: () => void;
 }) {
   return (
     <>
       <MenuItem icon={<Radar className="size-3.5" />} onClick={onPing}>
         Ping
       </MenuItem>
+
+      <SetDestinationItem system={system} onClose={onClose} />
 
       <MenuSubmenu>
         <MenuSubmenuTrigger inset>Status</MenuSubmenuTrigger>
