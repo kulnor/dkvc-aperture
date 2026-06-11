@@ -16,7 +16,7 @@
 | onPatch | (signatureId: string, patch: UpdateSignatureBody) => void | yes | Called for inline edits (group/type/description/connection). |
 | onDelete | (signatureId: string) => void | yes | Called from the row trash button. |
 | onConnectionPatch | (connectionId: string, patch: UpdateConnectionBody) => void | yes | Used to auto-set a linked connection's jump-mass size from the WH type (see below). Wired to `MapCanvas`'s `onConnectionPatch` (optimistic). |
-| flashSigId | string \| null | no | When set, the matching signature row flashes with `ap-sig-flash` for 3 s. Cleared by MapCanvas after the timeout. |
+| flashSigId | string \| null | no | When set, the matching signature row flashes with `ap-sig-flash` for 3 s. Cleared by MapCanvas after the timeout. Known limitation: if the target sig is hidden by the in-panel group/scan filter, the flash silently no-ops. |
 
 The **Lazy delete** and **Paste from scanner** actions are no longer rendered by this card — they live in `SignatureModuleHeaderActions` (also exported from this file), which `MapCanvas` renders into the `MapPanel` header via `headerRight`. See that component's props below.
 
