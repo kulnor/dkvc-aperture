@@ -24,6 +24,7 @@ export function buildSigSearchResults(
 ): SigSearchRow[] {
   const systemMap = new Map(systems.map((s) => [s.id, s]));
   const nameLower = filters.name.trim().toLowerCase();
+  const maxAgeMs = filters.maxAgeHours !== null ? filters.maxAgeHours * 3_600_000 : null;
 
   const rows: SigSearchRow[] = [];
   for (const sig of signatures) {
@@ -34,12 +35,11 @@ export function buildSigSearchResults(
     if (filters.groupKey !== null && sig.groupKey !== filters.groupKey) continue;
     if (
       filters.securityClasses.length > 0 &&
-      !filters.securityClasses.includes(system.security ?? '')
-    )
-      continue;
+      (system.security === null || !filters.securityClasses.includes(system.security))
+    ) continue;
 
     const ageMs = now - new Date(sig.createdAt).getTime();
-    if (filters.maxAgeHours !== null && ageMs > filters.maxAgeHours * 3_600_000) continue;
+    if (maxAgeMs !== null && ageMs > maxAgeMs) continue;
 
     rows.push({ sig, system, ageMs });
   }
