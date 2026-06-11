@@ -281,26 +281,39 @@ export async function loadMapForView(
 
   const staticsBySystem = await loadStatics(systemRows.map((s) => s.systemId));
 
-  const connectionRows = await db
-    .select({
-      id: apMapConnection.id,
-      source: apMapConnection.sourceMapSystemId,
-      target: apMapConnection.targetMapSystemId,
-      scope: apMapConnection.scope,
-      massStatus: apMapConnection.massStatus,
-      jumpMassClass: apMapConnection.jumpMassClass,
-      eolStage: apMapConnection.eolStage,
-      preserveMass: apMapConnection.preserveMass,
-      isRolling: apMapConnection.isRolling,
-      isStatic: apMapConnection.isStatic,
-      eolAt: apMapConnection.eolAt,
-      createdAt: apMapConnection.createdAt,
-    })
-    .from(apMapConnection)
-    .where(eq(apMapConnection.mapId, mapId))
-    .orderBy(apMapConnection.id);
-
   const visibleSystemIds = systemRows.map((s) => s.id);
+
+  // Only connections whose *both* endpoints are currently visible. Removing a
+  // system flips `visible = false` but leaves its connection rows intact (intel
+  // survives), so without this filter those orphan edges leak into the view —
+  // harmlessly dropped by xyflow on the canvas, but rendered as "Unknown" rows
+  // by consumers that iterate connections directly (e.g. SystemOverlay).
+  const connectionRows = visibleSystemIds.length
+    ? await db
+        .select({
+          id: apMapConnection.id,
+          source: apMapConnection.sourceMapSystemId,
+          target: apMapConnection.targetMapSystemId,
+          scope: apMapConnection.scope,
+          massStatus: apMapConnection.massStatus,
+          jumpMassClass: apMapConnection.jumpMassClass,
+          eolStage: apMapConnection.eolStage,
+          preserveMass: apMapConnection.preserveMass,
+          isRolling: apMapConnection.isRolling,
+          isStatic: apMapConnection.isStatic,
+          eolAt: apMapConnection.eolAt,
+          createdAt: apMapConnection.createdAt,
+        })
+        .from(apMapConnection)
+        .where(
+          and(
+            eq(apMapConnection.mapId, mapId),
+            inArray(apMapConnection.sourceMapSystemId, visibleSystemIds),
+            inArray(apMapConnection.targetMapSystemId, visibleSystemIds),
+          ),
+        )
+        .orderBy(apMapConnection.id)
+    : [];
   const signatureRows = visibleSystemIds.length
     ? await db
         .select({

@@ -28,7 +28,18 @@ export function applyEvent(state: MapViewData, payload: MapEventPayload): MapVie
     }
 
     case 'system.removed':
-      return { ...state, systems: state.systems.filter((s) => s.id !== payload.id) };
+      // Removal hides the system (visible=false) and orphans its connections +
+      // signatures. The server load filters connections to visible-both-endpoint
+      // pairs, so mirror that here — otherwise consumers that iterate connections
+      // directly (SystemOverlay) keep showing the orphans as "Unknown" until reload.
+      return {
+        ...state,
+        systems: state.systems.filter((s) => s.id !== payload.id),
+        connections: state.connections.filter(
+          (c) => c.source !== payload.id && c.target !== payload.id,
+        ),
+        signatures: state.signatures.filter((s) => s.mapSystemId !== payload.id),
+      };
 
     case 'system.updated': {
       return {
