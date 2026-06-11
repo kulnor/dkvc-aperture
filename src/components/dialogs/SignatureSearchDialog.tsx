@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef, useMemo } from 'react';
 import { Search, ArrowRight } from 'lucide-react';
 import {
   Dialog,
@@ -68,8 +68,9 @@ export function SignatureSearchDialog({
   const [sortField, setSortField] = useState<SigSortField>('sigId');
   const [sortDir, setSortDir] = useState<SigSortDir>('asc');
   const [inputName, setInputName] = useState(filters.name);
+  const [now] = useState(Date.now);
   const filtersRef = useRef(filters);
-  filtersRef.current = filters;
+  useLayoutEffect(() => { filtersRef.current = filters; });
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -78,13 +79,9 @@ export function SignatureSearchDialog({
     return () => clearTimeout(t);
   }, [inputName]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const rows = buildSigSearchResults(
-    signatures,
-    systems,
-    filters,
-    sortField,
-    sortDir,
-    Date.now(),
+  const rows = useMemo(
+    () => buildSigSearchResults(signatures, systems, filters, sortField, sortDir, now),
+    [signatures, systems, filters, sortField, sortDir, now],
   );
 
   function handleSortHeader(field: SigSortField) {
