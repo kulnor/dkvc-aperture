@@ -23,17 +23,27 @@ import { formatAgoFromMs } from '@/lib/map/relativeTime';
 import { systemClassColor } from '@/components/map/styling';
 import type { MapSignature, MapSystemNode, SigSearchFilters, SignatureGroupKey } from '@/types';
 
-const SECURITY_CLASS_OPTIONS: { value: string; label: string }[] = [
-  { value: 'H',   label: 'HS' },
-  { value: 'L',   label: 'LS' },
-  { value: '0.0', label: 'NS' },
-  { value: 'P',   label: 'Poch' },
-  { value: 'C1',  label: 'C1' },
-  { value: 'C2',  label: 'C2' },
-  { value: 'C3',  label: 'C3' },
-  { value: 'C4',  label: 'C4' },
-  { value: 'C5',  label: 'C5' },
-  { value: 'C6',  label: 'C6' },
+const SECURITY_CLASS_GROUPS: { heading: string; options: { value: string; label: string }[] }[] = [
+  {
+    heading: 'Wormhole',
+    options: [
+      { value: 'C1', label: 'C1' },
+      { value: 'C2', label: 'C2' },
+      { value: 'C3', label: 'C3' },
+      { value: 'C4', label: 'C4' },
+      { value: 'C5', label: 'C5' },
+      { value: 'C6', label: 'C6' },
+    ],
+  },
+  {
+    heading: 'K-Space',
+    options: [
+      { value: 'H',   label: 'HS' },
+      { value: 'L',   label: 'LS' },
+      { value: '0.0', label: 'NS' },
+      { value: 'P',   label: 'Poch' },
+    ],
+  },
 ];
 
 interface Props {
@@ -150,24 +160,29 @@ export function SignatureSearchDialog({
             className="h-8 w-32"
           />
 
-          <div className="flex flex-wrap gap-1">
-            {SECURITY_CLASS_OPTIONS.map((opt) => {
-              const active = filters.securityClasses.includes(opt.value);
-              const color = systemClassColor(opt.value);
-              return (
-                <Button
-                  key={opt.value}
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="h-8 px-2 text-xs"
-                  style={active ? { color, borderColor: color } : { color }}
-                  onClick={() => toggleSecClass(opt.value)}
-                >
-                  {opt.label}
-                </Button>
-              );
-            })}
+          <div className="flex flex-wrap gap-x-3 gap-y-1">
+            {SECURITY_CLASS_GROUPS.map((group) => (
+              <div key={group.heading} className="flex items-center gap-1">
+                <span className="text-xs text-muted-foreground mr-0.5">{group.heading}</span>
+                {group.options.map((opt) => {
+                  const active = filters.securityClasses.includes(opt.value);
+                  const color = systemClassColor(opt.value);
+                  return (
+                    <Button
+                      key={opt.value}
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-8 px-2 text-xs"
+                      style={active ? { color, borderColor: color } : { color }}
+                      onClick={() => toggleSecClass(opt.value)}
+                    >
+                      {opt.label}
+                    </Button>
+                  );
+                })}
+              </div>
+            ))}
           </div>
         </div>
 

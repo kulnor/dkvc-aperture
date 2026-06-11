@@ -23,7 +23,7 @@ A `max-w-3xl` dialog with a filter bar (name text input, group select, max-age h
 - Filter state is owned by `MapCanvas` so the filters persist when the dialog is closed and reopened.
 - Age is computed from `sig.createdAt` (not `updatedAt`).
 - Clicking the → button on a result row calls `onNavigate(system.id, sig.id)`, which closes the dialog, selects the system, centers the canvas, and starts a 3-second row flash in `SignatureModule`.
-- Security class filter buttons (HS/LS/NS/Poch/C1–C6) are multi-select toggles (empty = all classes). Each button's text color is always the system-class color from `systemClassColor`; when active, the border also takes that color. Abyssal (`A` / Thera) is intentionally excluded.
+- Security class filter buttons are split into two labelled groups — **Wormhole** (C1–C6) and **K-Space** (HS/LS/NS/Poch) — and are multi-select toggles (empty = all classes). Each button's text color is always the system-class color from `systemClassColor`; when active, the border also takes that color. Abyssal (`A` / Thera) is intentionally excluded.
 - The `_all` sentinel is used for the group `<Select>` "All Types" option (shown as "All Types" in the trigger), mapping to `groupKey: null` in `SigSearchFilters`.
 - Sort state (`sortField`, `sortDir`) lives inside the dialog (not in `MapCanvas`) and resets when the dialog component unmounts.
 
