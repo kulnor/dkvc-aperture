@@ -27,6 +27,7 @@ import {
   CONNECTION_SCOPES,
   EOL_STAGES,
   EOL_STAGE_LABELS,
+  WH_MASS_LABELS,
   type SystemStatus,
   type WhMass,
   type WhJumpMass,
@@ -499,7 +500,7 @@ function ConnectionItems({
           >
             {WH_MASSES.map((m) => (
               <MenuRadioItem key={m} value={m}>
-                {capitalize(m)}
+                {WH_MASS_LABELS[m]}
               </MenuRadioItem>
             ))}
           </MenuRadioGroup>

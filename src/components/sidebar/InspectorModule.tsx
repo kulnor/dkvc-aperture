@@ -32,6 +32,7 @@ import {
   SYSTEM_STATUSES,
   WH_JUMP_MASSES,
   WH_MASSES,
+  WH_MASS_LABELS,
   type ConnectionScope,
   type EolStage,
   type SystemStatus,
@@ -292,8 +293,8 @@ function ConnectionInspector({
             </SelectTrigger>
             <SelectContent>
               {WH_MASSES.map((s) => (
-                <SelectItem key={s} value={s} className="capitalize">
-                  {s}
+                <SelectItem key={s} value={s}>
+                  {WH_MASS_LABELS[s]}
                 </SelectItem>
               ))}
             </SelectContent>

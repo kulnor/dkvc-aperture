@@ -37,3 +37,10 @@ export const EOL_STAGE_LABELS: Record<EolStage, string> = {
   eol: 'EOL (~4h)',
   critical: 'Critical (~1h)',
 };
+
+/** Human labels for the wormhole mass selector in the connection inspector */
+export const WH_MASS_LABELS: Record<WhMass, string> = {
+  fresh: 'Fresh (>50%)',
+  reduced: 'Reduced (<50%)',
+  critical: 'Critical (<10%)',
+};
