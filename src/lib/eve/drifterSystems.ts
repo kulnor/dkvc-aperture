@@ -29,6 +29,11 @@ export function drifterClassLabel(systemId: number): string | null {
   return d ? `C${d.classId}` : null;
 }
 
+/** True if the solar-system id is one of the five Drifter wormhole systems. */
+export function isDrifterSystem(systemId: number): boolean {
+  return systemId in DRIFTER_SYSTEMS;
+}
+
 /** Short display name for the inspector / map node; falls back to the stored name. */
 export function systemDisplayName(systemId: number, name: string): string {
   return DRIFTER_SYSTEMS[systemId]?.shortName ?? name;

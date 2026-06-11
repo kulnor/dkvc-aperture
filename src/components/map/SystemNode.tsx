@@ -4,7 +4,7 @@ import type { ReactNode } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { PreviewCard } from '@base-ui/react/preview-card';
 import { Tooltip } from '@base-ui/react/tooltip';
-import { Clock, Home, Lock, Signal, Users } from 'lucide-react';
+import { Atom, CircleDashed, Clock, Home, Lock, Signal, Users, type LucideIcon } from 'lucide-react';
 import type { MapSystemNode } from '@/lib/map/loadMap';
 import { formatAgoFromMs } from '@/lib/map/relativeTime';
 import {
@@ -12,7 +12,8 @@ import {
   systemEffectName,
   type SystemEffectKey,
 } from '@/lib/eve/systemEffects';
-import { systemDisplayName } from '@/lib/eve/drifterSystems';
+import { systemDisplayName, isDrifterSystem } from '@/lib/eve/drifterSystems';
+import { isShatteredSystem } from '@/lib/eve/shatteredSystems';
 import { homeAccentColor, systemClassColor, systemEffectColor, systemStatusColor } from './styling';
 import { InlineTextEdit } from './InlineTextEdit';
 import { usePresenceForSystem } from './MapPresenceContext';
@@ -57,6 +58,8 @@ export function SystemNode({ data, selected }: NodeProps & { data: SystemNodeDat
 
   const classColor = systemClassColor(data.security);
   const displayName = systemDisplayName(data.systemId, data.name);
+  const isDrifter = isDrifterSystem(data.systemId);
+  const isShattered = isShatteredSystem(data.systemId);
 
   // Compose the box-shadow as concentric rings: the resting ring is the system's
   // status colour (replacing the old neutral Tailwind `ring-1`), with the Home
@@ -184,6 +187,12 @@ export function SystemNode({ data, selected }: NodeProps & { data: SystemNodeDat
                 {data.tradeHub.jumps}j
               </IndicatorPill>
             )}
+            {isShattered && (
+              <SystemKindIcon icon={CircleDashed} label="Shattered system" className="text-rose-400" />
+            )}
+            {isDrifter && (
+              <SystemKindIcon icon={Atom} label="Drifter wormhole" className="text-violet-400" />
+            )}
             {data.isHome && (
               <Home className="size-3" style={{ color: home }} aria-label="Home system" />
             )}
@@ -290,6 +299,41 @@ function IndicatorPill({
         className={`nodrag nopan pointer-events-auto inline-flex items-center gap-0.5 rounded-full bg-card px-1 py-0.5 text-[9px] font-semibold leading-none shadow-sm ring-1 ${className}`}
       >
         {children}
+      </Tooltip.Trigger>
+      <Tooltip.Portal>
+        <Tooltip.Positioner sideOffset={4} side="top" align="center">
+          <Tooltip.Popup className="nodrag nopan z-50 rounded-md border bg-popover px-2 py-1 text-xs text-popover-foreground shadow-md">
+            {label}
+          </Tooltip.Popup>
+        </Tooltip.Positioner>
+      </Tooltip.Portal>
+    </Tooltip.Root>
+  );
+}
+
+/**
+ * Head-row badge marking a special wormhole-system kind (shattered / Drifter).
+ * A bare lucide icon with a hover/focus tooltip naming the kind, since the
+ * distinction isn't obvious from the J-sig. Rendered as a `span` so clicks still
+ * bubble through to node selection; `nodrag nopan` keeps the hover from panning.
+ */
+function SystemKindIcon({
+  icon: Icon,
+  label,
+  className,
+}: {
+  icon: LucideIcon;
+  label: string;
+  className: string;
+}) {
+  return (
+    <Tooltip.Root>
+      <Tooltip.Trigger
+        render={<span />}
+        className={`nodrag nopan inline-flex shrink-0 ${className}`}
+        aria-label={label}
+      >
+        <Icon className="size-3" aria-hidden />
       </Tooltip.Trigger>
       <Tooltip.Portal>
         <Tooltip.Positioner sideOffset={4} side="top" align="center">

@@ -19,5 +19,10 @@ Returns the `C14`–`C18` security label for a Drifter system id, or `null` if t
 
 ---
 
+### isDrifterSystem(systemId: number): boolean
+Returns `true` if the solar-system id is one of the five Drifter wormhole systems. Used by the map node to render a Drifter indicator (and to exclude Drifter systems from the shattered indicator — see `shatteredSystems.ts`).
+
+---
+
 ### systemDisplayName(systemId: number, name: string): string
 Returns the Drifter short name (e.g. `Barbican`) for a Drifter system id, else the passed-in `name` unchanged. Used by the map node and the inspector for display only — it does not change stored data.
