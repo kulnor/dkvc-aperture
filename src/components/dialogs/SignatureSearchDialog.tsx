@@ -20,6 +20,7 @@ import {
 import { buildSigSearchResults, type SigSortField, type SigSortDir } from '@/lib/map/sigSearch';
 import { SIGNATURE_GROUP_CATALOG, labelForSignatureGroupKey } from '@/lib/map/signatureGroups';
 import { formatAgoFromMs } from '@/lib/map/relativeTime';
+import { systemClassColor } from '@/components/map/styling';
 import type { MapSignature, MapSystemNode, SigSearchFilters, SignatureGroupKey } from '@/types';
 
 const SECURITY_CLASS_OPTIONS: { value: string; label: string }[] = [
@@ -33,7 +34,6 @@ const SECURITY_CLASS_OPTIONS: { value: string; label: string }[] = [
   { value: 'C4',  label: 'C4' },
   { value: 'C5',  label: 'C5' },
   { value: 'C6',  label: 'C6' },
-  { value: 'A',   label: 'Thera' },
 ];
 
 interface Props {
@@ -123,7 +123,7 @@ export function SignatureSearchDialog({
               <SelectValue placeholder="Any group" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="_all">Any group</SelectItem>
+              <SelectItem value="_all">All Types</SelectItem>
               {SIGNATURE_GROUP_CATALOG.map((g) => (
                 <SelectItem key={g.key} value={g.key}>
                   {g.label}
@@ -147,23 +147,28 @@ export function SignatureSearchDialog({
           />
 
           <div className="flex flex-wrap gap-1">
-            {SECURITY_CLASS_OPTIONS.map((opt) => (
-              <Button
-                key={opt.value}
-                type="button"
-                variant={filters.securityClasses.includes(opt.value) ? 'secondary' : 'outline'}
-                size="sm"
-                className="h-8 px-2 text-xs"
-                onClick={() => toggleSecClass(opt.value)}
-              >
-                {opt.label}
-              </Button>
-            ))}
+            {SECURITY_CLASS_OPTIONS.map((opt) => {
+              const active = filters.securityClasses.includes(opt.value);
+              const color = systemClassColor(opt.value);
+              return (
+                <Button
+                  key={opt.value}
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-8 px-2 text-xs"
+                  style={active ? { color, borderColor: color } : { color }}
+                  onClick={() => toggleSecClass(opt.value)}
+                >
+                  {opt.label}
+                </Button>
+              );
+            })}
           </div>
         </div>
 
         {/* Results table */}
-        <div className="max-h-96 overflow-y-auto rounded border border-border">
+        <div className="min-h-48 max-h-96 overflow-y-auto rounded border border-border">
           <table className="w-full text-sm">
             <thead className="sticky top-0 bg-background">
               <tr className="border-b border-border text-left text-xs text-muted-foreground">
