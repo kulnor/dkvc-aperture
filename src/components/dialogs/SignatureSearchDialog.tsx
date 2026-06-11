@@ -120,7 +120,11 @@ export function SignatureSearchDialog({
             }
           >
             <SelectTrigger className="h-8 w-36">
-              <SelectValue placeholder="Any group" />
+              <SelectValue>
+                {filters.groupKey === null
+                  ? 'All Types'
+                  : (labelForSignatureGroupKey(filters.groupKey) ?? filters.groupKey)}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="_all">All Types</SelectItem>
