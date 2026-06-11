@@ -122,10 +122,14 @@ export function SystemNode({ data, selected }: NodeProps & { data: SystemNodeDat
         ageMs={sigIndicator.ageMs}
         unscanned={sigIndicator.unscanned}
       />
-      <Handle type="source" position={Position.Top} className={handleClass} style={handleStyles.top} />
-      <Handle type="source" position={Position.Right} className={handleClass} style={handleStyles.right} />
-      <Handle type="source" position={Position.Bottom} className={handleClass} style={handleStyles.bottom} />
-      <Handle type="source" position={Position.Left} className={handleClass} style={handleStyles.left} />
+      {/* Each handle carries a unique id so xyflow resolves the actual grabbed /
+          hovered handle. Without an id, `getHandle` falls back to `handles[0]`
+          (the first declared = Top), which pins both the drag origin and the
+          snap target to the top handle regardless of which side is in play. */}
+      <Handle type="source" id="top" position={Position.Top} className={handleClass} style={handleStyles.top} />
+      <Handle type="source" id="right" position={Position.Right} className={handleClass} style={handleStyles.right} />
+      <Handle type="source" id="bottom" position={Position.Bottom} className={handleClass} style={handleStyles.bottom} />
+      <Handle type="source" id="left" position={Position.Left} className={handleClass} style={handleStyles.left} />
 
       <div className="flex items-stretch">
         {/* Left column: security class + tag, the visual leads, sized up and
