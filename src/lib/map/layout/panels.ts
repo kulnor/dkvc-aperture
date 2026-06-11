@@ -32,7 +32,7 @@ export const PANELS: PanelDef[] = [
   { id: 'systemGraph', title: 'System Graph', defaultVisible: true, minW: 1, minH: 3 },
   { id: 'systemKillboard', title: 'System Killboard', defaultVisible: true, minW: 2, minH: 3 },
   { id: 'tags', title: 'Tags', defaultVisible: true, minW: 1, minH: 2 },
-  { id: 'thera', title: 'Thera', defaultVisible: true, minW: 1, minH: 2 },
+  { id: 'thera', title: 'Eve-Scout', defaultVisible: true, minW: 1, minH: 2 },
 ];
 
 // Right-column modules, in display order (everything except canvas + signatures).

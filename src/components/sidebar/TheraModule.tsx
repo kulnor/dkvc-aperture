@@ -146,7 +146,7 @@ export function TheraModule({
           <Button
             variant="ghost"
             size="icon-sm"
-            aria-label="Refresh Thera connections"
+            aria-label="Refresh Eve-Scout connections"
             disabled={status === 'loading'}
             onClick={() => setReload((n) => n + 1)}
           >
