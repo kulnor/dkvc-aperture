@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Search, ArrowRight } from 'lucide-react';
 import {
   Dialog,
@@ -67,6 +67,16 @@ export function SignatureSearchDialog({
 }: Props) {
   const [sortField, setSortField] = useState<SigSortField>('sigId');
   const [sortDir, setSortDir] = useState<SigSortDir>('asc');
+  const [inputName, setInputName] = useState(filters.name);
+  const filtersRef = useRef(filters);
+  filtersRef.current = filters;
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      onFiltersChange({ ...filtersRef.current, name: inputName });
+    }, 150);
+    return () => clearTimeout(t);
+  }, [inputName]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const rows = buildSigSearchResults(
     signatures,
@@ -112,77 +122,89 @@ export function SignatureSearchDialog({
         </DialogHeader>
 
         {/* Filter bar */}
-        <div className="flex flex-wrap items-center gap-2">
-          <Input
-            placeholder="Name…"
-            value={filters.name}
-            onChange={(e) => onFiltersChange({ ...filters, name: e.target.value })}
-            className="h-8 w-40"
-          />
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium">Name</label>
+            <Input
+              placeholder="Search…"
+              value={inputName}
+              onChange={(e) => setInputName(e.target.value)}
+              className="h-8 w-40"
+            />
+          </div>
 
-          <Select
-            value={filters.groupKey ?? '_all'}
-            onValueChange={(v) =>
-              onFiltersChange({
-                ...filters,
-                groupKey: v === '_all' ? null : (v as SignatureGroupKey),
-              })
-            }
-          >
-            <SelectTrigger className="h-8 w-36">
-              <SelectValue>
-                {filters.groupKey === null
-                  ? 'All Types'
-                  : (labelForSignatureGroupKey(filters.groupKey) ?? filters.groupKey)}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="_all">All Types</SelectItem>
-              {SIGNATURE_GROUP_CATALOG.map((g) => (
-                <SelectItem key={g.key} value={g.key}>
-                  {g.label}
-                </SelectItem>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium">Group</label>
+            <Select
+              value={filters.groupKey ?? '_all'}
+              onValueChange={(v) =>
+                onFiltersChange({
+                  ...filters,
+                  groupKey: v === '_all' ? null : (v as SignatureGroupKey),
+                })
+              }
+            >
+              <SelectTrigger className="h-8 w-36">
+                <SelectValue>
+                  {filters.groupKey === null
+                    ? 'All Types'
+                    : (labelForSignatureGroupKey(filters.groupKey) ?? filters.groupKey)}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="_all">All Types</SelectItem>
+                {SIGNATURE_GROUP_CATALOG.map((g) => (
+                  <SelectItem key={g.key} value={g.key}>
+                    {g.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium">Max age (h)</label>
+            <Input
+              type="number"
+              min={0}
+              placeholder="Any"
+              value={filters.maxAgeHours ?? ''}
+              onChange={(e) =>
+                onFiltersChange({
+                  ...filters,
+                  maxAgeHours: e.target.value === '' ? null : Number(e.target.value),
+                })
+              }
+              className="h-8 w-28"
+            />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium">System class</label>
+            <div className="flex flex-wrap gap-x-3 gap-y-1">
+              {SECURITY_CLASS_GROUPS.map((group) => (
+                <div key={group.heading} className="flex items-center gap-1">
+                  <span className="text-xs text-muted-foreground mr-0.5">{group.heading}</span>
+                  {group.options.map((opt) => {
+                    const active = filters.securityClasses.includes(opt.value);
+                    const color = systemClassColor(opt.value);
+                    return (
+                      <Button
+                        key={opt.value}
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-8 px-2 text-xs"
+                        style={active ? { color, borderColor: color } : { color }}
+                        onClick={() => toggleSecClass(opt.value)}
+                      >
+                        {opt.label}
+                      </Button>
+                    );
+                  })}
+                </div>
               ))}
-            </SelectContent>
-          </Select>
-
-          <Input
-            type="number"
-            min={0}
-            placeholder="Max age (h)"
-            value={filters.maxAgeHours ?? ''}
-            onChange={(e) =>
-              onFiltersChange({
-                ...filters,
-                maxAgeHours: e.target.value === '' ? null : Number(e.target.value),
-              })
-            }
-            className="h-8 w-32"
-          />
-
-          <div className="flex flex-wrap gap-x-3 gap-y-1">
-            {SECURITY_CLASS_GROUPS.map((group) => (
-              <div key={group.heading} className="flex items-center gap-1">
-                <span className="text-xs text-muted-foreground mr-0.5">{group.heading}</span>
-                {group.options.map((opt) => {
-                  const active = filters.securityClasses.includes(opt.value);
-                  const color = systemClassColor(opt.value);
-                  return (
-                    <Button
-                      key={opt.value}
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="h-8 px-2 text-xs"
-                      style={active ? { color, borderColor: color } : { color }}
-                      onClick={() => toggleSecClass(opt.value)}
-                    >
-                      {opt.label}
-                    </Button>
-                  );
-                })}
-              </div>
-            ))}
+            </div>
           </div>
         </div>
 

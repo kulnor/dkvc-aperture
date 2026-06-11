@@ -16,10 +16,11 @@
 | onNavigate | (systemId: string, sigId: string) => void | yes | Closes dialog, centers canvas, selects system, starts row flash |
 
 ### Renders
-A `max-w-3xl` dialog with a filter bar (name text input, group select, max-age hours input, security-class toggle buttons) and a scrollable results table. Columns: Group, Sig ID, System (alias ?? name), Security, Name, Age (from `createdAt`), action button. Column headers for Sig, System, and Age are sortable (click to toggle asc/desc). A result count is shown below the table. The results container has a `min-h-48` so the dialog doesn't snap when filters change the row count.
+A `max-w-3xl` dialog with a labelled filter bar (Name text input, Group select, Max age input, System class toggle buttons) and a scrollable results table. Columns: Group, Sig ID, System (alias ?? name), Security, Name, Age (from `createdAt`), action button. Column headers for Sig, System, and Age are sortable (click to toggle asc/desc). A result count is shown below the table. The results container has a `min-h-48` so the dialog doesn't snap when filters change the row count.
 
 ### Behaviour & Interactions
 - All filtering and sorting is done synchronously via `buildSigSearchResults` from `@/lib/map/sigSearch`. No server fetch — data is always live from `viewData`.
+- The Name input maintains local draft state (`inputName`) and debounces propagation to `onFiltersChange` at 150 ms to prevent per-keystroke table redraws. The latest `filters` object is read via a ref inside the debounce callback so group/age/class changes are never lost.
 - Filter state is owned by `MapCanvas` so the filters persist when the dialog is closed and reopened.
 - Age is computed from `sig.createdAt` (not `updatedAt`).
 - Clicking the → button on a result row calls `onNavigate(system.id, sig.id)`, which closes the dialog, selects the system, centers the canvas, and starts a 3-second row flash in `SignatureModule`.
