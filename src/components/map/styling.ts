@@ -27,6 +27,27 @@ export function systemClassColor(cls: string | null | undefined): string {
   return SYSTEM_CLASS_COLORS[cls] ?? '#6b7280';
 }
 
+// EVE's standard true-security gradient, keyed by one-decimal band: 1.0 cyan →
+// 0.5 yellow → 0.1 red. Anything ≤ 0.0 (null-sec) reads as solid red.
+const TRUE_SEC_COLORS: Record<string, string> = {
+  '1.0': '#2fefef',
+  '0.9': '#48f0c0',
+  '0.8': '#00ef47',
+  '0.7': '#00f000',
+  '0.6': '#8fef2f',
+  '0.5': '#efef00',
+  '0.4': '#d77700',
+  '0.3': '#f06000',
+  '0.2': '#f04800',
+  '0.1': '#d73000',
+};
+
+/** Colour for a k-space true-security value (`universe_system.true_sec`). */
+export function trueSecColor(sec: number): string {
+  if (sec <= 0) return '#f00000';
+  return TRUE_SEC_COLORS[(Math.round(sec * 10) / 10).toFixed(1)] ?? '#f00000';
+}
+
 const STATUS_COLORS: Record<MapSystemNode['status'], string> = {
   unknown: '#6b7280',
   friendly: '#3b82f6',

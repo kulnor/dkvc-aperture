@@ -40,6 +40,17 @@ Row types are inferred and re-exported from `src/types/index.ts`.
 | `universeSystemStatic` | `universe_system_static` | `system_id` → system **CASCADE**, `type_id` → type **CASCADE**, PK `(system_id, type_id)`. Per-system WH statics (anoik.is /systems) |
 | `universeWormhole` | `universe_wormhole` | `type_id` PK → type **CASCADE**, `name`, `source_classes` (text[]; set of spawn classes, null = unspecified), `target_class` (class label; null = unknown). WH-type routing catalog (anoik.is /wormholes) |
 
+## `universe/sovereignty.ts`, `universe/incursion.ts`, `universe/entityName.ts` (mutable ESI caches)
+
+Per-table detail in the companion `.md` beside each schema file. Live beside the static `universe_*` tables but are ESI-fed and refreshed by cron jobs.
+
+| Table (`const`) | DB name | Key columns / FKs |
+|---|---|---|
+| `universeSovereigntyMap` | `universe_sovereignty_map` | `system_id` int PK → system **CASCADE**, `faction_id`/`alliance_id`/`corporation_id` bigint. `sov-fw-refresh` |
+| `universeFactionWarSystem` | `universe_faction_war_system` | `system_id` int PK → system **CASCADE**, `owner_faction_id`/`occupier_faction_id` bigint, `contested` text, `victory_points`/`victory_points_threshold` int. `sov-fw-refresh` |
+| `universeIncursion` | `universe_incursion` | `constellation_id` int PK → constellation **CASCADE**, `faction_id` bigint, `staging_solar_system_id` int, `has_boss` bool, `influence` double, `state`/`type` text, `infested_solar_systems` jsonb (`number[]`). `incursion-refresh` (5-min, full replace) |
+| `universeEntityName` | `universe_entity_name` | `id` bigint PK, `category` text, `name` text, `last_fetched_at` timestamptz. Generic id→name cache (faction/alliance/corp); warmed by the refresh jobs, read by the intel module |
+
 ## `universe/views.ts`
 
 | View (`const`) | DB name | Notes |

@@ -5,6 +5,8 @@ export * from './universe/statics';
 export * from './universe/views';
 export * from './universe/sovereignty';
 export * from './universe/corporation';
+export * from './universe/incursion';
+export * from './universe/entityName';
 export * from './ap/enums';
 export * from './ap/instance';
 export * from './ap/access_grant';

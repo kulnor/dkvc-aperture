@@ -4,6 +4,7 @@ import { characterCleanup } from './tasks/characterCleanup';
 import { csvIngest } from './tasks/csvIngest';
 import { eolExpiry } from './tasks/eolExpiry';
 import { expiredConnections } from './tasks/expiredConnections';
+import { incursionRefresh } from './tasks/incursionRefresh';
 import { locationPoll } from './tasks/locationPoll';
 import { mapPurge } from './tasks/mapPurge';
 import { partitionMaintenance } from './tasks/partitionMaintenance';
@@ -47,6 +48,8 @@ const modules: readonly JobModule[] = [
   // Per-system stats refresh from ESI.
   systemStatsRefresh,
   sovFwRefresh,
+  // Active-incursion feed from ESI (5-min ESI cache).
+  incursionRefresh,
   // Activity-log materialized-view refresh.
   activityRollupRefresh,
   // pg_partman maintenance (premake + retention).

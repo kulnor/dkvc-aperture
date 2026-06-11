@@ -11,15 +11,18 @@
 | intel | SystemIntelSummary \| undefined | no | Read-side intel keyed by the selected system id |
 
 ### Renders
-Compact sidebar card with system metadata, sovereignty, faction warfare, EVE-Scout hits, and external links. Recent kills live in the separate `SystemKillboardModule`, not here.
+Compact sidebar card with system metadata, sovereignty, faction warfare, incursion, EVE-Scout hits, and external links. Recent kills live in the separate `SystemKillboardModule`, not here.
 
 ### Behaviour & Interactions
 - Empty selected-system state prompts the user to select a system.
 - Missing external data renders an empty state instead of blocking the map.
 - External links open in a new tab.
 - The system-meta block shows the W-space anomaly effect (when set) as a colour swatch (`systemEffectColor`) + friendly name (`systemEffectName`), not the raw `effect` key.
+- **Security** shows the numeric `trueSec` (e.g. `0.4`) colour-coded by `trueSecColor` for k-space; for WH/Pochven/Abyssal (no `trueSec`) it shows the `security` label coloured by `systemClassColor`.
+- **Sovereignty / FW** prefer the resolved entity name (alliance → corp → faction precedence for sov), falling back to `Alliance <id>` / `Faction <id>` only until the name cache warms.
+- **Incursion** block renders only when the selected system is in an active incursion; shows faction, state, influence %, a `Staging` marker for the staging system, and `Boss spawned` when `has_boss`.
 
 ### Depends On
 - `SystemIntelSummary` - server-computed view model from `src/lib/map/intel.ts`.
-- `@/lib/eve/systemEffects` (`systemEffectName`, `SystemEffectKey`), `@/components/map/styling` (`systemEffectColor`).
+- `@/lib/eve/systemEffects` (`systemEffectName`, `SystemEffectKey`), `@/components/map/styling` (`systemEffectColor`, `systemClassColor`, `trueSecColor`).
 - `lucide-react` - external-link icon.

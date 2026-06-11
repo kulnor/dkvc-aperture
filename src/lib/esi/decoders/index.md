@@ -15,6 +15,7 @@
 - `characterShipSchema` / `EsiCharacterShip` (`ship.ts`) - `getCharacterShip`.
 - `sovereigntyMapSchema` / `EsiSovereigntyMap` (`sovereignty.ts`) - `getSovereigntyMap`.
 - `factionWarSystemsSchema` / `EsiFactionWarSystems` (`sovereignty.ts`) - `getFactionWarSystems`.
+- `incursionsSchema` / `EsiIncursions` (`incursions.ts`) - `getIncursions`.
 - `killmailSchema` / `EsiKillmail` (`killmail.ts`) - `getKillmail`.
 - `universeNamesSchema` / `EsiUniverseNames` (`universeNames.ts`) - `getUniverseNames`.
 - `searchResultSchema` / `EsiSearchResult` (`search.ts`) - `search` (per-category id arrays; corp search for the structure dialog).

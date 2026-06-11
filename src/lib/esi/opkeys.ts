@@ -88,6 +88,7 @@ export const OP_KEYS = {
   getUniverseKills: { operationId: 'get_universe_system_kills', auth: 'none' },
   getSovereigntyMap: { operationId: 'get_sovereignty_map', auth: 'none' },
   getFactionWarSystems: { operationId: 'get_fw_systems', auth: 'none' },
+  getIncursions: { operationId: 'get_incursions', auth: 'none' },
 } as const satisfies Record<string, OpDef>;
 
 export type OpKey = keyof typeof OP_KEYS;

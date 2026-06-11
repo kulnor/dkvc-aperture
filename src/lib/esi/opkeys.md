@@ -8,7 +8,7 @@ opKey = our short internal operation name (e.g. `getCharacterLocation`). It reso
 ---
 
 ### `OP_KEYS`
-`as const satisfies Record<string, OpDef>` — 42 opKeys. Each value is an `OpDef`:
+`as const satisfies Record<string, OpDef>` — 43 opKeys. Each value is an `OpDef`:
 - `operationId: string` — swagger op (verified to exist by `tests/esi/opkeys.test.ts`).
 - `auth: 'none' | 'character'` — whether a character ESI token is required.
 - `inferred?: true` — pairing not confirmed against an authoritative source.
@@ -20,6 +20,8 @@ opKey = our short internal operation name (e.g. `getCharacterLocation`). It reso
 **Authz-related:** `getCharacterTitles` (`get_characters_character_id_titles`) is mirrored into `ap_role(source='corp_title')` by `syncCharacterAuthz`; `getCharacterRoles` drives the Director → `authz_level='manager'` resolution. Both require character auth.
 
 **Killboard:** `getKillmail` (`get_killmails_killmail_id_killmail_hash`, auth none) fetches the full killmail body (victim / ship / time / attacker count) that zKillboard's per-system list endpoint omits. Consumed by `@/lib/map/killboard`.
+
+**Cron-driven intel feeds:** `getSovereigntyMap`, `getFactionWarSystems`, and `getIncursions` (all auth none) back the read-side intel module via the `sov-fw-refresh` and `incursion-refresh` jobs.
 
 ### `OpDef`
 Interface for a single opKey definition (see fields above).

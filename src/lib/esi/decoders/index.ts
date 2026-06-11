@@ -20,6 +20,7 @@ export {
   type EsiSovereigntyMap,
   type EsiFactionWarSystems,
 } from './sovereignty';
+export { incursionsSchema, type EsiIncursions } from './incursions';
 export {
   characterPublicSchema,
   characterRolesSchema,

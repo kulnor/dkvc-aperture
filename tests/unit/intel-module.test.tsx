@@ -28,6 +28,7 @@ const SYSTEM: MapSystemNode = {
 const INTEL: SystemIntelSummary = {
   sovereignty: null,
   factionWar: null,
+  incursion: null,
   scoutConnections: [
     {
       sourceName: 'Thera',

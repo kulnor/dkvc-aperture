@@ -7,6 +7,7 @@ import {
 } from '@/db/schema';
 import { esiCall } from '@/lib/esi/client';
 import { factionWarSystemsSchema, sovereigntyMapSchema } from '@/lib/esi/decoders';
+import { resolveStaleEntityNames } from '@/lib/eve/entityNames';
 import { withInstrumentation } from '../withInstrumentation';
 import type { JobModule } from '../registry';
 
@@ -66,7 +67,7 @@ async function refresh(): Promise<{
       victoryPointsThreshold: r.victory_points_threshold ?? null,
     }));
 
-  return await db.transaction(async (tx) => {
+  const result = await db.transaction(async (tx) => {
     if (sovValues.length > 0) {
       await tx
         .insert(universeSovereigntyMap)
@@ -125,6 +126,18 @@ async function refresh(): Promise<{
       skippedNonKspace,
     };
   });
+
+  // Warm the name cache for every sov/FW entity the intel module will display,
+  // resolving only ids missing or stale. Best-effort — never fails the refresh.
+  const entityIds = [
+    ...sovValues.flatMap((r) => [r.factionId, r.allianceId, r.corporationId]),
+    ...fwValues.flatMap((r) => [r.ownerFactionId, r.occupierFactionId]),
+  ]
+    .filter((v): v is bigint => v !== null)
+    .map(Number);
+  await resolveStaleEntityNames(entityIds);
+
+  return result;
 }
 
 export const sovFwRefresh: JobModule = {

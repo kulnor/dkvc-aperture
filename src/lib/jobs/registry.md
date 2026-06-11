@@ -28,6 +28,7 @@ Builds graphile-worker cron items for modules whose `cron` is set. The identifie
 - No `taskDirectory` - explicit imports keep wiring greppable and TypeScript-checked.
 - Per-task cron expressions live on each task module.
 - Registers `sov-fw-refresh`, the hourly sovereignty / faction-warfare ESI refresh task.
+- Registers `incursion-refresh`, the 5-minute active-incursion ESI refresh task.
 - Registers `webhook-dispatch`, a non-cron task enqueued by `commitMapEvent` per `ap_map_event` insert on maps with at least one configured Discord webhook.
 - Registers `character-cleanup`, the 5-minute cron that clears expired kicks and resyncs stale `authz_level` rows against ESI.
 - Registers `sde-ingest`, a non-cron task wrapping `runIngest` so the setup wizard can trigger a static-data refresh on-demand.

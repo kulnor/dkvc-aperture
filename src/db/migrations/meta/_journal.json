@@ -267,6 +267,13 @@
       "when": 1780012800000,
       "tag": "0038_wormhole_source_classes",
       "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1780014000000,
+      "tag": "0039_incursions_entity_names",
+      "breakpoints": true
     }
   ]
 }
