@@ -12,6 +12,7 @@ import {
   systemEffectName,
   type SystemEffectKey,
 } from '@/lib/eve/systemEffects';
+import { systemDisplayName } from '@/lib/eve/drifterSystems';
 import { homeAccentColor, systemClassColor, systemEffectColor, systemStatusColor } from './styling';
 import { InlineTextEdit } from './InlineTextEdit';
 import { usePresenceForSystem } from './MapPresenceContext';
@@ -55,6 +56,7 @@ export function SystemNode({ data, selected }: NodeProps & { data: SystemNodeDat
   const sigIndicator = useSignatureIndicator(data.id, isWormhole);
 
   const classColor = systemClassColor(data.security);
+  const displayName = systemDisplayName(data.systemId, data.name);
 
   // Compose the box-shadow as concentric rings: the resting ring is the system's
   // status colour (replacing the old neutral Tailwind `ring-1`), with the Home
@@ -161,7 +163,7 @@ export function SystemNode({ data, selected }: NodeProps & { data: SystemNodeDat
             {onAliasOrTagCommit ? (
               <InlineTextEdit
                 value={data.alias}
-                placeholder={data.name}
+                placeholder={displayName}
                 ariaLabel="Alias"
                 maxLength={100}
                 onCommit={(next) => onAliasOrTagCommit(data.id, 'alias', next)}
@@ -170,7 +172,7 @@ export function SystemNode({ data, selected }: NodeProps & { data: SystemNodeDat
               />
             ) : (
               <span className="flex-1 truncate font-mono tracking-[0.01em] text-base text-foreground">
-                {data.alias ?? data.name}
+                {data.alias ?? displayName}
               </span>
             )}
             {pilots.length > 0 && <PresenceBadge pilots={pilots} />}

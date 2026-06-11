@@ -26,6 +26,7 @@ import {
 import { deriveSecurityLabel, roundSecurity } from './security';
 import { computeHubProximity } from './hubProximity';
 import { SYSTEM_EFFECT_BY_ID } from '@/lib/eve/systemEffectAssignments';
+import { drifterClassLabel } from '@/lib/eve/drifterSystems';
 
 /**
  * Pinned Tranquility SDE build. CCP reorganizes the SDE periodically, so
@@ -385,11 +386,15 @@ async function ingestSystems(
       id: sysId,
       constellationId,
       name: en(s.name as Loc) ?? String(id),
-      security: deriveSecurityLabel({
-        regionId,
-        wormholeClassId: whClassByConstellation.get(constellationId) ?? null,
-        securityStatus,
-      }),
+      // Drifter systems share one constellation post-2025, so their class can't
+      // be derived from the constellation — pin C14–C18 by system id.
+      security:
+        drifterClassLabel(sysId) ??
+        deriveSecurityLabel({
+          regionId,
+          wormholeClassId: whClassByConstellation.get(constellationId) ?? null,
+          securityStatus,
+        }),
       trueSec: securityStatus == null ? null : roundSecurity(securityStatus),
       securityStatus,
       securityClass: en(s.securityClass as Loc),

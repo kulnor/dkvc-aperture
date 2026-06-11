@@ -37,6 +37,7 @@ import {
   type WhJumpMass,
   type WhMass,
 } from '@/lib/map/enumLabels';
+import { systemDisplayName } from '@/lib/eve/drifterSystems';
 
 const NONE_JUMP_MASS = '__none__';
 
@@ -113,11 +114,12 @@ function SystemInspector({
   // don't fire per keystroke. The parent renders this component with
   // `key={system.id}`, so the draft re-seeds when the selected system changes.
   const [intelDraft, setIntelDraft] = useState(system.intelNotes ?? '');
+  const displayName = systemDisplayName(system.systemId, system.name);
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-sm">{system.alias ?? system.name}</CardTitle>
+        <CardTitle className="text-sm">{system.alias ?? displayName}</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-3 text-xs">
         <Row label="Status">
@@ -144,7 +146,7 @@ function SystemInspector({
             value={system.alias ?? ''}
             onChange={(e) => onPatch({ alias: e.target.value || null })}
             className="h-7"
-            placeholder={system.name}
+            placeholder={displayName}
           />
         </Row>
 

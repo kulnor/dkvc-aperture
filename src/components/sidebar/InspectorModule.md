@@ -16,7 +16,7 @@
 
 ### Renders
 One of three sub-views:
-- **`SystemInspector`** — status select, alias / tag inputs (per-keystroke commit), intel notes textarea (committed on blur), locked checkbox, rally toggle button (label reads "Set rally" / "Clear rally" depending on current state), "Remove from map" button. Signatures are now a separate full-width panel below the map (see `SignatureModule`).
+- **`SystemInspector`** — status select, alias / tag inputs (per-keystroke commit), intel notes textarea (committed on blur), locked checkbox, rally toggle button (label reads "Set rally" / "Clear rally" depending on current state), "Remove from map" button. Signatures are now a separate full-width panel below the map (see `SignatureModule`). The card title and the alias-input placeholder use `systemDisplayName(system.systemId, system.name)`, which shows the short community name for the five Drifter systems (e.g. "Barbican"); display only, the stored name is unchanged.
 - **`ConnectionInspector`** — scope / mass / jump-mass / EOL-stage selects (EOL stage is `None` / `EOL (~4h)` / `Critical (~1h)`), Preserve / Rolling checkboxes, a live "Expires in X" / "EOL expires in X" hint (`ConnectionExpiryHint`, derived from `connectionTimeLeftMs` + `formatRelativeFromMs`, hidden for non-wormhole scopes), the read-only per-jump `ConnectionMassLog` (server-derived cumulative mass), then the "Delete connection" button. Receives `mapId` (from `viewData.map.id`) to feed the mass-log fetch; remounted via `key={connection.id}`.
 - **`EmptyInspector`** — placeholder card prompting the user to select something.
 
@@ -31,5 +31,6 @@ One of three sub-views:
 - `connectionTimeLeftMs` (`@/lib/map/connectionState`) + `formatRelativeFromMs` (`@/lib/map/relativeTime`) for the expiry hint
 - `ConnectionMassLog` (`@/components/sidebar/ConnectionMassLog`) for the per-jump mass-log block
 - Enum value lists from `@/lib/map/enumLabels`
+- `systemDisplayName` (`@/lib/eve/drifterSystems`) for the Drifter short-name title/placeholder
 - `MapViewData`, `MapSystemNode`, `MapConnectionEdge` from `@/types`
 - Body types from `@/lib/map/client`
