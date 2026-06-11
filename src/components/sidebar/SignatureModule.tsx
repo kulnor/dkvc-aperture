@@ -248,7 +248,7 @@ export function SignatureModuleHeaderActions({
     <>
       <Button type="button" variant="outline" size="sm" onClick={onOpenSearch}>
         <Search className="size-3.5" />
-        Search
+        Sig Search
       </Button>
       {system && (
         <>

@@ -1439,7 +1439,7 @@ export function MapCanvas({
 
               <Button variant="ghost" size="sm" onClick={() => setSigSearchOpen(true)}>
                 <Search />
-                Search
+                Sig Search
               </Button>
               <Button variant="ghost" size="sm" onClick={() => setMapInfoOpen(true)}>
                 <Info />
