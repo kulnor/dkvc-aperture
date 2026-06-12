@@ -64,19 +64,21 @@ function MenuSubmenu({ ...props }: MenuPrimitive.SubmenuRoot.Props) {
 function MenuSubmenuTrigger({
   className,
   inset,
+  icon,
   children,
   ...props
-}: MenuPrimitive.SubmenuTrigger.Props & { inset?: boolean }) {
+}: MenuPrimitive.SubmenuTrigger.Props & { inset?: boolean; icon?: React.ReactNode }) {
   return (
     <MenuPrimitive.SubmenuTrigger
       data-slot="menu-submenu-trigger"
       className={cn(
         "relative flex w-full cursor-default items-center gap-2 rounded-md py-1.5 pr-2 text-sm outline-none select-none data-disabled:pointer-events-none data-disabled:opacity-50 data-highlighted:bg-muted data-highlighted:text-foreground data-[popup-open]:bg-muted data-[popup-open]:text-foreground",
-        inset ? "pl-7" : "pl-2",
+        inset || icon ? "pl-7" : "pl-2",
         className
       )}
       {...props}
     >
+      {icon ? <span className="absolute left-2 flex items-center">{icon}</span> : null}
       {children}
       <ChevronRightIcon className="ml-auto size-3.5 text-muted-foreground" />
     </MenuPrimitive.SubmenuTrigger>
