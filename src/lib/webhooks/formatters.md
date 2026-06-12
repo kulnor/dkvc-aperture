@@ -1,7 +1,17 @@
 ## formatters.ts
 
-**Purpose:** Pure functions that turn a `MapEventPayload` + a pre-resolved naming context into a Discord webhook payload. No DB access — the dispatcher owns the joins.
+**Purpose:** Pure functions that turn a `MapEventPayload` + a pre-resolved naming context into a Discord webhook payload (and the shared one-line audit description). No DB access — the caller owns the joins.
 **File:** `src/lib/webhooks/formatters.ts`
+
+---
+
+### describeMapEvent(event, ctx, who): string | null
+The single human-readable, one-line description of a map event (`"<who> set **Jita** status to \`friendly\`."`). Shared by `formatHistoryMessage` (Discord) and the manager audit console (`src/lib/map/audit.ts`) so both surfaces phrase a commit identically. Returns `null` when the event has nothing worth saying — notably a position-only `system.updated` (a canvas drag), which both callers drop. Does not handle `map.restore` / `map.purge` (returns `null`); the audit layer supplies its own fallback for those.
+
+**Parameters:**
+- `event` — the validated `MapEventPayload`.
+- `ctx` — pre-resolved `WebhookEventContext` names.
+- `who` — acting character name; callers pass `ctx.characterName ?? 'Aperture'`.
 
 ---
 

@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { Settings2, Webhook } from 'lucide-react';
+import { ScrollText, Settings2, Webhook } from 'lucide-react';
 import { auth } from '@/lib/auth';
 import { adminVisibilityScope, isAdmin } from '@/lib/auth/rights';
 import { listAdminMaps } from '@/lib/map/loadMap';
@@ -125,6 +125,15 @@ export default async function AdminMapsPage() {
                             </Link>
                           </>
                         )}
+                        {/* Audit reaches the commit history even for soft-deleted maps. */}
+                        <Link
+                          href={{ pathname: `/admin/maps/${m.id}/audit` }}
+                          aria-label={`Audit log for ${m.name}`}
+                          title="Audit log"
+                          className="inline-flex size-7 items-center justify-center rounded-[12px] text-muted-foreground hover:bg-muted hover:text-foreground"
+                        >
+                          <ScrollText className="size-3.5" />
+                        </Link>
                         <MapActionsMenu map={m} canPurge={canPurge} />
                       </div>
                     </td>

@@ -436,6 +436,16 @@ export type {
   ActivityStatsResponse,
 } from '@/lib/stats/activity';
 
+// Manager audit-console view-models + query contract (src/lib/map/audit.ts).
+export type {
+  AuditEventCategory,
+  AuditEventRow,
+  AuditActor,
+  ActorSummary,
+  AuditQueryParams,
+  AuditPage,
+} from '@/lib/map/audit';
+
 // ESI client decoded-response types.
 export type {
   EsiStatus,

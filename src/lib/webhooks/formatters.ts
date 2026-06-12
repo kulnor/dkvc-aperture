@@ -37,7 +37,7 @@ export function formatHistoryMessage(
   mapName: string = ctx.mapName,
 ): DiscordWebhookPayload | null {
   const who = ctx.characterName ?? 'Aperture';
-  const line = describeEvent(event, ctx, who);
+  const line = describeMapEvent(event, ctx, who);
   if (!line) return null;
   return { content: `**${mapName}** — ${line}` };
 }
@@ -62,7 +62,15 @@ export function formatRallyMessage(
   return { embeds: [embed] };
 }
 
-function describeEvent(
+/**
+ * The single human-readable, one-line description of a map event. Shared by the
+ * Discord history formatter and the manager audit console (`src/lib/map/audit.ts`)
+ * so both surfaces phrase a commit identically. `who` is the acting character's
+ * name (callers pass `ctx.characterName ?? 'Aperture'`). Returns `null` when the
+ * event has nothing worth saying — notably a position-only `system.updated`
+ * (a canvas drag), which both callers drop.
+ */
+export function describeMapEvent(
   event: MapEventPayload,
   ctx: WebhookEventContext,
   who: string,
