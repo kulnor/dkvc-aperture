@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Search, ShieldAlert } from 'lucide-react';
+import { RefreshCw, Search, ShieldAlert } from 'lucide-react';
 import { ccpImageUrl } from '@/lib/integrations/links';
 import type {
   ActorSummary,
@@ -45,6 +45,9 @@ const CATEGORY_LABEL: Record<AuditEventCategory, string> = {
 };
 
 const ABS_FMT = new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeStyle: 'short' });
+
+// Cadence of the auto-refresh poll. A hard-coded constant, not a runtime knob.
+const AUTO_REFRESH_MS = 3000;
 
 function relativeTime(iso: string): string {
   const seconds = Math.round((Date.now() - new Date(iso).getTime()) / 1000);
@@ -98,6 +101,10 @@ export function MapAuditBrowser({ mapId, actors }: { mapId: string; actors: Audi
   const [actorSummary, setActorSummary] = useState<ActorSummary | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Manual/auto refresh: bumping the nonce re-runs the first-page effect.
+  const [refreshNonce, setRefreshNonce] = useState(0);
+  const [autoRefresh, setAutoRefresh] = useState(false);
 
   // Debounce the search box.
   useEffect(() => {
@@ -160,7 +167,14 @@ export function MapAuditBrowser({ mapId, actors }: { mapId: string; actors: Audi
       active = false;
       controller.abort();
     };
-  }, [buildUrl]);
+  }, [buildUrl, refreshNonce]);
+
+  // Auto-refresh: poll the first page on a fixed cadence while enabled.
+  useEffect(() => {
+    if (!autoRefresh) return;
+    const id = setInterval(() => setRefreshNonce((n) => n + 1), AUTO_REFRESH_MS);
+    return () => clearInterval(id);
+  }, [autoRefresh]);
 
   // "Load more" — append the next keyset page. Event-driven (not an effect), so
   // it reads the current `nextCursor` and appends rather than replacing.
@@ -321,6 +335,33 @@ export function MapAuditBrowser({ mapId, actors }: { mapId: string; actors: Audi
             Clear
           </button>
         )}
+
+        <div className="ml-auto flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => setRefreshNonce((n) => n + 1)}
+            disabled={loading}
+            className="inline-flex h-8 items-center gap-1 rounded-md border border-border px-2 text-xs font-medium text-muted-foreground hover:bg-muted disabled:opacity-50"
+            title="Refresh now"
+          >
+            <RefreshCw className={`size-3.5 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
+          <button
+            type="button"
+            onClick={() => setAutoRefresh((v) => !v)}
+            className={`inline-flex h-8 items-center gap-1 rounded-md border px-2 text-xs font-medium ${
+              autoRefresh
+                ? 'border-primary bg-primary/10 text-primary'
+                : 'border-border text-muted-foreground hover:bg-muted'
+            }`}
+            title={`Auto-refresh every ${AUTO_REFRESH_MS / 1000}s`}
+            aria-pressed={autoRefresh}
+          >
+            <RefreshCw className={`size-3.5 ${autoRefresh ? 'animate-spin' : ''}`} />
+            Auto
+          </button>
+        </div>
       </div>
 
       {/* Actor drill-down summary */}

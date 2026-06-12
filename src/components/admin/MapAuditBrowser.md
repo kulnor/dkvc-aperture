@@ -11,7 +11,7 @@
 | actors | AuditActor[] | yes | Distinct actors (server-loaded) for the actor filter dropdown |
 
 ### Renders
-A toolbar (actor dropdown, category toggles, "Deletions only" + "Last 24h" chips, date-range inputs, debounced search box, Clear), an optional per-actor summary bar (when a single actor is selected), and a table of commits (When / Actor / Action badge / Detail) with a "Load more" footer.
+A toolbar (actor dropdown, category toggles, "Deletions only" + "Last 24h" chips, date-range inputs, debounced search box, Clear, plus a right-aligned "Refresh" button and "Auto" toggle), an optional per-actor summary bar (when a single actor is selected), and a table of commits (When / Actor / Action badge / Detail) with a "Load more" footer.
 
 ### Behaviour & Interactions
 - Fetches `/api/map/[mapId]/audit` with the current filters; **any filter change refetches the first page**, "Load more" appends the next keyset page via `nextCursor`.
@@ -20,10 +20,13 @@ A toolbar (actor dropdown, category toggles, "Deletions only" + "Last 24h" chips
 - Category toggles + "Deletions only" are translated client-side into the `kinds` query param (`computeKinds`); no narrowing → param omitted.
 - Destructive kinds (`*.removed`/`*.delete`/`map.purge`) render with a `text-destructive` badge; the actor summary highlights the destructive count.
 - Time shows as relative (`5m ago`) with the absolute timestamp on hover.
+- "Refresh" manually re-fetches the first page (bumps `refreshNonce`); the icon spins while a request is in flight and the button is disabled during load.
+- "Auto" toggles a fixed-cadence poll (`AUTO_REFRESH_MS`, 3s) that bumps `refreshNonce` on an interval; only the first page is re-fetched (appended "Load more" pages are reset on each poll).
 
 ### Local State
 - `actor` (`'all' | 'none' | <id>`), `categories` (Set), `destructiveOnly`, `fromDate`/`toDate`, `qInput`/`q` (debounced) — the filters.
 - `rows`, `nextCursor`, `actorSummary`, `loading`, `error` — the fetched feed.
+- `refreshNonce` (number), `autoRefresh` (boolean) — manual/auto first-page refresh.
 
 ### Depends On
 - `ccpImageUrl` (`src/lib/integrations/links.ts`) — actor portraits.
