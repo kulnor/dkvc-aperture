@@ -16,6 +16,7 @@
 | onPatch | (signatureId: string, patch: UpdateSignatureBody) => void | yes | Called for inline edits (group/type/description/connection). |
 | onDelete | (signatureId: string) => void | yes | Called from the row trash button. |
 | onConnectionPatch | (connectionId: string, patch: UpdateConnectionBody) => void | yes | Used to auto-set a linked connection's jump-mass size from the WH type (see below). Wired to `MapCanvas`'s `onConnectionPatch` (optimistic). |
+| flashSigId | string \| null | no | When set, the matching signature row flashes with `ap-sig-flash` for 3 s. Cleared by MapCanvas after the timeout. Known limitation: if the target sig is hidden by the in-panel group/scan filter, the flash silently no-ops. |
 
 The **Lazy delete** and **Paste from scanner** actions are no longer rendered by this card — they live in `SignatureModuleHeaderActions` (also exported from this file), which `MapCanvas` renders into the `MapPanel` header via `headerRight`. See that component's props below.
 
@@ -49,7 +50,7 @@ A frameless `Card` (no card header) with:
 
 ## SignatureModuleHeaderActions
 
-**Purpose:** The **Lazy delete** arm toggle and **Paste from scanner** button for the Signatures panel, rendered into the `MapPanel` header (`headerRight`) beside the panel title rather than inside the card.
+**Purpose:** The **Search** button, **Lazy delete** arm toggle, and **Paste from scanner** button for the Signatures panel, rendered into the `MapPanel` header (`headerRight`) beside the panel title rather than inside the card.
 **Exported from:** `src/components/sidebar/SignatureModule.tsx`
 
 ### Props
@@ -57,11 +58,12 @@ A frameless `Card` (no card header) with:
 | Prop | Type | Required | Description |
 |---|---|---|---|
 | mapId | string | yes | `ap_map.id` for the paste dialog. |
-| system | MapSystemNode \| null | yes | The selected system; the component renders `null` when no system is selected (nothing to paste into). |
+| system | MapSystemNode \| null | yes | The selected system; when `null` only the search button is rendered (it searches across all systems). |
 | signatures | MapSignature[] | yes | All signatures on the map; filtered to the active system for the paste dialog's existing-sig set. |
 | onBulkPaste | (payloads: MapEventPayload[]) => void | yes | Forwarded to `SignaturePasteDialog`; caller registers each `eventId` in its dedupe set and applies each payload locally. |
 | lazyDelete | boolean | yes | Whether the one-shot CTRL+V "Lazy delete" arm is active (state owned by `MapCanvas`, shared with `SignaturePasteHotkey`). |
 | onLazyDeleteChange | (next: boolean) => void | yes | Toggles the lazy-delete arm from the header button. |
+| onOpenSearch | () => void | yes | Opens the `SignatureSearchDialog`. Wired to `setSigSearchOpen(true)` in `MapCanvas`. The search button is always rendered (searches across all systems); lazy-delete and paste remain gated on a selected system. |
 
 ### Behaviour & Interactions
 - **Paste from scanner** (`SignaturePasteButton`) opens `SignaturePasteDialog` with the active system pre-bound.

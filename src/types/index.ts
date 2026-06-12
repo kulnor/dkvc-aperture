@@ -515,3 +515,12 @@ export type MapContextMenuTarget =
   | { kind: 'system'; id: string; x: number; y: number }
   | { kind: 'connection'; id: string; x: number; y: number }
   | { kind: 'pane'; x: number; y: number };
+
+/** Filter state for `SignatureSearchDialog`. Owned by `MapCanvas` so it persists between opens. */
+export type SigSearchFilters = {
+  name: string;
+  groupKey: SignatureGroupKey | null;
+  maxAgeHours: number | null;
+  /** `MapSystemNode.security` labels to include; empty = all. */
+  securityClasses: string[];
+};

@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { ArrowDown, ArrowUp, ClipboardPaste, Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, ClipboardPaste, Search, Trash2 } from 'lucide-react';
 import {
   createColumnHelper,
   flexRender,
@@ -180,6 +180,7 @@ export function SignatureModule({
   onPatch,
   onDelete,
   onConnectionPatch,
+  flashSigId = null,
 }: {
   mapId: string;
   system: MapSystemNode | null;
@@ -190,6 +191,7 @@ export function SignatureModule({
   onPatch: (signatureId: string, patch: UpdateSignatureBody) => void;
   onDelete: (signatureId: string) => void;
   onConnectionPatch: (connectionId: string, patch: UpdateConnectionBody) => void;
+  flashSigId?: string | null;
 }) {
   return (
     <Card>
@@ -210,6 +212,7 @@ export function SignatureModule({
             onPatch={onPatch}
             onDelete={onDelete}
             onConnectionPatch={onConnectionPatch}
+            flashSigId={flashSigId}
           />
         )}
       </CardContent>
@@ -218,11 +221,11 @@ export function SignatureModule({
 }
 
 /**
- * Header actions for the Signatures panel — the **Lazy delete** arm toggle and
+ * Header actions for the Signatures panel — the **Search** button, **Lazy delete** arm toggle, and
  * the **Paste from scanner** button. Rendered into the `MapPanel` header
  * (`headerRight`) rather than inside the card, so they sit beside the panel
- * title alongside the drag handle and hide button. Renders nothing when no
- * system is selected (there is nothing to paste into).
+ * title alongside the drag handle and hide button. The search button is always
+ * rendered; lazy delete and paste are only shown when a system is selected.
  */
 export function SignatureModuleHeaderActions({
   mapId,
@@ -231,6 +234,7 @@ export function SignatureModuleHeaderActions({
   onBulkPaste,
   lazyDelete,
   onLazyDeleteChange,
+  onOpenSearch,
 }: {
   mapId: string;
   system: MapSystemNode | null;
@@ -238,17 +242,25 @@ export function SignatureModuleHeaderActions({
   onBulkPaste: (payloads: MapEventPayload[]) => void;
   lazyDelete: boolean;
   onLazyDeleteChange: (next: boolean) => void;
+  onOpenSearch: () => void;
 }) {
-  if (!system) return null;
   return (
     <>
-      <LazyDeleteToggle armed={lazyDelete} onArmedChange={onLazyDeleteChange} />
-      <SignaturePasteButton
-        mapId={mapId}
-        system={system}
-        signatures={signatures}
-        onBulkPaste={onBulkPaste}
-      />
+      <Button type="button" variant="outline" size="sm" onClick={onOpenSearch}>
+        <Search className="size-3.5" />
+        Sig Search
+      </Button>
+      {system && (
+        <>
+          <LazyDeleteToggle armed={lazyDelete} onArmedChange={onLazyDeleteChange} />
+          <SignaturePasteButton
+            mapId={mapId}
+            system={system}
+            signatures={signatures}
+            onBulkPaste={onBulkPaste}
+          />
+        </>
+      )}
     </>
   );
 }
@@ -332,6 +344,7 @@ function SignaturePanelBody({
   onPatch,
   onDelete,
   onConnectionPatch,
+  flashSigId = null,
 }: {
   mapId: string;
   system: MapSystemNode;
@@ -342,6 +355,7 @@ function SignaturePanelBody({
   onPatch: (signatureId: string, patch: UpdateSignatureBody) => void;
   onDelete: (signatureId: string) => void;
   onConnectionPatch: (connectionId: string, patch: UpdateConnectionBody) => void;
+  flashSigId?: string | null;
 }) {
   const rows = useMemo(
     () => signatures.filter((s) => s.mapSystemId === system.id),
@@ -625,7 +639,13 @@ function SignaturePanelBody({
               </tr>
             )}
             {table.getRowModel().rows.map((row) => (
-              <tr key={row.id} className="border-t border-foreground/10 align-middle">
+              <tr
+                key={row.id}
+                className={cn(
+                  'border-t border-foreground/10 align-middle',
+                  row.original.id === flashSigId && 'ap-sig-flash',
+                )}
+              >
                 {row.getVisibleCells().map((cell) => (
                   <td key={cell.id}>
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
