@@ -376,7 +376,7 @@ function SetDestinationItem({
         {locatedChars.map((char) => (
           <MenuItem
             key={char.id}
-            className={char.id === activeCharId ? 'font-bold' : undefined}
+            className={cn(char.id === activeCharId && 'font-bold')}
             onClick={() => {
               void setWaypointOnServer({
                 characterId: char.id,
