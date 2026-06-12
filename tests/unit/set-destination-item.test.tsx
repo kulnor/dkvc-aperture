@@ -1,3 +1,4 @@
+import type React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
@@ -7,28 +8,27 @@ vi.mock('sonner', () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 vi.mock('@/lib/character/client', () => ({ setWaypointOnServer: vi.fn() }));
 vi.mock('@/components/map/MapActiveCharContext', () => ({ useMapActiveChar: vi.fn() }));
 // Stub Base UI menu primitives — they require a Menu.Root context which jsdom can't provide.
-vi.mock('@/components/ui/menu', () => {
-  const React = require('react');
-  const MenuItem = ({ children, disabled, onClick, className, ...rest }: {
+vi.mock('@/components/ui/menu', async () => {
+  const { createElement } = await import('react');
+  const MenuItem = ({ children, disabled, onClick, className }: {
     children?: React.ReactNode;
     disabled?: boolean;
     onClick?: () => void;
     className?: string;
     icon?: React.ReactNode;
-    [key: string]: unknown;
   }) =>
-    React.createElement(
+    createElement(
       'div',
       { 'data-slot': 'menu-item', 'data-disabled': disabled ? '' : undefined, onClick, className },
       children,
     );
   const MenuSubmenu = ({ children }: { children?: React.ReactNode }) =>
-    React.createElement('div', { 'data-slot': 'menu-submenu' }, children);
+    createElement('div', { 'data-slot': 'menu-submenu' }, children);
   const MenuSubmenuTrigger = ({ children, icon }: { children?: React.ReactNode; icon?: React.ReactNode }) =>
-    React.createElement('div', { 'data-slot': 'menu-submenu-trigger' }, icon, children);
+    createElement('div', { 'data-slot': 'menu-submenu-trigger' }, icon, children);
   const MenuSubmenuContent = ({ children }: { children?: React.ReactNode }) =>
-    React.createElement('div', { 'data-slot': 'menu-submenu-content' }, children);
-  const MenuSeparator = () => React.createElement('hr', { 'data-slot': 'menu-separator' });
+    createElement('div', { 'data-slot': 'menu-submenu-content' }, children);
+  const MenuSeparator = () => createElement('hr', { 'data-slot': 'menu-separator' });
   return { MenuItem, MenuSubmenu, MenuSubmenuTrigger, MenuSubmenuContent, MenuSeparator };
 });
 
