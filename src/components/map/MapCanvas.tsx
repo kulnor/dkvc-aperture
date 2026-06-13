@@ -323,7 +323,12 @@ export function MapCanvas({
       id: s.id,
       type: 'system' as const,
       position: { x: s.positionX, y: s.positionY },
-      data: { ...s, isHome: s.id === data.map.homeMapSystemId },
+      data: {
+        ...s,
+        isHome: s.id === data.map.homeMapSystemId,
+        inFactionWarfare: intel[s.systemId]?.factionWar != null,
+        hasIncursion: intel[s.systemId]?.incursion != null,
+      },
       selected: false,
       draggable: !s.locked,
     })),
@@ -1065,7 +1070,13 @@ export function MapCanvas({
           id: s.id,
           type: 'system' as const,
           position,
-          data: { ...s, onAliasOrTagCommit, isHome: s.id === viewData.map.homeMapSystemId },
+          data: {
+            ...s,
+            onAliasOrTagCommit,
+            isHome: s.id === viewData.map.homeMapSystemId,
+            inFactionWarfare: intel[s.systemId]?.factionWar != null,
+            hasIncursion: intel[s.systemId]?.incursion != null,
+          },
           selected: selectedSystemIds.has(s.id),
           draggable: !s.locked,
         };
