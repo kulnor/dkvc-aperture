@@ -1,16 +1,17 @@
-import swaggerJson from './swagger.json';
+import { OpenAPIV3 } from 'openapi-types';
+import openapiJson from './openapi.json';
 
 /**
- * Swagger-backed route resolver for the ESI client.
+ * OpenAPI-backed route resolver for the ESI client.
  *
- * `opkeys.ts` maps an opKey to a swagger `operationId`; this module resolves
+ * `opkeys.ts` maps an opKey to an OpenAPI `operationId`; this module resolves
  * that `operationId` to the concrete HTTP method, version-prefixed path
  * template (e.g. `/v1/characters/{character_id}/location/`), and the names of
- * its path/query parameters. `src/lib/esi/swagger.json` is the single source of
+ * its path/query parameters. `src/lib/esi/openapi.json` is the single source of
  * truth — the resolver reads it rather than duplicating method/path data, so
  * ESI route drift surfaces here rather than as a hand-maintained typo.
  *
- * The swagger file is a static import (not an `fs` read) so it is bundled with
+ * The OpenAPI file is a static import (not an `fs` read) so it is bundled with
  * the code: it ships in every runtime — the Next-compiled server chunks AND the
  * tsx-run job process — with no dependency on the working directory or on a
  * docs/ asset being copied into the image. Server-only; never bundled to the
@@ -19,7 +20,7 @@ import swaggerJson from './swagger.json';
 
 export interface ResolvedRoute {
   method: 'get' | 'post';
-  /** Version-prefixed path template with `{param}` placeholders. */
+  /** Path template with `{param}` placeholders. */
   path: string;
   /** Names of `{…}` path parameters, in template order. */
   pathParams: string[];
@@ -27,33 +28,31 @@ export interface ResolvedRoute {
   queryParams: string[];
 }
 
-interface SwaggerParameter {
-  name?: string;
-  in?: 'path' | 'query' | 'body' | 'header';
-}
+const INDEXED_METHODS = [OpenAPIV3.HttpMethods.GET, OpenAPIV3.HttpMethods.POST] as const;
 
-interface SwaggerOperation {
-  operationId?: string;
-  parameters?: SwaggerParameter[];
+function isParameterObject(
+  p: OpenAPIV3.ParameterObject | OpenAPIV3.ReferenceObject,
+): p is OpenAPIV3.ParameterObject {
+  return !('$ref' in p);
 }
-
-type SwaggerPaths = Record<string, Record<string, SwaggerOperation>>;
 
 let index: Map<string, ResolvedRoute> | null = null;
 
 function buildIndex(): Map<string, ResolvedRoute> {
-  const swagger = swaggerJson as unknown as { paths: SwaggerPaths };
-
+  const spec = openapiJson as unknown as OpenAPIV3.Document;
   const built = new Map<string, ResolvedRoute>();
-  for (const [path, methods] of Object.entries(swagger.paths)) {
-    for (const [method, op] of Object.entries(methods)) {
-      if (!op.operationId || (method !== 'get' && method !== 'post')) continue;
-      const params = op.parameters ?? [];
+
+  for (const [path, pathItem] of Object.entries(spec.paths)) {
+    if (!pathItem) continue;
+    for (const method of INDEXED_METHODS) {
+      const op = pathItem[method];
+      if (!op?.operationId) continue;
+      const params = (op.parameters ?? []).filter(isParameterObject);
       built.set(op.operationId, {
         method,
         path,
-        pathParams: params.filter((p) => p.in === 'path' && p.name).map((p) => p.name!),
-        queryParams: params.filter((p) => p.in === 'query' && p.name).map((p) => p.name!),
+        pathParams: params.filter((p) => p.in === 'path').map((p) => p.name),
+        queryParams: params.filter((p) => p.in === 'query').map((p) => p.name),
       });
     }
   }
@@ -61,10 +60,10 @@ function buildIndex(): Map<string, ResolvedRoute> {
 }
 
 /**
- * Resolve a swagger `operationId` to its HTTP method, path template, and param
- * names. The swagger file is parsed once and memoized for the process lifetime.
+ * Resolve an OpenAPI `operationId` to its HTTP method, path template, and param
+ * names. The OpenAPI file is parsed once and memoized for the process lifetime.
  *
- * Throws if the `operationId` is absent from the checked-in swagger — a loud
+ * Throws if the `operationId` is absent from the checked-in spec — a loud
  * failure that the opKey inventory test (`tests/esi/opkeys.test.ts`) guards
  * against for the known opKeys.
  */
@@ -72,7 +71,7 @@ export function resolveRoute(operationId: string): ResolvedRoute {
   if (!index) index = buildIndex();
   const route = index.get(operationId);
   if (!route) {
-    throw new Error(`No swagger operation found for operationId "${operationId}"`);
+    throw new Error(`No OpenAPI operation found for operationId "${operationId}"`);
   }
   return route;
 }

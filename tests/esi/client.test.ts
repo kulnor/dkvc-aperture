@@ -76,11 +76,11 @@ function freshTokenRow() {
 describe('routes resolver', () => {
   it('resolves an operationId to method + path from swagger', () => {
     __resetRouteIndexForTest();
-    expect(resolveRoute('get_status')).toMatchObject({ method: 'get', path: '/v1/status/' });
+    expect(resolveRoute('GetStatus')).toMatchObject({ method: 'get', path: '/status' });
   });
 
   it('throws loudly for an unknown operationId', () => {
-    expect(() => resolveRoute('not_a_real_op')).toThrow(/no swagger operation/i);
+    expect(() => resolveRoute('not_a_real_op')).toThrow(/no openapi operation/i);
   });
 });
 
@@ -116,7 +116,7 @@ describe('esiCall — circuit breaker', () => {
     for (let i = 0; i < 5; i++) {
       await expect(esiCall('getStatus', { schema: statusSchema })).rejects.toBeInstanceOf(EsiHttpError);
     }
-    expect(breakerState('get_status')).toBe('open');
+    expect(breakerState('GetStatus')).toBe('open');
 
     const callsBefore = fetchMock.mock.calls.length;
     await expect(esiCall('getStatus', { schema: statusSchema })).rejects.toBeInstanceOf(EsiBreakerOpenError);
@@ -130,13 +130,13 @@ describe('esiCall — circuit breaker', () => {
     for (let i = 0; i < 5; i++) {
       await expect(esiCall('getStatus', { schema: statusSchema })).rejects.toBeInstanceOf(EsiHttpError);
     }
-    expect(breakerState('get_status')).toBe('open');
+    expect(breakerState('GetStatus')).toBe('open');
 
     fail = false;
     vi.advanceTimersByTime(60_001); // past ESI_BREAKER_COOLDOWN_MS
     const status = await esiCall('getStatus', { schema: statusSchema });
     expect(status.players).toBe(30000);
-    expect(breakerState('get_status')).toBe('closed');
+    expect(breakerState('GetStatus')).toBe('closed');
   });
 });
 
@@ -148,7 +148,7 @@ describe('esiCall — downtime tolerance', () => {
     for (let i = 0; i < 6; i++) {
       await expect(esiCall('getStatus', { schema: statusSchema })).rejects.toBeInstanceOf(EsiDowntimeError);
     }
-    expect(breakerState('get_status')).toBe('closed');
+    expect(breakerState('GetStatus')).toBe('closed');
   });
 });
 

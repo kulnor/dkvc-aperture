@@ -74,6 +74,15 @@ export const apertureConfig = {
   /** ESI `datasource` query param. `tranquility` (live) vs `singularity` (test server). */
   ESI_DATASOURCE: 'tranquility',
 
+  /**
+   * ESI compatibility date, sent as the `X-Compatibility-Date` header on every
+   * request. The new (unversioned) ESI serves a different API surface per
+   * compatibility date; omitting the header makes CCP default to `2020-01-01`,
+   * which no longer matches the routes/decoders. Must equal the date the
+   * checked-in `src/lib/esi/openapi.json` was generated for — bump both together.
+   */
+  ESI_COMPATIBILITY_DATE: '2026-06-09',
+
   /** `pg_notify` channel prefix for `ap_map_event` fanout. */
   MAP_EVENT_NOTIFY_CHANNEL_PREFIX: 'map:',
 
