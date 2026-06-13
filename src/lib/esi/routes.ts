@@ -1,3 +1,4 @@
+import { OpenAPIV3 } from 'openapi-types';
 import openapiJson from './openapi.json';
 
 /**
@@ -19,7 +20,7 @@ import openapiJson from './openapi.json';
 
 export interface ResolvedRoute {
   method: 'get' | 'post';
-  /** Version-prefixed path template with `{param}` placeholders. */
+  /** Path template with `{param}` placeholders. */
   path: string;
   /** Names of `{…}` path parameters, in template order. */
   pathParams: string[];
@@ -27,33 +28,31 @@ export interface ResolvedRoute {
   queryParams: string[];
 }
 
-interface SwaggerParameter {
-  name?: string;
-  in?: 'path' | 'query' | 'body' | 'header';
-}
+const INDEXED_METHODS = [OpenAPIV3.HttpMethods.GET, OpenAPIV3.HttpMethods.POST] as const;
 
-interface SwaggerOperation {
-  operationId?: string;
-  parameters?: SwaggerParameter[];
+function isParameterObject(
+  p: OpenAPIV3.ParameterObject | OpenAPIV3.ReferenceObject,
+): p is OpenAPIV3.ParameterObject {
+  return !('$ref' in p);
 }
-
-type SwaggerPaths = Record<string, Record<string, SwaggerOperation>>;
 
 let index: Map<string, ResolvedRoute> | null = null;
 
 function buildIndex(): Map<string, ResolvedRoute> {
-  const openapi = openapiJson as unknown as { paths: SwaggerPaths };
-
+  const spec = openapiJson as unknown as OpenAPIV3.Document;
   const built = new Map<string, ResolvedRoute>();
-  for (const [path, methods] of Object.entries(openapi.paths)) {
-    for (const [method, op] of Object.entries(methods)) {
-      if (!op.operationId || (method !== 'get' && method !== 'post')) continue;
-      const params = op.parameters ?? [];
+
+  for (const [path, pathItem] of Object.entries(spec.paths)) {
+    if (!pathItem) continue;
+    for (const method of INDEXED_METHODS) {
+      const op = pathItem[method];
+      if (!op?.operationId) continue;
+      const params = (op.parameters ?? []).filter(isParameterObject);
       built.set(op.operationId, {
         method,
         path,
-        pathParams: params.filter((p) => p.in === 'path' && p.name).map((p) => p.name!),
-        queryParams: params.filter((p) => p.in === 'query' && p.name).map((p) => p.name!),
+        pathParams: params.filter((p) => p.in === 'path').map((p) => p.name),
+        queryParams: params.filter((p) => p.in === 'query').map((p) => p.name),
       });
     }
   }

@@ -8,7 +8,7 @@ The single source of truth is the checked-in OpenAPI spec, imported statically (
 ---
 
 ### resolveRoute(operationId: string): ResolvedRoute
-Looks up the operation in the memoized index. Builds the index lazily on first call from the statically-imported `./openapi.json`, walking `paths`. Only `get`/`post` operations are indexed.
+Looks up the operation in the memoized index. Builds the index lazily on first call from the statically-imported `./openapi.json`, typed via `openapi-types` `OpenAPIV3.Document`. Only `get`/`post` operations are indexed; `$ref` parameter entries are excluded via an `isParameterObject` type guard.
 
 **Returns:** `{ method, path, pathParams, queryParams }`.
 **Throws:** if the `operationId` is absent from the spec (the opKey test guards the known set).
