@@ -26,8 +26,10 @@ import { shipMass } from '@/lib/eve/shipMass';
  * Covers the server-derived connection mass-log: base `universe_type.mass`
  * resolution, the
  * per-jump writer's cumulative sum, the null-mass skip, the fold returning a
- * connection id for both created and pre-existing connections, and the
- * ON DELETE CASCADE when a connection is hard-deleted.
+ * connection id for both created and pre-existing connections, the
+ * `addNewSystems=false` presence gate (suppress new systems, fold between
+ * already-visible ones), and the ON DELETE CASCADE when a connection is
+ * hard-deleted.
  */
 const run = process.env.RUN_DB_TESTS === '1';
 
@@ -126,6 +128,7 @@ describe.skipIf(!run)('connection mass-log (real Postgres)', () => {
       characterId: null as unknown as bigint, // fold accepts a bigint; null is fine for the audit FK
       fromSystemId: C3,
       toSystemId: HS,
+      addNewSystems: true,
     });
     expect(first.connectionCreated).toBe(true);
     expect(first.connectionId).toBeGreaterThan(0n);
@@ -135,13 +138,56 @@ describe.skipIf(!run)('connection mass-log (real Postgres)', () => {
       characterId: null as unknown as bigint,
       fromSystemId: C3,
       toSystemId: HS,
+      addNewSystems: true,
     });
     expect(second.connectionCreated).toBe(false);
     expect(second.connectionId).toBe(first.connectionId);
 
     // The same connection logs a re-jump.
-    await logConnectionJump({ mapId: foldMapId, connectionId: second.connectionId, characterId: null, shipTypeId: SHIP, mass: 1_000_000 });
-    expect(await logCount(second.connectionId)).toBe(1);
+    await logConnectionJump({ mapId: foldMapId, connectionId: second.connectionId!, characterId: null, shipTypeId: SHIP, mass: 1_000_000 });
+    expect(await logCount(second.connectionId!)).toBe(1);
+  });
+
+  it('addNewSystems=false suppresses a jump with an off-map endpoint, folds between visible ones', async () => {
+    const [gateMap] = await db
+      .insert(apMap)
+      .values({ name: 'Mass Log Gate Map', scope: 'all', type: 'private' })
+      .returning({ id: apMap.id });
+    const gateMapId = gateMap!.id;
+
+    // Pilot has the map closed and neither endpoint is on it → nothing is added,
+    // no connection to log against.
+    const suppressed = await foldWormholeJumpOntoMap({
+      mapId: gateMapId,
+      characterId: null as unknown as bigint,
+      fromSystemId: C3,
+      toSystemId: HS,
+      addNewSystems: false,
+    });
+    expect(suppressed.connectionId).toBeNull();
+    expect(suppressed.fromSystemAdded).toBe(false);
+    expect(suppressed.toSystemAdded).toBe(false);
+    const placedAfterSuppressed = await db
+      .select({ id: apMapSystem.id })
+      .from(apMapSystem)
+      .where(eq(apMapSystem.mapId, gateMapId));
+    expect(placedAfterSuppressed).toHaveLength(0);
+
+    // Both endpoints already on the map → the closed-Aperture jump still records
+    // the connection between them (movement among already-added systems).
+    await addSystem({ mapId: gateMapId, systemId: C3, characterId: null });
+    await addSystem({ mapId: gateMapId, systemId: HS, characterId: null });
+    const recorded = await foldWormholeJumpOntoMap({
+      mapId: gateMapId,
+      characterId: null as unknown as bigint,
+      fromSystemId: C3,
+      toSystemId: HS,
+      addNewSystems: false,
+    });
+    expect(recorded.connectionId).not.toBeNull();
+    expect(recorded.connectionCreated).toBe(true);
+    expect(recorded.fromSystemAdded).toBe(false);
+    expect(recorded.toSystemAdded).toBe(false);
   });
 
   it('deleting a connection cascades its mass-log rows away', async () => {
@@ -172,7 +218,7 @@ async function mapSystemId(map: bigint, systemId: number): Promise<bigint> {
 async function cleanup() {
   if (mapId) await db.delete(apMap).where(eq(apMap.id, mapId));
   if (foldMapId) await db.delete(apMap).where(eq(apMap.id, foldMapId));
-  await db.delete(apMap).where(inArray(apMap.name, ['Mass Log Map', 'Mass Log Fold Map']));
+  await db.delete(apMap).where(inArray(apMap.name, ['Mass Log Map', 'Mass Log Fold Map', 'Mass Log Gate Map']));
   await db.delete(universeType).where(inArray(universeType.id, [SHIP, SHIP_NO_MASS]));
   await db.delete(universeGroup).where(eq(universeGroup.id, GROUP));
   await db.delete(universeCategory).where(eq(universeCategory.id, CATEGORY));
