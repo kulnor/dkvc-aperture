@@ -13,7 +13,7 @@ Re-exports `RealtimeStatus`.
 
 Re-exports map-event payloads, mutation result/input types, signature parser/resolver types, and wormhole-catalog lookup results.
 
-Re-exports `UniverseSovereigntyMap` / `UniverseFactionWarSystem`, ESI sov/FW decoded-response types, and read-side integration summaries (`SystemIntelSummary`, `SovereigntyIntel`, `FactionWarIntel`, `RecentKillSummary`, `EveScoutConnectionSummary`, `ChangelogRelease`).
+Re-exports `UniverseSovereigntyMap` / `UniverseFactionWarSystem`, ESI sov/FW decoded-response types, and read-side integration summaries (`SystemIntelSummary`, `SovereigntyIntel`, `FactionWarIntel`, `RecentKillSummary`, `EveScoutConnectionSummary`, `ChangelogRelease`). Also re-exports `SystemStatsSummary` (rolling 24h activity totals, `src/lib/map/stats.ts`).
 
 Re-exports `SignatureGroupKey` (the `signature_group_key` pgEnum) and `SignatureGroupOption` for the scanner-level signature group catalog. The corresponding column on `ap_map_signature` is `groupKey: SignatureGroupKey | null` (replacing the prior `groupId` FK to `universe_group`). `CosmicSignatureGroupKey = Exclude<SignatureGroupKey, 'wormhole'>` is the union of the six non-wormhole groups whose site names live in the static catalog `src/lib/map/signatureSites.ts`. Also re-exports `SignatureClassKind` / `SignatureClassOption` for the localized scanner Class-column catalog (`src/lib/map/signatureClasses.ts`).
 

@@ -53,6 +53,7 @@ import {
   deleteSignatureOnServer,
   deleteSubchainOnServer,
   fetchMapSnapshot,
+  fetchSystemData,
   pingSystemOnServer,
   removeSystemOnServer,
   updateConnectionOnServer,
@@ -220,8 +221,8 @@ type SubchainSigOffer = {
 
 export function MapCanvas({
   data,
-  stats,
-  intel,
+  stats: initialStats,
+  intel: initialIntel,
   structures: initialStructures,
   settings,
   travelAnimation,
@@ -315,9 +316,42 @@ export function MapCanvas({
   // reconciler would fight the click handlers and loop. Box drag is the only
   // selection source we must adopt from xyflow.
   const boxSelecting = useRef(false);
-  // Structure intel is deployment-global and not realtime-synced; we manage it
-  // as plain local state seeded from the page load and updated on our own CRUD.
+  // Read-side per-system data (intel / activity stats / structure intel) is
+  // server-rendered for the systems present at page load, then held as state so
+  // systems added live can be backfilled (see the effect below) without a reload.
+  // Structure intel is also updated in place by our own CRUD callbacks.
+  const [intel, setIntel] = useState(initialIntel);
+  const [stats, setStats] = useState(initialStats);
   const [structures, setStructures] = useState(initialStructures);
+
+  // EVE solar-system ids whose read-side data has been loaded or is in flight.
+  // Seeded from the load-time intel (one entry per initially-rendered system).
+  const requestedSystemData = useRef<Set<number>>(
+    new Set(Object.keys(initialIntel).map(Number)),
+  );
+  // Backfill systems added after the initial render (paste, tracked-pilot jump,
+  // manual add): one batched fetch per new id-set, merged into state so their
+  // sov/FW/incursion decorators and sidebar modules fill in without a reload.
+  // Additive only — an id already requested is never refetched (a stale snapshot
+  // matches the existing load-time model); a failed fetch is retried on the next
+  // system change by un-marking its ids.
+  useEffect(() => {
+    const missing = viewData.systems
+      .map((s) => s.systemId)
+      .filter((id) => !requestedSystemData.current.has(id));
+    if (missing.length === 0) return;
+    for (const id of missing) requestedSystemData.current.add(id);
+    fetchSystemData({ mapId: data.map.id, systemIds: missing }).then((result) => {
+      if (!result.ok) {
+        for (const id of missing) requestedSystemData.current.delete(id);
+        return;
+      }
+      setIntel((prev) => ({ ...prev, ...result.data.intel }));
+      setStats((prev) => ({ ...prev, ...result.data.stats }));
+      setStructures((prev) => ({ ...prev, ...result.data.structures }));
+    });
+  }, [viewData.systems, data.map.id]);
+
   const [nodes, setNodes] = useState<Node<SystemNodeData>[]>(() =>
     data.systems.map((s) => ({
       id: s.id,
@@ -1051,13 +1085,17 @@ export function MapCanvas({
   const [lastSync, setLastSync] = useState<{
     systems: MapViewData['systems'];
     selectedSystemIds: Set<string>;
+    intel: Record<number, SystemIntelSummary>;
   } | null>(null);
   if (
     !lastSync ||
     lastSync.systems !== viewData.systems ||
-    lastSync.selectedSystemIds !== selectedSystemIds
+    lastSync.selectedSystemIds !== selectedSystemIds ||
+    // `intel` is replaced by reference when a live-added system's data backfills;
+    // re-sync so its decorators (sov/FW/incursion) appear without a systems change.
+    lastSync.intel !== intel
   ) {
-    setLastSync({ systems: viewData.systems, selectedSystemIds });
+    setLastSync({ systems: viewData.systems, selectedSystemIds, intel });
     setNodes((prev) => {
       const prevById = new Map(prev.map((n) => [n.id, n]));
       return viewData.systems.map((s) => {

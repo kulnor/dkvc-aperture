@@ -393,6 +393,9 @@ export type { SystemSearchResult } from '@/lib/map/systemSearch';
 // Read-side structure-intel view-models (computed in src/lib/structures/read.ts).
 export type { StructureIntel, UpwellStructureType } from '@/lib/structures/read';
 
+// Rolling 24h activity totals per system (computed in src/lib/map/stats.ts).
+export type { SystemStatsSummary } from '@/lib/map/stats';
+
 // Corporation name-search result for the structure owner picker (src/lib/structures/corpSearch.ts).
 export type { CorpSearchResult } from '@/lib/structures/corpSearch';
 
