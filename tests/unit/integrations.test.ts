@@ -29,12 +29,24 @@ afterEach(() => {
 
 describe('Stage 13 decoders', () => {
   it('accepts sovereignty and FW ESI payloads', () => {
+    // The 2026 ESI surface nests the owner under `claim`; the decoder flattens
+    // it back to the legacy `{ system_id, faction_id?, alliance_id?, corporation_id? }`.
     expect(
-      sovereigntyMapSchema.parse([
-        { system_id: 30000142, alliance_id: 99000001, corporation_id: 98000001 },
-        { system_id: 30002053, faction_id: 500001 },
-      ]),
-    ).toHaveLength(2);
+      sovereigntyMapSchema.parse({
+        solar_systems: [
+          {
+            solar_system_id: 30000142,
+            claim: { alliance: { alliance_id: 99000001, corporation_id: 98000001 } },
+          },
+          { solar_system_id: 30002053, claim: { faction: { faction_id: 500001 } } },
+          { solar_system_id: 30000326, claim: { unclaimed: true } },
+        ],
+      }),
+    ).toEqual([
+      { system_id: 30000142, faction_id: undefined, alliance_id: 99000001, corporation_id: 98000001 },
+      { system_id: 30002053, faction_id: 500001, alliance_id: undefined, corporation_id: undefined },
+      { system_id: 30000326, faction_id: undefined, alliance_id: undefined, corporation_id: undefined },
+    ]);
     expect(
       factionWarSystemsSchema.parse([
         {

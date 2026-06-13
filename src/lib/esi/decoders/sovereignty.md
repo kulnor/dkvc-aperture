@@ -6,9 +6,9 @@
 ---
 
 ### sovereigntyMapSchema
-Validates `getSovereigntyMap` arrays with `system_id` plus optional faction/alliance/corporation owner ids.
+Validates the `getSovereigntyMap` (`GetSovereigntySystems`, `/sovereignty/systems`) response — an object with a `solar_systems` array, each entry carrying a `claim` (`oneOf` `faction` / `alliance` / `unclaimed`) — and **transforms** it into the legacy flat array of `{ system_id, faction_id?, alliance_id?, corporation_id? }`. Unclaimed systems flatten to an all-null-owner row, matching the previous flat endpoint. The consumer is unchanged.
 
-**Returns:** `EsiSovereigntyMap`.
+**Returns:** `EsiSovereigntyMap` (the flattened array).
 
 ---
 

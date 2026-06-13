@@ -16,6 +16,7 @@ A frozen `as const` object exposed as a named export. Grouped by concern:
 - `CCP_SSO_DOWNTIME`, `CCP_SSO_DOWNTIME_WINDOW_MIN`, `CCP_SSO_DOWNTIME_BUFFER_MIN` — daily ESI downtime window (calls expected to fail).
 - `ESI_BREAKER_FAILURE_THRESHOLD`, `ESI_BREAKER_COOLDOWN_MS`, `ESI_REQUEST_TIMEOUT_MS` — per-operationId circuit breaker tuning + request timeout.
 - `ESI_DATASOURCE` — `tranquility` (live) vs `singularity` (test).
+- `ESI_COMPATIBILITY_DATE` — `X-Compatibility-Date` header sent on every ESI request; pins the unversioned ESI surface to the date `openapi.json` was generated for (omitting it makes CCP default to `2020-01-01`). Bump together with the checked-in spec.
 - `SSO_AUTHORIZE_PATH` / `SSO_TOKEN_PATH` / `SSO_JWKS_PATH` — EVE SSO endpoint paths joined onto `env.AUTH_EVE_SSO_BASE`.
 - `SSO_EXPECTED_ISSUER` — accepted `iss` claim values (bare host + scheme-prefixed form).
 - `SSO_TOKEN_REFRESH_BUFFER_S` — refresh the access token this many seconds before expiry.

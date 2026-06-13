@@ -23,7 +23,9 @@ Character-auth calls run at most twice (original + one forced-refresh retry); un
 - `EsiHttpError(operationId, status, body)` — non-2xx / network / timeout; counted by the breaker.
 - `EsiDecodeError(operationId, cause)` — 2xx body failed Zod validation (schema drift).
 
+Every request sends `X-Compatibility-Date: apertureConfig.ESI_COMPATIBILITY_DATE` — the unversioned ESI surface is pinned by compatibility date; without it CCP defaults to `2020-01-01`, which no longer matches the checked-in `openapi.json` routes/decoders.
+
 ### Depends On
 - `routes.resolveRoute`, `breaker.{canRequest,recordSuccess,recordFailure}`, `downtime.inDowntimeWindow`.
 - `@/lib/auth/eve-provider.refreshAccessToken` + `@/lib/crypto.decryptToken` for token resolution.
-- `env.ESI_BASE_URL` / `env.EVE_USER_AGENT`; `apertureConfig.ESI_DATASOURCE` / `ESI_REQUEST_TIMEOUT_MS` / `SSO_TOKEN_REFRESH_BUFFER_S`.
+- `env.ESI_BASE_URL` / `env.EVE_USER_AGENT`; `apertureConfig.ESI_DATASOURCE` / `ESI_COMPATIBILITY_DATE` / `ESI_REQUEST_TIMEOUT_MS` / `SSO_TOKEN_REFRESH_BUFFER_S`.
