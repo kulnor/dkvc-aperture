@@ -31,13 +31,16 @@ import type { MapRight, MapType } from '@/types';
  *      appears in `ap_map_role_access` for the target map grants view access.
  *   4. Otherwise no access.
  *
- * Management (mutate) is the derived-authority model: a binary "can this
- * character manage this map" computed purely from EVE state + ownership
- * (`canManageMap`) — admin, the private map's owner, the owning corp's
- * Director, or the owning alliance's executor-corp Director. The corp-right
- * matrix no longer participates and the role overlay never unlocks mutation
- * (view only). The `MapRight` argument is retained on the mutate guards for the
- * future title-delegation overlay (R4) but is ignored at the baseline.
+ * Mutation has two tiers keyed on the `MapRight`:
+ *   - `map_update` (content editing — systems / signatures / connections) is
+ *     open to every viewer: it resolves to `canViewMap`, so the role overlay
+ *     and plain corp/alliance members can chart. Collaborative mapping is the
+ *     product.
+ *   - every other right (`map_delete`, `map_import`, `map_export`, `map_share`)
+ *     plus map settings is management — the binary `canManageMap` computed from
+ *     EVE state + ownership (admin, private owner, owning-corp Director, owning-
+ *     alliance executor-corp Director). The corp-right matrix no longer
+ *     participates.
  *
  * Maps with all three owner columns NULL are treated as admin-only — defensive
  * default, surfaces unowned rows for repair.
@@ -149,14 +152,21 @@ export async function canViewMap(characterId: bigint, mapId: bigint): Promise<bo
 }
 
 /**
- * Is the character allowed to mutate this map? Baseline derived-authority:
- * mutation authority is the binary `canManageMap` — admin, the private map's
- * owner, the owning corp's Director, or the owning alliance's executor-corp
- * Director. The `right` argument is retained for the future title-delegation
- * overlay (R4) but is ignored at the baseline; neither the corp-right matrix
- * nor the role overlay unlocks mutation.
+ * Is the character allowed to mutate this map?
  *
- * `map_create` has no target map and must be checked via `canCreateMap`.
+ * Two tiers:
+ *   - `map_update` — the live charting surface (add/move/remove systems, paste
+ *     signatures, draw/edit/collapse connections). This is **open to every
+ *     viewer**: anyone who can see the map can edit its content. Collaborative
+ *     wormhole mapping is the whole product; read-only members would defeat it.
+ *   - everything else (`map_delete`, `map_import`, `map_export`, `map_share`) —
+ *     map configuration & lifecycle, gated by the binary `canManageMap` (admin,
+ *     private owner, owning-corp Director, owning-alliance executor-corp
+ *     Director).
+ *
+ * The `right` argument is otherwise retained for the future title-delegation
+ * overlay (R4). `map_create` has no target map and must be checked via
+ * `canCreateMap`.
  */
 export async function canMutateMap(
   characterId: bigint,
@@ -165,6 +175,9 @@ export async function canMutateMap(
 ): Promise<boolean> {
   if (right === 'map_create') {
     throw new Error('canMutateMap: map_create must be checked via canCreateMap');
+  }
+  if (right === 'map_update') {
+    return canViewMap(characterId, mapId);
   }
   return canManageMap(characterId, mapId);
 }
@@ -202,10 +215,11 @@ export async function canCreateMap(characterId: bigint, type: MapType): Promise<
 //
 // Map-management authority is a pure function of EVE state + ownership:
 // members own their private maps, corp Directors manage their corp's maps, and
-// the alliance executor corp's Directors manage alliance maps. This is the live
-// mutate path — `canMutateMap` / `requireMapRight` / `assertMapRight` all
-// resolve to `canManageMap`, and `canCreateMap` is the typed create gate. The
-// corp-right matrix no longer participates.
+// the alliance executor corp's Directors manage alliance maps. `canManageMap`
+// gates settings/lifecycle/webhooks/audit/import/export/share (via
+// `requireMapManage` and the management `MapRight`s); content editing
+// (`map_update`) is view-gated instead. `canCreateMap` is the typed create
+// gate. The corp-right matrix no longer participates.
 // ---------------------------------------------------------------------------
 
 /**
@@ -322,6 +336,36 @@ export async function requireMapView(
   const canView = await canViewMap(characterId, mapId);
   if (!canView) {
     return { ok: false, status: 404, error: 'Map not found.' };
+  }
+  return { ok: true, characterId };
+}
+
+/**
+ * Management guard for the map-configuration surface (settings, lifecycle).
+ * Resolves session → view (existence) → `canManageMap`. Unlike `requireMapRight`
+ * with `map_update` — which is now view-gated content editing — this requires
+ * full management authority.
+ *
+ * 401 — no session.
+ * 404 — map missing / soft-deleted, OR the actor has no view access.
+ * 403 — the actor can see the map but cannot manage it.
+ */
+export async function requireMapManage(
+  session: Session | null | undefined,
+  mapId: bigint,
+): Promise<RightGuard> {
+  if (!session?.characterId) {
+    return { ok: false, status: 401, error: 'Unauthorized.' };
+  }
+  const characterId = BigInt(session.characterId);
+
+  const canView = await canViewMap(characterId, mapId);
+  if (!canView) {
+    return { ok: false, status: 404, error: 'Map not found.' };
+  }
+  const canManage = await canManageMap(characterId, mapId);
+  if (!canManage) {
+    return { ok: false, status: 403, error: 'Forbidden.' };
   }
   return { ok: true, characterId };
 }

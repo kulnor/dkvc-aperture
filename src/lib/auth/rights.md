@@ -15,9 +15,14 @@
 3. **Role overlay** — any `ap_character_role` row whose role appears in `ap_map_role_access` for the target map grants view.
 4. Otherwise no view.
 
-### Mutate rule (derived authority)
+### Mutate rule (two tiers)
 
-Management authority is the binary `canManageMap` — admin, the private map's owner, the owning corp's Director, or the owning alliance's executor-corp Director. The corp-right matrix no longer participates and the role overlay never unlocks mutation (view only). The `MapRight` argument is retained on the mutate guards for the future title-delegation overlay (R4) but is ignored at the baseline — anyone who can manage the map can perform every per-map right.
+Mutation splits into two authority tiers keyed on the `MapRight`:
+
+1. **`map_update` — content editing → view authority.** The live charting surface (add/move/remove systems, paste signatures, draw/edit/collapse connections, subchain delete, thera sync, disconnected cleanup) is open to **every viewer**. Anyone who can see the map — by ownership, corp/alliance membership, **or the role overlay** — can edit its content. Collaborative wormhole mapping is the product; read-only members would defeat it.
+2. **All other rights (`map_delete`, `map_import`, `map_export`, `map_share`) — management → `canManageMap`.** Map configuration & lifecycle stay with admin, the private map's owner, the owning corp's Director, or the owning alliance's executor-corp Director. The corp-right matrix no longer participates.
+
+Map **settings** edits (name/icon/behaviour flags/tagging) are a management surface too — gated by `requireMapManage`, **not** the now view-level `map_update` right.
 
 **Unowned maps** (all three owner columns NULL) are admin-only. Defensive default that surfaces rows needing repair.
 
@@ -27,7 +32,7 @@ Management authority is the binary `canManageMap` — admin, the private map's o
 Returns `false` for non-existent / soft-deleted maps, kicked / banned characters, and anyone outside the view rule above.
 
 ### canMutateMap(characterId, mapId, right): Promise<boolean>
-Delegates to `canManageMap` — `right` is accepted for the R4 overlay but ignored at the baseline. Throws if called with `'map_create'` (which has no target map; use `canCreateMap`).
+Two-tier resolver: `map_update` → `canViewMap` (content editing is open to every viewer); every other right → `canManageMap` (management). Throws if called with `'map_create'` (which has no target map; use `canCreateMap`).
 
 ### canCreateMap(characterId, type): Promise<boolean>
 Typed create gate (derived authority). Admin → true. `private` → any active character. `corp` → `actor.is_director`. `alliance` → `actor.is_director && actor.corporation_id == executorCorpOf(actor.alliance_id)`. The caller resolves the owner FK from the actor's affiliation.
@@ -36,7 +41,7 @@ Typed create gate (derived authority). Admin → true. `private` → any active 
 
 ### Derived-authority model (permissions multi-tenant)
 
-Map-management authority is a pure function of EVE state + ownership. This is the **live** mutate path: `canMutateMap` / `requireMapRight` / `assertMapRight` all resolve to `canManageMap`, and `canCreateMap` is the typed create gate. The corp-right matrix no longer participates.
+Map-**management** authority is a pure function of EVE state + ownership (`canManageMap`): it gates settings, lifecycle (delete), webhooks, audit, and import/export/share. **Content editing** (`map_update`) is separate — it resolves to `canViewMap`, so every viewer can chart. `canMutateMap` routes `map_update` → view and all other rights → manage; `requireMapManage` is the explicit management guard; `canCreateMap` is the typed create gate. The corp-right matrix no longer participates.
 
 #### executorCorpOf(allianceId): Promise<bigint | null>
 The alliance's executor corporation from the `ap_alliance` cache (`syncCharacterAuthz` keeps it fresh). `null` when the alliance is unknown or has no executor.
@@ -58,6 +63,9 @@ Tuple-shaped guard for API routes. Returns `{ ok: true, characterId }` or `{ ok:
 
 ### requireMapView(session, mapId): Promise<RightGuard>
 View-only variant for read endpoints (e.g. `GET /api/map/[mapId]/wormhole-types`).
+
+### requireMapManage(session, mapId): Promise<RightGuard>
+Management guard (session → view existence → `canManageMap`). Same `401 / 404 / 403` shape as `requireMapRight`, but requires full management authority rather than the view-level `map_update` content right. Used by `updateMapSettingsAction` and any management call site that isn't keyed on a specific `MapRight`.
 
 ### assertMapRight(session, mapId, right): Promise<characterId>
 Throws `RightAssertionError` on failure. The Server Action variant of `requireMapRight`.

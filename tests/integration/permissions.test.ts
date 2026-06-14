@@ -218,35 +218,45 @@ describe.skipIf(!run)('Stage 15 — permissions (real Postgres)', () => {
     expect(await canViewMap(KICKED_ID, allianceMapId)).toBe(false);
   });
 
-  // ─── mutate rules (derived authority) ──────────────────────────────────────
+  // ─── mutate rules ──────────────────────────────────────────────────────────
+  //
+  // `map_update` is the live charting surface (systems, signatures, connections)
+  // and is open to EVERY viewer — collaborative mapping is the product. The
+  // management rights (`map_delete` etc.) stay derived-authority (`canManageMap`).
 
-  it('a corp Director manages the corp map; plain members cannot', async () => {
+  it('every corp member can edit the corp map content; outsiders cannot', async () => {
     expect(await canMutateMap(CORP_A_DIRECTOR_ID, corpMapId, 'map_update')).toBe(true);
-    expect(await canMutateMap(CORP_A_MEMBER_ID, corpMapId, 'map_update')).toBe(false);
-    expect(await canMutateMap(OWNER_ID, corpMapId, 'map_update')).toBe(false); // plain member
+    expect(await canMutateMap(CORP_A_MEMBER_ID, corpMapId, 'map_update')).toBe(true);
+    expect(await canMutateMap(OWNER_ID, corpMapId, 'map_update')).toBe(true); // plain corp member
+    // Corp B outsider has no view → no edit.
     expect(await canMutateMap(CORP_B_MEMBER_ID, corpMapId, 'map_update')).toBe(false);
   });
 
-  it('the executor-corp Director manages the alliance map; others cannot', async () => {
-    // Corp A is the executor of Alliance X, so its Director manages the map.
+  it('every alliance member can edit the alliance map content; outsiders cannot', async () => {
     expect(await canMutateMap(CORP_A_DIRECTOR_ID, allianceMapId, 'map_update')).toBe(true);
-    // Same-alliance member who is not a Director of the executor corp.
-    expect(await canMutateMap(CORP_A_MEMBER_ID, allianceMapId, 'map_update')).toBe(false);
-    // Alliance X pilot is in Corp B (not the executor corp) → cannot manage.
-    expect(await canMutateMap(ALLIANCE_X_PILOT_ID, allianceMapId, 'map_update')).toBe(false);
+    // Same-alliance plain member — can view, so can edit.
+    expect(await canMutateMap(CORP_A_MEMBER_ID, allianceMapId, 'map_update')).toBe(true);
+    // Alliance X pilot is in Corp B but still in the alliance → can view + edit.
+    expect(await canMutateMap(ALLIANCE_X_PILOT_ID, allianceMapId, 'map_update')).toBe(true);
+    // Corp B member is in a different alliance entirely → no view, no edit.
+    expect(await canMutateMap(CORP_B_MEMBER_ID, allianceMapId, 'map_update')).toBe(false);
   });
 
-  it('private map: owner manages and deletes; a corp-mate / Director cannot', async () => {
+  it('private map: owner edits, deletes; a non-viewer cannot edit', async () => {
     expect(await canMutateMap(OWNER_ID, privateMapId, 'map_update')).toBe(true);
     expect(await canMutateMap(OWNER_ID, privateMapId, 'map_delete')).toBe(true);
     expect(await canMutateMap(CORP_A_MEMBER_ID, privateMapId, 'map_delete')).toBe(false);
+    // A corp-mate / Director cannot even VIEW a private map, so cannot edit it.
     expect(await canMutateMap(CORP_A_DIRECTOR_ID, privateMapId, 'map_update')).toBe(false);
   });
 
-  it('role overlay alone does not grant mutation', async () => {
-    // Role holder gets view but not update — they're not an owner / Director.
+  it('a role-overlay viewer can edit content but cannot manage', async () => {
+    // Viewing rights (here via the corp-title role overlay) grant content editing.
     expect(await canViewMap(ROLE_HOLDER_ID, roleScopedMapId)).toBe(true);
-    expect(await canMutateMap(ROLE_HOLDER_ID, roleScopedMapId, 'map_update')).toBe(false);
+    expect(await canMutateMap(ROLE_HOLDER_ID, roleScopedMapId, 'map_update')).toBe(true);
+    // But not the management surface.
+    expect(await canMutateMap(ROLE_HOLDER_ID, roleScopedMapId, 'map_delete')).toBe(false);
+    expect(await canManageMap(ROLE_HOLDER_ID, roleScopedMapId)).toBe(false);
   });
 
   it('canManageMap gates the in-place settings / webhooks / audit surfaces', async () => {

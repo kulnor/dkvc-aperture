@@ -12,7 +12,7 @@ Validates `{ name, scope, type, icon? }` (Zod), then gates on `canCreateMap(char
 Gates on `requireMapRight(session, id, 'map_delete')` (= `canManageMap`). Two-phase soft-delete: sets `deleted_at = now()` (cron purges later — never a hard delete here) on the matching non-deleted map. Throws (→ `{ ok: false }`) if the map is missing or already deleted. Emits `map.delete` → `{ id, deletedAt }`. Revalidates `/maps`.
 
 ### updateMapSettingsAction(input: UpdateMapSettingsInput): Promise<ActionResult<MapEventPayload>>
-Validates `{ mapId, name?, icon?, deleteExpiredConnections?, deleteEolConnections?, trackAbyssalJumps?, logActivity?, tagScheme?, homeMapSystemId?, exemptHomeStaticFromTag? }`. Gates on `requireMapRight(session, id, 'map_update')` (= `canManageMap`). Tagging fields (`tagScheme`/`homeMapSystemId`/`exemptHomeStaticFromTag`) ride the same authority — no separate gate now that the corp-right matrix is gone; a non-null `homeMapSystemId` is validated to be a visible system on the map. Tagging fields persist but are **not** echoed in the `map.update` payload (config propagates on next load). Updates only the keys present (presence via `in`, so `false` is honored). Emits `map.update` → `{ id, ...changed }`. After a tagging-touching save it runs `applyHomeStaticExemption` (reconciles the ABC home-static exemption as separate `system.update` events; no-op for non-ABC maps). Revalidates `/maps`.
+Validates `{ mapId, name?, icon?, deleteExpiredConnections?, deleteEolConnections?, trackAbyssalJumps?, logActivity?, tagScheme?, homeMapSystemId?, exemptHomeStaticFromTag? }`. Gates on `requireMapManage(session, id)` (= `canManageMap`) — map settings are a management surface, **not** the now view-level `map_update` content right. Tagging fields (`tagScheme`/`homeMapSystemId`/`exemptHomeStaticFromTag`) ride the same authority — no separate gate now that the corp-right matrix is gone; a non-null `homeMapSystemId` is validated to be a visible system on the map. Tagging fields persist but are **not** echoed in the `map.update` payload (config propagates on next load). Updates only the keys present (presence via `in`, so `false` is honored). Emits `map.update` → `{ id, ...changed }`. After a tagging-touching save it runs `applyHomeStaticExemption` (reconciles the ABC home-static exemption as separate `system.update` events; no-op for non-ABC maps). Revalidates `/maps`.
 
 ---
 
@@ -21,7 +21,7 @@ Zod input shapes for the create / settings actions.
 
 ### Depends On
 - `requireSession` (`@/lib/session`) — auth gate + audit `characterId`.
-- `canCreateMap` / `requireMapRight` (`@/lib/auth/rights`) — derived-authority create/mutate gates.
+- `canCreateMap` / `requireMapRight` / `requireMapManage` (`@/lib/auth/rights`) — create / delete / settings gates.
 - `commitMapEvent` (`@/lib/map/mutations/core`) — the single commit primitive.
 - `apMap` (Drizzle schema); `mapScope` / `mapType` enums for validation.
 - `mapEventPayloadSchema` variants `map.create` / `map.delete` / `map.update`.

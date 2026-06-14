@@ -10,7 +10,7 @@ import type { InferInsertModel } from 'drizzle-orm';
 import { commitMapEvent, type ActionResult } from '@/lib/map/mutations/core';
 import type { MapEventPatch, MapEventPayload } from '@/lib/realtime/protocol';
 import { applyHomeStaticExemption } from '@/lib/tagging/exemption';
-import { canCreateMap, requireMapRight } from '@/lib/auth/rights';
+import { canCreateMap, requireMapManage, requireMapRight } from '@/lib/auth/rights';
 
 /**
  * Low-frequency, user-initiated map mutations via Server Actions (CLAUDE.md
@@ -23,7 +23,7 @@ import { canCreateMap, requireMapRight } from '@/lib/auth/rights';
  *                               any active character; corp → a Director (owned to
  *                               the actor's corp); alliance → an executor-corp
  *                               Director (owned to the actor's alliance).
- *   - `updateMapSettingsAction` requires `canManageMap` (via `requireMapRight`).
+ *   - `updateMapSettingsAction` requires `canManageMap` (via `requireMapManage`).
  *   - `deleteMapAction`         requires `canManageMap` (via `requireMapRight`):
  *                               private owner, owning corp's Director, or the
  *                               owning alliance's executor-corp Director; admin
@@ -176,7 +176,9 @@ export async function updateMapSettingsAction(
   const { mapId, ...patch } = parsed.data;
   const id = BigInt(mapId);
 
-  const guard = await requireMapRight(session, id, 'map_update');
+  // Map settings are a management surface — gated by `canManageMap`, NOT the
+  // now view-level `map_update` content-editing right.
+  const guard = await requireMapManage(session, id);
   if (!guard.ok) {
     return { ok: false, error: guard.error };
   }
