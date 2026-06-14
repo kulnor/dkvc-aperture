@@ -16,9 +16,10 @@
 ### Renders
 A `Select` populated with WH codes (e.g. "A239", "K162"). Each option uses a flex `justify-between` layout: WH name on the left, destination class on the right, rendered bold and color-coded via `systemClassColor` — the same palette the map uses for system-node statics. The closed trigger mirrors this layout (name left, color-coded class pushed to the right edge) via a `SelectValue` render function given `flex-1` so it stretches the full trigger width. The first item is a sentinel "Select type…" that maps to `null`.
 
-Options are split into three groups, each keeping the server's alphabetical order:
+Options are split into four groups, each keeping the server's alphabetical order:
 - **Statics** (`isStatic`) — pinned to the top under a "Statics" label, then a divider.
-- **Class-matched** (`matchesClass && !isStatic`) — holes that plausibly spawn in this system's class; shown by default.
+- **K162** — always rendered immediately after statics (before other class-matched holes) since it is the canonical "inbound" exit hole.
+- **Class-matched** (`matchesClass && !isStatic && name !== 'K162'`) — holes that plausibly spawn in this system's class; shown by default.
 - **Others** (`!matchesClass`) — the rest of the catalog, hidden behind a `Show all types (+N)` / `Show fewer` toggle button at the foot of the list (a plain `<button>`, not a `SelectItem`, so clicking it expands the group without selecting or dismissing the popup).
 
 Option rows and the popup are vertically compacted (`py-1` items, `p-0.5` content) to fit the dense Signatures module.
