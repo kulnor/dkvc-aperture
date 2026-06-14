@@ -5,7 +5,7 @@ import { eq, inArray, sql } from 'drizzle-orm';
 import { db, pool } from '@/db/client';
 import { apAlliance, apCharacter, apMap, apUser } from '@/db/schema';
 import {
-  canCreateMapOfType,
+  canCreateMap,
   canManageMap,
   executorCorpOf,
 } from '@/lib/auth/rights';
@@ -17,7 +17,7 @@ import {
  *   - `executorCorpOf` reads the `ap_alliance` cache.
  *   - `canManageMap` — private owner, corp Director, alliance executor-corp
  *     Director, and every denial in between.
- *   - `canCreateMapOfType` — private/corp/alliance create gates.
+ *   - `canCreateMap` — private/corp/alliance create gates.
  *
  *   docker compose up -d && pnpm db:migrate && RUN_DB_TESTS=1 pnpm test
  */
@@ -57,7 +57,7 @@ const characterIds = [
   KICKED_DIRECTOR_ID,
 ];
 
-describe.skipIf(!run)('Derived authority — canManageMap / canCreateMapOfType (real Postgres)', () => {
+describe.skipIf(!run)('Derived authority — canManageMap / canCreateMap (real Postgres)', () => {
   beforeAll(async () => {
     await migrate(db, { migrationsFolder: 'src/db/migrations' });
     await cleanup();
@@ -169,30 +169,30 @@ describe.skipIf(!run)('Derived authority — canManageMap / canCreateMapOfType (
     expect(await canManageMap(KICKED_DIRECTOR_ID, allianceMapId)).toBe(false);
   });
 
-  // ─── canCreateMapOfType ────────────────────────────────────────────────────
+  // ─── canCreateMap ────────────────────────────────────────────────────
 
   it('private maps are creatable by any active character; kicked denied', async () => {
-    expect(await canCreateMapOfType(OTHER_MEMBER_ID, 'private')).toBe(true);
-    expect(await canCreateMapOfType(EXEC_DIRECTOR_ID, 'private')).toBe(true);
-    expect(await canCreateMapOfType(ADMIN_ID, 'private')).toBe(true);
-    expect(await canCreateMapOfType(KICKED_DIRECTOR_ID, 'private')).toBe(false);
+    expect(await canCreateMap(OTHER_MEMBER_ID, 'private')).toBe(true);
+    expect(await canCreateMap(EXEC_DIRECTOR_ID, 'private')).toBe(true);
+    expect(await canCreateMap(ADMIN_ID, 'private')).toBe(true);
+    expect(await canCreateMap(KICKED_DIRECTOR_ID, 'private')).toBe(false);
   });
 
   it('corp maps require Director; plain members denied', async () => {
-    expect(await canCreateMapOfType(EXEC_DIRECTOR_ID, 'corp')).toBe(true);
-    expect(await canCreateMapOfType(NONEXEC_DIRECTOR_ID, 'corp')).toBe(true);
-    expect(await canCreateMapOfType(OTHER_MEMBER_ID, 'corp')).toBe(false);
-    expect(await canCreateMapOfType(ADMIN_ID, 'corp')).toBe(true);
+    expect(await canCreateMap(EXEC_DIRECTOR_ID, 'corp')).toBe(true);
+    expect(await canCreateMap(NONEXEC_DIRECTOR_ID, 'corp')).toBe(true);
+    expect(await canCreateMap(OTHER_MEMBER_ID, 'corp')).toBe(false);
+    expect(await canCreateMap(ADMIN_ID, 'corp')).toBe(true);
   });
 
   it('alliance maps require a Director in the executor corp', async () => {
-    expect(await canCreateMapOfType(EXEC_DIRECTOR_ID, 'alliance')).toBe(true);
+    expect(await canCreateMap(EXEC_DIRECTOR_ID, 'alliance')).toBe(true);
     // Director in the alliance but not its executor corp.
-    expect(await canCreateMapOfType(NONEXEC_DIRECTOR_ID, 'alliance')).toBe(false);
+    expect(await canCreateMap(NONEXEC_DIRECTOR_ID, 'alliance')).toBe(false);
     // Director who is the executor of their own alliance (Y).
-    expect(await canCreateMapOfType(OTHER_DIRECTOR_ID, 'alliance')).toBe(true);
-    expect(await canCreateMapOfType(OTHER_MEMBER_ID, 'alliance')).toBe(false);
-    expect(await canCreateMapOfType(ADMIN_ID, 'alliance')).toBe(true);
+    expect(await canCreateMap(OTHER_DIRECTOR_ID, 'alliance')).toBe(true);
+    expect(await canCreateMap(OTHER_MEMBER_ID, 'alliance')).toBe(false);
+    expect(await canCreateMap(ADMIN_ID, 'alliance')).toBe(true);
   });
 });
 

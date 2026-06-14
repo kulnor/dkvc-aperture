@@ -14,7 +14,7 @@ import {
 } from '@/db/schema';
 import { addSystem, removeSystem, updateSystem } from '@/lib/map/mutations/systems';
 import { foldWormholeJumpOntoMap } from '@/lib/jobs/locationCommit';
-import { isMapOwnerOrAdmin } from '@/lib/auth/rights';
+import { canManageMap } from '@/lib/auth/rights';
 
 /**
  * Per-map auto-tagging (ABC + 0121).
@@ -215,9 +215,9 @@ describe.skipIf(!run)('Stage 17.10 — auto-tagging (real Postgres)', () => {
     expect((await addOk(noneMapId, N1)).tag).toBe('X');
   });
 
-  it('owner/admin gate: only the owner (or an admin) may configure tagging', async () => {
-    expect(await isMapOwnerOrAdmin(OWNER_ID, abcMapId)).toBe(true);
-    expect(await isMapOwnerOrAdmin(STRANGER_ID, abcMapId)).toBe(false);
+  it('manage gate: only a manager of the map may configure tagging', async () => {
+    expect(await canManageMap(OWNER_ID, abcMapId)).toBe(true);
+    expect(await canManageMap(STRANGER_ID, abcMapId)).toBe(false);
   });
 });
 

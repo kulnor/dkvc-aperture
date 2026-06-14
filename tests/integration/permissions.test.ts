@@ -4,10 +4,10 @@ import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import { eq, inArray, sql } from 'drizzle-orm';
 import { db, pool } from '@/db/client';
 import {
+  apAlliance,
   apCharacter,
   apCharacterRole,
   apCorporation,
-  apCorporationRight,
   apMap,
   apMapRoleAccess,
   apRole,
@@ -25,12 +25,13 @@ import { characterCleanup } from '@/lib/jobs/tasks/characterCleanup';
 /**
  * Permissions acceptance gate.
  *
- * Drives the rights matrix end-to-end against real Postgres:
- *   - Owner-by-scope (private/corp/alliance) view + mutate truth table.
- *   - Corp-right grants for non-owner members.
- *   - `map_delete` / `map_share` owner-or-admin restriction.
+ * Drives the rights model end-to-end against real Postgres:
+ *   - Owner-by-scope (private/corp/alliance) view truth table.
+ *   - Derived-authority mutate: private owner, owning-corp Director, and the
+ *     owning-alliance's executor-corp Director manage; plain members cannot.
  *   - Role overlay grants view only (no mutation by themselves).
- *   - Director-promoted admin sees and mutates every map.
+ *   - `canCreateMap(type)` derives from EVE state (private→any, corp/alliance→Director).
+ *   - Admin sees and manages every map.
  *   - Kicked / banned characters fail every check.
  *   - `listViewableMaps` SQL filter matches the per-check results.
  *   - `character-cleanup` cron clears expired kicks.
@@ -47,7 +48,7 @@ const ALLIANCE_Y = 99000902n;
 const ADMIN_ID = 99001001n;
 const OWNER_ID = 99001002n;
 const CORP_A_MEMBER_ID = 99001003n;
-const CORP_A_GRANTED_ID = 99001004n;
+const CORP_A_DIRECTOR_ID = 99001004n;
 const CORP_B_MEMBER_ID = 99001005n;
 const ALLIANCE_X_PILOT_ID = 99001006n;
 const KICKED_ID = 99001007n;
@@ -65,7 +66,7 @@ const characterIds = [
   ADMIN_ID,
   OWNER_ID,
   CORP_A_MEMBER_ID,
-  CORP_A_GRANTED_ID,
+  CORP_A_DIRECTOR_ID,
   CORP_B_MEMBER_ID,
   ALLIANCE_X_PILOT_ID,
   KICKED_ID,
@@ -80,18 +81,28 @@ describe.skipIf(!run)('Stage 15 — permissions (real Postgres)', () => {
     const [u] = await db.insert(apUser).values({}).returning({ id: apUser.id });
     userId = u!.id;
 
-    // Two corps, two alliances. Corp A is in Alliance X.
+    // Two corps, two alliances. Corp A is in Alliance X and is its executor.
     await db.insert(apCorporation).values([
       { id: CORP_A, name: 'Test Corp A', allianceId: ALLIANCE_X },
       { id: CORP_B, name: 'Test Corp B', allianceId: ALLIANCE_Y },
     ]);
+    await db.insert(apAlliance).values([
+      { id: ALLIANCE_X, name: 'Alliance X', executorCorporationId: CORP_A },
+      { id: ALLIANCE_Y, name: 'Alliance Y', executorCorporationId: CORP_B },
+    ]);
 
-    // Characters covering every permission lane.
+    // Characters covering every permission lane. CORP_A_DIRECTOR_ID is a
+    // Director of Corp A (the executor of Alliance X) → manages corp + alliance
+    // maps under derived authority.
     await db.insert(apCharacter).values([
       mkChar(ADMIN_ID, 'Director Admin', { authzLevel: 'admin', corporationId: CORP_A, allianceId: ALLIANCE_X }),
       mkChar(OWNER_ID, 'Map Owner', { corporationId: CORP_A, allianceId: ALLIANCE_X }),
       mkChar(CORP_A_MEMBER_ID, 'Corp A Member', { corporationId: CORP_A, allianceId: ALLIANCE_X }),
-      mkChar(CORP_A_GRANTED_ID, 'Corp A With Right', { corporationId: CORP_A, allianceId: ALLIANCE_X }),
+      mkChar(CORP_A_DIRECTOR_ID, 'Corp A Director', {
+        corporationId: CORP_A,
+        allianceId: ALLIANCE_X,
+        isDirector: true,
+      }),
       mkChar(CORP_B_MEMBER_ID, 'Corp B Outsider', { corporationId: CORP_B, allianceId: ALLIANCE_Y }),
       mkChar(ALLIANCE_X_PILOT_ID, 'Alliance X Pilot', { corporationId: CORP_B, allianceId: ALLIANCE_X }),
       mkChar(KICKED_ID, 'Kicked Pilot', {
@@ -102,23 +113,6 @@ describe.skipIf(!run)('Stage 15 — permissions (real Postgres)', () => {
       }),
       mkChar(ROLE_HOLDER_ID, 'Role Holder', { corporationId: CORP_B, allianceId: ALLIANCE_Y }),
     ]);
-
-    // Corp A grants `map_update` to members (`min_authz_level='member'`).
-    // Note: the test's `CORP_A_GRANTED_ID` is the same authz level as
-    // `CORP_A_MEMBER_ID`. We give the right to the corp; the matrix says
-    // "members can do this", so both pass. To prove the gate works we'll
-    // also test `CORP_B_MEMBER_ID` (no grant on Corp B) gets denied.
-    await db.insert(apCorporationRight).values({
-      corporationId: CORP_A,
-      right: 'map_update',
-      minAuthzLevel: 'member',
-    });
-    // map_create granted to Corp A members only.
-    await db.insert(apCorporationRight).values({
-      corporationId: CORP_A,
-      right: 'map_create',
-      minAuthzLevel: 'member',
-    });
 
     // A role used to grant cross-corp view access to one specific map.
     await db.insert(apRole).values({
@@ -223,34 +217,38 @@ describe.skipIf(!run)('Stage 15 — permissions (real Postgres)', () => {
     expect(await canViewMap(KICKED_ID, allianceMapId)).toBe(false);
   });
 
-  // ─── mutate rules ────────────────────────────────────────────────────────
+  // ─── mutate rules (derived authority) ──────────────────────────────────────
 
-  it('owner can mutate; corp grant lets a non-owner member mutate', async () => {
-    expect(await canMutateMap(OWNER_ID, corpMapId, 'map_update')).toBe(true);
-    expect(await canMutateMap(CORP_A_MEMBER_ID, corpMapId, 'map_update')).toBe(true);
-    expect(await canMutateMap(CORP_A_GRANTED_ID, corpMapId, 'map_update')).toBe(true);
+  it('a corp Director manages the corp map; plain members cannot', async () => {
+    expect(await canMutateMap(CORP_A_DIRECTOR_ID, corpMapId, 'map_update')).toBe(true);
+    expect(await canMutateMap(CORP_A_MEMBER_ID, corpMapId, 'map_update')).toBe(false);
+    expect(await canMutateMap(OWNER_ID, corpMapId, 'map_update')).toBe(false); // plain member
     expect(await canMutateMap(CORP_B_MEMBER_ID, corpMapId, 'map_update')).toBe(false);
   });
 
-  it('map_delete is owner-or-admin only (corp grant insufficient — closes §11 Q8)', async () => {
-    // Corp A grants `map_update` to members but not `map_delete`. Even if it
-    // did, `map_delete` is excluded from corp-right grants by design.
-    expect(await canMutateMap(CORP_A_MEMBER_ID, corpMapId, 'map_delete')).toBe(false);
-    // The corp map has no character-owner; only admin can delete.
-    expect(await canMutateMap(ADMIN_ID, corpMapId, 'map_delete')).toBe(true);
-    // For the private map: OWNER_ID owns it; non-owner corp-mate cannot delete.
+  it('the executor-corp Director manages the alliance map; others cannot', async () => {
+    // Corp A is the executor of Alliance X, so its Director manages the map.
+    expect(await canMutateMap(CORP_A_DIRECTOR_ID, allianceMapId, 'map_update')).toBe(true);
+    // Same-alliance member who is not a Director of the executor corp.
+    expect(await canMutateMap(CORP_A_MEMBER_ID, allianceMapId, 'map_update')).toBe(false);
+    // Alliance X pilot is in Corp B (not the executor corp) → cannot manage.
+    expect(await canMutateMap(ALLIANCE_X_PILOT_ID, allianceMapId, 'map_update')).toBe(false);
+  });
+
+  it('private map: owner manages and deletes; a corp-mate / Director cannot', async () => {
+    expect(await canMutateMap(OWNER_ID, privateMapId, 'map_update')).toBe(true);
     expect(await canMutateMap(OWNER_ID, privateMapId, 'map_delete')).toBe(true);
     expect(await canMutateMap(CORP_A_MEMBER_ID, privateMapId, 'map_delete')).toBe(false);
+    expect(await canMutateMap(CORP_A_DIRECTOR_ID, privateMapId, 'map_update')).toBe(false);
   });
 
   it('role overlay alone does not grant mutation', async () => {
-    // Role holder gets view but not update — they're not an owner and they
-    // don't have a corp-right grant in their own corp (Corp B has no rights row).
+    // Role holder gets view but not update — they're not an owner / Director.
     expect(await canViewMap(ROLE_HOLDER_ID, roleScopedMapId)).toBe(true);
     expect(await canMutateMap(ROLE_HOLDER_ID, roleScopedMapId, 'map_update')).toBe(false);
   });
 
-  it('admin (Director) can mutate every map for every right', async () => {
+  it('admin manages every map for every right', async () => {
     for (const id of [privateMapId, corpMapId, allianceMapId, roleScopedMapId]) {
       expect(await canMutateMap(ADMIN_ID, id, 'map_update')).toBe(true);
       expect(await canMutateMap(ADMIN_ID, id, 'map_delete')).toBe(true);
@@ -260,11 +258,14 @@ describe.skipIf(!run)('Stage 15 — permissions (real Postgres)', () => {
     }
   });
 
-  it('canCreateMap consults the actor corp; admin bypasses the matrix', async () => {
-    expect(await canCreateMap(CORP_A_MEMBER_ID)).toBe(true);
-    expect(await canCreateMap(CORP_B_MEMBER_ID)).toBe(false);
-    expect(await canCreateMap(ADMIN_ID)).toBe(true);
-    expect(await canCreateMap(KICKED_ID)).toBe(false);
+  it('canCreateMap derives from EVE state: private→any, corp/alliance→Director', async () => {
+    expect(await canCreateMap(CORP_A_MEMBER_ID, 'private')).toBe(true);
+    expect(await canCreateMap(CORP_A_MEMBER_ID, 'corp')).toBe(false);
+    expect(await canCreateMap(CORP_A_DIRECTOR_ID, 'corp')).toBe(true);
+    // Corp A is the executor of Alliance X → its Director can create alliance maps.
+    expect(await canCreateMap(CORP_A_DIRECTOR_ID, 'alliance')).toBe(true);
+    expect(await canCreateMap(ADMIN_ID, 'corp')).toBe(true);
+    expect(await canCreateMap(KICKED_ID, 'private')).toBe(false);
   });
 
   it('isAdmin gates the admin probe', async () => {
@@ -346,6 +347,7 @@ interface CharOverrides {
   authzLevel?: 'member' | 'manager' | 'admin';
   corporationId?: bigint;
   allianceId?: bigint;
+  isDirector?: boolean;
   status?: 'active' | 'kicked' | 'banned';
   statusExpiresAt?: Date;
 }
@@ -359,6 +361,7 @@ function mkChar(id: bigint, name: string, overrides: CharOverrides = {}) {
     authzLevel: overrides.authzLevel ?? 'member',
     corporationId: overrides.corporationId ?? null,
     allianceId: overrides.allianceId ?? null,
+    isDirector: overrides.isDirector ?? false,
     status: overrides.status ?? 'active',
     statusExpiresAt: overrides.statusExpiresAt ?? null,
   } as const;
@@ -378,11 +381,9 @@ async function cleanup() {
     .delete(apCharacterRole)
     .where(inArray(apCharacterRole.characterId, characterIds));
   await db.delete(apRole).where(eq(apRole.id, CORP_TITLE_ROLE_ID));
-  await db
-    .delete(apCorporationRight)
-    .where(inArray(apCorporationRight.corporationId, [CORP_A, CORP_B]));
   await db.delete(apCharacter).where(inArray(apCharacter.id, characterIds));
   await db.delete(apCorporation).where(inArray(apCorporation.id, [CORP_A, CORP_B]));
+  await db.delete(apAlliance).where(inArray(apAlliance.id, [ALLIANCE_X, ALLIANCE_Y]));
   if (userId) {
     await db.delete(apUser).where(eq(apUser.id, userId));
     userId = 0;

@@ -12,7 +12,6 @@ import {
   apAlliance,
   apCharacter,
   apCharacterRole,
-  apCorporationRight,
   apMap,
   apMapRoleAccess,
 } from '@/db/schema';
@@ -23,8 +22,7 @@ import type { MapRight, MapType } from '@/types';
  * still owns "is this user logged in"; this file answers "given an
  * authenticated character, can they perform action X on map Y".
  *
- * Reading rule (in order, first match wins for view; mutate combines view +
- * right grant):
+ * View rule (in order, first match wins):
  *   1. `authz_level='admin'` — global override, always wins.
  *   2. Owner match per `ap_map.type`:
  *        private  → `owner_character_id` matches the actor
@@ -34,9 +32,13 @@ import type { MapRight, MapType } from '@/types';
  *      appears in `ap_map_role_access` for the target map grants view access.
  *   4. Otherwise no access.
  *
- * For mutation: pass step 1-3 AND the right is granted by `ap_corporation_right`
- * for the actor's corp (with `min_authz_level <= actor's authz_level`), EXCEPT
- * `map_delete` / `map_share` which require owner-or-admin (not corp-right-grantable).
+ * Management (mutate) is the derived-authority model: a binary "can this
+ * character manage this map" computed purely from EVE state + ownership
+ * (`canManageMap`) — admin, the private map's owner, the owning corp's
+ * Director, or the owning alliance's executor-corp Director. The corp-right
+ * matrix no longer participates and the role overlay never unlocks mutation
+ * (view only). The `MapRight` argument is retained on the mutate guards for the
+ * future title-delegation overlay (R4) but is ignored at the baseline.
  *
  * Maps with all three owner columns NULL are treated as admin-only — defensive
  * default, surfaces unowned rows for repair.
@@ -154,22 +156,14 @@ export async function canViewMap(characterId: bigint, mapId: bigint): Promise<bo
 }
 
 /**
- * Is the character allowed to mutate this map with the given `right`?
+ * Is the character allowed to mutate this map? Baseline derived-authority:
+ * mutation authority is the binary `canManageMap` — admin, the private map's
+ * owner, the owning corp's Director, or the owning alliance's executor-corp
+ * Director. The `right` argument is retained for the future title-delegation
+ * overlay (R4) but is ignored at the baseline; neither the corp-right matrix
+ * nor the role overlay unlocks mutation.
  *
- * Two pathways depending on `ap_map.type`:
- *   - **`type='private'`** — the map's `owner_character_id` is the actor (or
- *     the actor is admin). The corp-right matrix does not apply: a private
- *     map's mutation surface is owner-only, period. Roles can grant view but
- *     never mutation.
- *   - **`type='corp'` / `'alliance'`** — the actor must (a) be allowed to view
- *     the map (corp/alliance owner match — *not* the role overlay; mutation
- *     by role is intentionally not granted, only view) and (b) have a matching
- *     `ap_corporation_right` row in the actor's own corp with
- *     `min_authz_level <= actor's authz_level`. Every right (`map_update`,
- *     `map_delete`, `map_share`, `map_import`, `map_export`) is grantable
- *     via this matrix, server-enforced on every controller.
- *
- * `map_create` is checked by `canCreateMap` (no target map).
+ * `map_create` has no target map and must be checked via `canCreateMap`.
  */
 export async function canMutateMap(
   characterId: bigint,
@@ -179,99 +173,46 @@ export async function canMutateMap(
   if (right === 'map_create') {
     throw new Error('canMutateMap: map_create must be checked via canCreateMap');
   }
-
-  const actor = await loadActor(characterId);
-  if (!actor || actor.status !== 'active') return false;
-  if (actor.authzLevel === 'admin') return true;
-
-  const map = await loadMap(mapId);
-  if (!map) return false;
-
-  // Unowned map (all three owner columns NULL) → admin only.
-  if (
-    map.ownerCharacterId === null &&
-    map.ownerCorporationId === null &&
-    map.ownerAllianceId === null
-  ) {
-    return false;
-  }
-
-  if (map.type === 'private') {
-    return map.ownerCharacterId === characterId;
-  }
-
-  // type === 'corp' | 'alliance'. Require entity membership match against the
-  // map's owner; the role overlay is view-only and does not unlock mutation.
-  const memberOfOwner = isOwner(actor, map, characterId);
-  if (!memberOfOwner) return false;
-
-  if (actor.corporationId === null) return false;
-  const [grant] = await db
-    .select({ min: apCorporationRight.minAuthzLevel })
-    .from(apCorporationRight)
-    .where(
-      and(
-        eq(apCorporationRight.corporationId, actor.corporationId),
-        eq(apCorporationRight.right, right),
-      ),
-    );
-  if (!grant) return false;
-  return AUTHZ_ORDINAL[actor.authzLevel] >= AUTHZ_ORDINAL[grant.min];
+  return canManageMap(characterId, mapId);
 }
 
 /**
- * Can this character spawn a new map? Pure corp-right check against
- * the actor's own corp; no per-target lookup. Admin always allowed.
+ * Can this character create a map of the given `type`? Derived-authority:
+ *   private  → any active character
+ *   corp     → actor.is_director (owned to actor.corporation_id)
+ *   alliance → actor.is_director && actor.corporation_id == executorCorpOf(actor.alliance_id)
+ * Admin may create anything. No target map; the caller resolves the owner FK
+ * from the actor's affiliation.
  */
-export async function canCreateMap(characterId: bigint): Promise<boolean> {
+export async function canCreateMap(characterId: bigint, type: MapType): Promise<boolean> {
   const actor = await loadActor(characterId);
   if (!actor || actor.status !== 'active') return false;
   if (actor.authzLevel === 'admin') return true;
-  if (actor.corporationId === null) return false;
-  const [grant] = await db
-    .select({ min: apCorporationRight.minAuthzLevel })
-    .from(apCorporationRight)
-    .where(
-      and(
-        eq(apCorporationRight.corporationId, actor.corporationId),
-        eq(apCorporationRight.right, 'map_create'),
-      ),
-    );
-  if (!grant) return false;
-  return AUTHZ_ORDINAL[actor.authzLevel] >= AUTHZ_ORDINAL[grant.min];
-}
 
-/**
- * Owner-or-admin gate, bypassing the corp-right matrix. Used to
- * restrict map-level auto-tagging config (scheme + Home) to the map owner or a
- * global admin — strictly tighter than `map_update`, which a corp may grant to
- * ordinary members. Returns false for non-existent / soft-deleted / unowned maps.
- */
-export async function isMapOwnerOrAdmin(characterId: bigint, mapId: bigint): Promise<boolean> {
-  const actor = await loadActor(characterId);
-  if (!actor || actor.status !== 'active') return false;
-  if (actor.authzLevel === 'admin') return true;
-  const map = await loadMap(mapId);
-  if (!map) return false;
-  if (
-    map.ownerCharacterId === null &&
-    map.ownerCorporationId === null &&
-    map.ownerAllianceId === null
-  ) {
-    return false;
+  switch (type) {
+    case 'private':
+      return true;
+    case 'corp':
+      return actor.isDirector && actor.corporationId !== null;
+    case 'alliance': {
+      if (!actor.isDirector || actor.allianceId === null || actor.corporationId === null) {
+        return false;
+      }
+      const executor = await executorCorpOf(actor.allianceId);
+      return executor !== null && executor === actor.corporationId;
+    }
   }
-  return isOwner(actor, map, characterId);
 }
 
 // ---------------------------------------------------------------------------
-// Derived-authority model (permissions multi-tenant, stage 1).
+// Derived-authority model (permissions multi-tenant).
 //
-// These functions express map-management authority as a pure function of EVE
-// state + ownership: members own their private maps, corp Directors manage
-// their corp's maps, and the alliance executor corp's Directors manage alliance
-// maps. They are ADDITIVE — added alongside the legacy `canMutateMap` /
-// `canCreateMap` / `ap_corporation_right` gates, which remain the live path
-// until stage 2 swaps them in. Nothing below is wired into a controller yet.
+// Map-management authority is a pure function of EVE state + ownership:
+// members own their private maps, corp Directors manage their corp's maps, and
+// the alliance executor corp's Directors manage alliance maps. This is the live
+// mutate path — `canMutateMap` / `requireMapRight` / `assertMapRight` all
+// resolve to `canManageMap`, and `canCreateMap` is the typed create gate. The
+// corp-right matrix no longer participates.
 // ---------------------------------------------------------------------------
 
 /**
@@ -328,40 +269,6 @@ export async function canManageMap(characterId: bigint, mapId: bigint): Promise<
         return false;
       }
       const executor = await executorCorpOf(map.ownerAllianceId);
-      return executor !== null && executor === actor.corporationId;
-    }
-  }
-}
-
-/**
- * Can the actor create a map of the given type under the derived-authority
- * model?
- *
- *   private  → any active character
- *   corp     → actor.is_director (owned to actor.corporation_id)
- *   alliance → actor.is_director && actor.corporation_id == executorCorpOf(actor.alliance_id)
- *
- * Admin may create anything. Named to avoid colliding with the legacy
- * `canCreateMap(characterId)`; stage 2 collapses the two.
- */
-export async function canCreateMapOfType(
-  characterId: bigint,
-  type: MapType,
-): Promise<boolean> {
-  const actor = await loadActor(characterId);
-  if (!actor || actor.status !== 'active') return false;
-  if (actor.authzLevel === 'admin') return true;
-
-  switch (type) {
-    case 'private':
-      return true;
-    case 'corp':
-      return actor.isDirector && actor.corporationId !== null;
-    case 'alliance': {
-      if (!actor.isDirector || actor.allianceId === null || actor.corporationId === null) {
-        return false;
-      }
-      const executor = await executorCorpOf(actor.allianceId);
       return executor !== null && executor === actor.corporationId;
     }
   }

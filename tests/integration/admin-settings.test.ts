@@ -10,17 +10,21 @@ import {
   apCorporationRight,
   apUser,
 } from '@/db/schema';
-import { canCreateMap } from '@/lib/auth/rights';
 
 /**
  * Admin corp-rights matrix (real Postgres).
  *
  * Drives `adminUpsertCorpRight` / `adminDeleteCorpRight` end-to-end and
  * asserts:
- *   - upsert flips `canCreateMap` for a corp's member;
+ *   - upsert writes/raises the `ap_corporation_right` grant for a corp;
  *   - delete restores the "no grant" state;
  *   - manager in corp B cannot upsert a row for corp A;
  *   - member is denied every action.
+ *
+ * Note: the corp-right matrix is decoupled from `canCreateMap` as of the
+ * derived-authority overhaul (stage 2) and the whole matrix is retired in
+ * stage 4. Until then these admin actions still write the table, so this test
+ * asserts the table state directly.
  *
  *   docker compose up -d && pnpm db:migrate && RUN_DB_TESTS=1 pnpm test
  */
@@ -57,6 +61,22 @@ async function clearAllCorpRights(): Promise<void> {
   await db
     .delete(apCorporationRight)
     .where(inArray(apCorporationRight.corporationId, [CORP_A, CORP_B]));
+}
+
+async function readGrant(
+  corporationId: bigint,
+  right: 'map_create' | 'map_update' | 'map_delete' | 'map_share' | 'map_import' | 'map_export',
+): Promise<string | undefined> {
+  const [row] = await db
+    .select({ min: apCorporationRight.minAuthzLevel })
+    .from(apCorporationRight)
+    .where(
+      and(
+        eq(apCorporationRight.corporationId, corporationId),
+        eq(apCorporationRight.right, right),
+      ),
+    );
+  return row?.min ?? undefined;
 }
 
 describe.skipIf(!run)('Stage 16.5 — admin corp-rights matrix (real Postgres)', () => {
@@ -119,10 +139,10 @@ describe.skipIf(!run)('Stage 16.5 — admin corp-rights matrix (real Postgres)',
 
   // ─── upsert / delete round-trip ──────────────────────────────────────────
 
-  it('upsert toggles canCreateMap for a corp member', async () => {
+  it('upsert writes then raises the map_create grant for a corp', async () => {
     currentSession = asSession(ADMIN_ID);
 
-    expect(await canCreateMap(MEMBER_A_ID)).toBe(false);
+    expect(await readGrant(CORP_A, 'map_create')).toBeUndefined();
 
     const granted = await adminUpsertCorpRight({
       corporationId: CORP_A.toString(),
@@ -130,7 +150,7 @@ describe.skipIf(!run)('Stage 16.5 — admin corp-rights matrix (real Postgres)',
       minAuthzLevel: 'member',
     });
     expect(granted.ok).toBe(true);
-    expect(await canCreateMap(MEMBER_A_ID)).toBe(true);
+    expect(await readGrant(CORP_A, 'map_create')).toBe('member');
 
     const raised = await adminUpsertCorpRight({
       corporationId: CORP_A.toString(),
@@ -138,7 +158,7 @@ describe.skipIf(!run)('Stage 16.5 — admin corp-rights matrix (real Postgres)',
       minAuthzLevel: 'manager',
     });
     expect(raised.ok).toBe(true);
-    expect(await canCreateMap(MEMBER_A_ID)).toBe(false);
+    expect(await readGrant(CORP_A, 'map_create')).toBe('manager');
   });
 
   it('delete removes the grant entirely', async () => {
