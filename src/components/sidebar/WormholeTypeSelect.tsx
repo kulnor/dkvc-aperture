@@ -11,6 +11,7 @@ import {
 import { fetchWormholeTypes } from '@/lib/map/client';
 import { systemClassColor } from '@/components/map/styling';
 import type { WormholeTypeOption } from '@/types';
+import { exit } from 'process';
 
 const NONE_VALUE = '__none__';
 
@@ -149,7 +150,10 @@ export function WormholeTypeSelect({
             {classMatched.length > 0 && <div className="my-0.5 h-px bg-border" />}
           </>
         )}
-        {exitHole && renderOption(exitHole)}
+        {exitHole && <>
+          {renderOption(exitHole)}
+          <div className="my-0.5 h-px bg-border" />
+        </>}
         {classMatched.map(renderOption)}
         {others.length > 0 && (
           <>
