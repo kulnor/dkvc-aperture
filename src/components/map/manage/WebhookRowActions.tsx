@@ -15,10 +15,10 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import {
-  adminDeleteWebhook,
-  adminResetWebhookFailures,
-  adminTestWebhook,
-} from '@/app/(admin)/actions/webhooks';
+  deleteWebhook,
+  resetWebhookFailures,
+  testWebhook,
+} from '@/app/(app)/actions/webhooks';
 import { WebhookForm } from './WebhookForm';
 
 type WebhookChannel = 'discord';
@@ -33,31 +33,44 @@ export type WebhookRowActionsProps = {
     username: string | null;
     consecutiveFailures: number;
   };
+  /** Refresh the list after a mutation (test/reset/edit/delete). */
+  onChanged?: () => void;
 };
 
 /**
  * Per-row action cluster for the webhook list: test-fire, reset
  * failure counter (only when failing), edit (dialog wrapping `WebhookForm`),
- * and delete (confirm dialog).
+ * and delete (confirm dialog). Each successful mutation calls `onChanged` so
+ * the panel refetches.
  */
-export function WebhookRowActions({ webhook }: WebhookRowActionsProps) {
+export function WebhookRowActions({ webhook, onChanged }: WebhookRowActionsProps) {
   return (
     <div className="flex items-center justify-end gap-1">
-      <TestButton webhook={webhook} />
-      {webhook.consecutiveFailures > 0 && <ResetButton webhook={webhook} />}
-      <EditButton webhook={webhook} />
-      <DeleteButton webhook={webhook} />
+      <TestButton webhook={webhook} onChanged={onChanged} />
+      {webhook.consecutiveFailures > 0 && <ResetButton webhook={webhook} onChanged={onChanged} />}
+      <EditButton webhook={webhook} onChanged={onChanged} />
+      <DeleteButton webhook={webhook} onChanged={onChanged} />
     </div>
   );
 }
 
-function TestButton({ webhook }: { webhook: WebhookRowActionsProps['webhook'] }) {
+function TestButton({
+  webhook,
+  onChanged,
+}: {
+  webhook: WebhookRowActionsProps['webhook'];
+  onChanged?: () => void;
+}) {
   const [pending, startTransition] = useTransition();
   function onClick() {
     startTransition(async () => {
-      const result = await adminTestWebhook(webhook.id);
-      if (result.ok) toast.success('Test fired — reload in a moment to see the status.');
-      else toast.error(result.error);
+      const result = await testWebhook(webhook.id);
+      if (result.ok) {
+        toast.success('Test fired — the status updates in a moment.');
+        onChanged?.();
+      } else {
+        toast.error(result.error);
+      }
     });
   }
   return (
@@ -75,13 +88,23 @@ function TestButton({ webhook }: { webhook: WebhookRowActionsProps['webhook'] })
   );
 }
 
-function ResetButton({ webhook }: { webhook: WebhookRowActionsProps['webhook'] }) {
+function ResetButton({
+  webhook,
+  onChanged,
+}: {
+  webhook: WebhookRowActionsProps['webhook'];
+  onChanged?: () => void;
+}) {
   const [pending, startTransition] = useTransition();
   function onClick() {
     startTransition(async () => {
-      const result = await adminResetWebhookFailures(webhook.id);
-      if (result.ok) toast.success('Failure counter cleared.');
-      else toast.error(result.error);
+      const result = await resetWebhookFailures(webhook.id);
+      if (result.ok) {
+        toast.success('Failure counter cleared.');
+        onChanged?.();
+      } else {
+        toast.error(result.error);
+      }
     });
   }
   return (
@@ -99,7 +122,13 @@ function ResetButton({ webhook }: { webhook: WebhookRowActionsProps['webhook'] }
   );
 }
 
-function EditButton({ webhook }: { webhook: WebhookRowActionsProps['webhook'] }) {
+function EditButton({
+  webhook,
+  onChanged,
+}: {
+  webhook: WebhookRowActionsProps['webhook'];
+  onChanged?: () => void;
+}) {
   const [open, setOpen] = useState(false);
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -125,23 +154,33 @@ function EditButton({ webhook }: { webhook: WebhookRowActionsProps['webhook'] })
         <WebhookForm
           mode="edit"
           webhook={webhook}
-          onDone={() => setOpen(false)}
+          onDone={() => {
+            setOpen(false);
+            onChanged?.();
+          }}
         />
       </DialogContent>
     </Dialog>
   );
 }
 
-function DeleteButton({ webhook }: { webhook: WebhookRowActionsProps['webhook'] }) {
+function DeleteButton({
+  webhook,
+  onChanged,
+}: {
+  webhook: WebhookRowActionsProps['webhook'];
+  onChanged?: () => void;
+}) {
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
 
   function onConfirm() {
     startTransition(async () => {
-      const result = await adminDeleteWebhook(webhook.id);
+      const result = await deleteWebhook(webhook.id);
       if (result.ok) {
         toast.success('Webhook removed.');
         setOpen(false);
+        onChanged?.();
       } else {
         toast.error(result.error);
       }

@@ -1,0 +1,18 @@
+## MapTaggingForm
+
+**Purpose:** Auto-tagging config form for the in-map Settings → Auto-tagging tab.
+**File:** `src/components/map/manage/MapTaggingForm.tsx`
+
+### Props
+
+| Prop | Type | Required | Description |
+|---|---|---|---|
+| mapId | string | yes | Target map |
+| initialScheme | 'none' \| 'abc' \| '0121' | yes | Current tag scheme |
+| initialHomeMapSystemId | string \| null | yes | Current Home `ap_map_system` id |
+| initialExemptHomeStatic | boolean | yes | Current ABC home-static exemption |
+| systems | { id; name; alias }[] | yes | Visible map systems for the Home picker |
+
+### Behaviour & Interactions
+- Submits `tagScheme` + `homeMapSystemId` + `exemptHomeStaticFromTag` via `updateMapSettingsAction` (gated by `canManageMap`).
+- Home picker disabled when scheme is `none`; the exemption checkbox enables only for ABC with a Home set.

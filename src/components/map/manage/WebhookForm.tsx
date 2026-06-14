@@ -12,10 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  adminCreateWebhook,
-  adminUpdateWebhook,
-} from '@/app/(admin)/actions/webhooks';
+import { createWebhook, updateWebhook } from '@/app/(app)/actions/webhooks';
 
 type WebhookChannel = 'discord';
 type WebhookEvent = 'history' | 'rally';
@@ -35,6 +32,8 @@ export type WebhookFormProps =
   | {
       mode: 'create';
       mapId: string;
+      /** Refresh the list after a successful insert. */
+      onCreated?: () => void;
     }
   | {
       mode: 'edit';
@@ -55,12 +54,12 @@ export type WebhookFormProps =
  */
 export function WebhookForm(props: WebhookFormProps) {
   if (props.mode === 'create') {
-    return <CreateForm mapId={props.mapId} />;
+    return <CreateForm mapId={props.mapId} onCreated={props.onCreated} />;
   }
   return <EditForm webhook={props.webhook} onDone={props.onDone} />;
 }
 
-function CreateForm({ mapId }: { mapId: string }) {
+function CreateForm({ mapId, onCreated }: { mapId: string; onCreated?: () => void }) {
   const [channel, setChannel] = useState<WebhookChannel>('discord');
   const [event, setEvent] = useState<WebhookEvent>('history');
   const [url, setUrl] = useState('');
@@ -75,7 +74,7 @@ function CreateForm({ mapId }: { mapId: string }) {
       return;
     }
     startTransition(async () => {
-      const result = await adminCreateWebhook({
+      const result = await createWebhook({
         mapId,
         channel,
         event,
@@ -87,6 +86,7 @@ function CreateForm({ mapId }: { mapId: string }) {
         setUrl('');
         setUsername('');
         setEvent('history');
+        onCreated?.();
       } else {
         toast.error(result.error);
       }
@@ -194,7 +194,7 @@ function EditForm({
       return;
     }
     startTransition(async () => {
-      const result = await adminUpdateWebhook({
+      const result = await updateWebhook({
         id: webhook.id,
         url: trimmedUrl,
         username: username.trim() || undefined,

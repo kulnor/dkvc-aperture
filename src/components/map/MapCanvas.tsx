@@ -86,7 +86,7 @@ import {
   SignatureModule,
   SignatureModuleHeaderActions,
 } from '@/components/sidebar/SignatureModule';
-import { Info, LayoutDashboard, Plus, RotateCcw, Search, Settings, Trash2, User } from 'lucide-react';
+import { Info, LayoutDashboard, Plus, RotateCcw, ScrollText, Search, Settings, Trash2, User } from 'lucide-react';
 import { Tooltip } from '@base-ui/react/tooltip';
 import { Button } from '@/components/ui/button';
 import {
@@ -108,6 +108,7 @@ import { MapInfoDialog } from '@/components/dialogs/MapInfoDialog';
 import { PilotRosterButton } from './PilotRosterButton';
 import { SystemOverlayButton } from './SystemOverlayButton';
 import { MapSettingsDialog } from '@/components/dialogs/MapSettingsDialog';
+import { MapAuditDialog } from '@/components/map/manage/MapAuditDialog';
 import { SignatureSearchDialog } from '@/components/dialogs/SignatureSearchDialog';
 import { AddSystemDialog } from './AddSystemDialog';
 import { ConnectionEdge, type ConnectionEdgeData } from './ConnectionEdge';
@@ -225,6 +226,7 @@ export function MapCanvas({
   intel: initialIntel,
   structures: initialStructures,
   settings,
+  canManage,
   travelAnimation,
   signatureIndicators,
   viewerCharacterIds,
@@ -239,6 +241,8 @@ export function MapCanvas({
   intel: Record<number, SystemIntelSummary>;
   structures: Record<number, StructureIntel[]>;
   settings: MapSettings;
+  /** Whether the viewer can manage this map (derived `canManageMap`) — reveals settings/webhooks/audit. */
+  canManage: boolean;
   travelAnimation: boolean;
   /** Viewer's resolved stale/unscanned indicator prefs (threshold + toggles). */
   signatureIndicators: SignatureIndicatorPrefs;
@@ -286,6 +290,7 @@ export function MapCanvas({
   const [disconnectedPreview, setDisconnectedPreview] = useState<{ count: number } | null>(null);
   const [mapInfoOpen, setMapInfoOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [auditOpen, setAuditOpen] = useState(false);
   const [addSystemOpen, setAddSystemOpen] = useState(false);
   const [sigSearchOpen, setSigSearchOpen] = useState(false);
   const [sigSearchFilters, setSigSearchFilters] = useState<SigSearchFilters>({
@@ -1160,6 +1165,15 @@ export function MapCanvas({
     [viewData.systems],
   );
 
+  // Visible map systems for the settings dialog's Auto-tagging Home picker.
+  const manageSystems = useMemo(
+    () =>
+      [...viewData.systems]
+        .map((s) => ({ id: s.id, name: s.name, alias: s.alias }))
+        .sort((a, b) => a.name.localeCompare(b.name)),
+    [viewData.systems],
+  );
+
   // ---- Structure-intel callbacks -----------------------------------------
   //
   // Plain REST (no map event, no realtime echo): await the server, then update
@@ -1498,6 +1512,12 @@ export function MapCanvas({
                 <Settings />
                 Settings
               </Button>
+              {canManage && (
+                <Button variant="ghost" size="sm" onClick={() => setAuditOpen(true)}>
+                  <ScrollText />
+                  Audit log
+                </Button>
+              )}
             </div>
           </div>
           <MapLayoutGrid layouts={layout.layouts} onLayoutChange={handleLayoutChange}>
@@ -1525,8 +1545,18 @@ export function MapCanvas({
           onOpenChange={setSettingsOpen}
           mapId={mapId}
           settings={settings}
+          canManage={canManage}
+          systems={manageSystems}
           onImported={onBulkPaste}
         />
+        {canManage && (
+          <MapAuditDialog
+            open={auditOpen}
+            onOpenChange={setAuditOpen}
+            mapId={mapId}
+            mapName={settings.name}
+          />
+        )}
         <AddSystemDialog
           open={addSystemOpen}
           onOpenChange={setAddSystemOpen}

@@ -12,10 +12,12 @@ import type {
 } from '@/types';
 
 /**
- * MapAuditBrowser — the interactive surface of the manager audit console. Fetches
+ * MapAuditBrowser — the interactive surface of the in-map audit console. Fetches
  * the keyset-paginated commit feed from `/api/map/[mapId]/audit`, with actor /
  * category / date / search filters, a per-actor drill-down summary, and
- * "load more" paging.
+ * "load more" paging. Self-contained: the actor list for the filter dropdown
+ * rides the first-page response, so the component needs only `mapId` and lives
+ * inside `MapAuditDialog`.
  */
 
 // UI-local knowledge of the kind vocabulary, typed against `MapEventKind` so a
@@ -68,6 +70,8 @@ interface AuditApiData {
   rows: AuditEventRow[];
   nextCursor: string | null;
   actorSummary: ActorSummary | null;
+  /** Present only on the first page (no cursor) — backs the actor dropdown. */
+  actors?: AuditActor[];
 }
 
 function computeKinds(
@@ -87,7 +91,8 @@ function localDateToIso(value: string, endOfDay: boolean): string | null {
   return Number.isNaN(d.getTime()) ? null : d.toISOString();
 }
 
-export function MapAuditBrowser({ mapId, actors }: { mapId: string; actors: AuditActor[] }) {
+export function MapAuditBrowser({ mapId }: { mapId: string }) {
+  const [actors, setActors] = useState<AuditActor[]>([]);
   const [actor, setActor] = useState<ActorFilter>('all');
   const [categories, setCategories] = useState<Set<AuditEventCategory>>(new Set());
   const [destructiveOnly, setDestructiveOnly] = useState(false);
@@ -153,6 +158,7 @@ export function MapAuditBrowser({ mapId, actors }: { mapId: string; actors: Audi
         setRows(json.data.rows);
         setNextCursor(json.data.nextCursor);
         setActorSummary(json.data.actorSummary);
+        if (json.data.actors) setActors(json.data.actors);
       } catch (err) {
         if (active && !(err instanceof DOMException && err.name === 'AbortError')) {
           setError('Failed to load audit log.');

@@ -1,0 +1,23 @@
+## MapAuditBrowser
+
+**Purpose:** Interactive surface of the in-map audit console — the filtered, keyset-paginated commit feed.
+**File:** `src/components/map/manage/MapAuditBrowser.tsx`
+
+### Props
+
+| Prop | Type | Required | Description |
+|---|---|---|---|
+| mapId | string | yes | Map whose `/api/map/[mapId]/audit` feed is shown |
+
+### Renders
+A filter toolbar (actor dropdown, category chips, "Deletions only", date range, search, refresh/auto-refresh), an optional per-actor drill-down summary, the When/Actor/Action/Detail table, and a "Load more" footer.
+
+### Behaviour & Interactions
+- Self-contained: fetches `/api/map/[mapId]/audit`; the **actor list rides the first-page response** (`data.actors`, present only when no cursor) and seeds the dropdown — no `actors` prop.
+- Filters rebuild the request URL; changing any filter refetches the first page (search debounced 250ms).
+- Auto-refresh polls the first page every 3s (hard-coded `AUTO_REFRESH_MS`).
+- Clicking an actor (row or avatar) filters to that actor; the summary bar then shows their per-category + destructive breakdown.
+
+### Depends On
+- `GET /api/map/[mapId]/audit` (gated by `canManageMap`)
+- `ccpImageUrl` for avatars; `AuditActor` / `AuditEventRow` / `ActorSummary` types

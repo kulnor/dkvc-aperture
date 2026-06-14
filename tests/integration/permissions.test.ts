@@ -15,6 +15,7 @@ import {
 } from '@/db/schema';
 import {
   canCreateMap,
+  canManageMap,
   canMutateMap,
   canViewMap,
   isAdmin,
@@ -246,6 +247,24 @@ describe.skipIf(!run)('Stage 15 — permissions (real Postgres)', () => {
     // Role holder gets view but not update — they're not an owner / Director.
     expect(await canViewMap(ROLE_HOLDER_ID, roleScopedMapId)).toBe(true);
     expect(await canMutateMap(ROLE_HOLDER_ID, roleScopedMapId, 'map_update')).toBe(false);
+  });
+
+  it('canManageMap gates the in-place settings / webhooks / audit surfaces', async () => {
+    // The map Settings management tabs, `GET /api/map/[id]/webhooks` + its
+    // actions, and `GET /api/map/[id]/audit` all gate on `canManageMap`. The
+    // private owner, the owning-corp Director, the executor-corp Director (for
+    // the alliance map), and admin can manage; plain members with view access
+    // cannot.
+    expect(await canManageMap(OWNER_ID, privateMapId)).toBe(true);
+    expect(await canManageMap(CORP_A_DIRECTOR_ID, corpMapId)).toBe(true);
+    expect(await canManageMap(CORP_A_DIRECTOR_ID, allianceMapId)).toBe(true);
+    expect(await canManageMap(ADMIN_ID, corpMapId)).toBe(true);
+
+    // Plain members who can VIEW the map still cannot manage it.
+    expect(await canManageMap(CORP_A_MEMBER_ID, corpMapId)).toBe(false);
+    expect(await canManageMap(OWNER_ID, corpMapId)).toBe(false); // corp-mate, not Director
+    expect(await canManageMap(ALLIANCE_X_PILOT_ID, allianceMapId)).toBe(false); // not executor corp
+    expect(await canManageMap(KICKED_ID, corpMapId)).toBe(false);
   });
 
   it('admin manages every map for every right', async () => {

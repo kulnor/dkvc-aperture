@@ -4,34 +4,9 @@ import { useState, useTransition } from 'react';
 import { Save } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { adminUpdateMapSettings } from '@/app/(admin)/actions/maps';
-
-type ToggleKey =
-  | 'deleteExpiredConnections'
-  | 'deleteEolConnections'
-  | 'trackAbyssalJumps'
-  | 'logActivity';
+import { updateMapSettingsAction } from '@/app/(app)/actions/map';
 
 type TagScheme = 'none' | 'abc' | '0121';
-
-const TOGGLES: { key: ToggleKey; label: string; description: string }[] = [
-  {
-    key: 'deleteExpiredConnections',
-    label: 'Delete expired connections',
-    description: 'Auto-remove connections past their lifetime.',
-  },
-  {
-    key: 'deleteEolConnections',
-    label: 'Delete EOL connections',
-    description: 'Auto-remove connections once they pass end-of-life.',
-  },
-  {
-    key: 'trackAbyssalJumps',
-    label: 'Track abyssal jumps',
-    description: 'Record abyssal traversals as connections.',
-  },
-  { key: 'logActivity', label: 'Log activity', description: 'Record map activity to history.' },
-];
 
 const TAG_SCHEME_OPTIONS: { value: TagScheme; label: string }[] = [
   { value: 'none', label: 'Off' },
@@ -39,52 +14,12 @@ const TAG_SCHEME_OPTIONS: { value: TagScheme; label: string }[] = [
   { value: '0121', label: '0121 — chain numbering' },
 ];
 
-function BehaviorForm({
-  mapId,
-  initialValues,
-}: {
-  mapId: string;
-  initialValues: Record<ToggleKey, boolean>;
-}) {
-  const [values, setValues] = useState(initialValues);
-  const [pending, startTransition] = useTransition();
-
-  function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    startTransition(async () => {
-      const result = await adminUpdateMapSettings({ mapId, ...values });
-      if (result.ok) toast.success('Settings saved.');
-      else toast.error(result.error);
-    });
-  }
-
-  return (
-    <form onSubmit={onSubmit} className="flex flex-col gap-3">
-      {TOGGLES.map((t) => (
-        <label key={t.key} className="flex items-start gap-3">
-          <input
-            type="checkbox"
-            className="mt-0.5 size-4 accent-primary"
-            checked={values[t.key]}
-            onChange={(e) => setValues((v) => ({ ...v, [t.key]: e.target.checked }))}
-          />
-          <span className="flex flex-col">
-            <span className="text-sm font-medium">{t.label}</span>
-            <span className="text-xs text-muted-foreground">{t.description}</span>
-          </span>
-        </label>
-      ))}
-      <div className="flex justify-end">
-        <Button type="submit" disabled={pending}>
-          <Save />
-          {pending ? 'Saving…' : 'Save'}
-        </Button>
-      </div>
-    </form>
-  );
-}
-
-function TaggingForm({
+/**
+ * Auto-tagging config for the in-map Settings → Auto-tagging tab. Persists via
+ * `updateMapSettingsAction` (gated by `canManageMap`); the Home picker is fed
+ * the map's visible systems.
+ */
+export function MapTaggingForm({
   mapId,
   initialScheme,
   initialHomeMapSystemId,
@@ -107,7 +42,7 @@ function TaggingForm({
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     startTransition(async () => {
-      const result = await adminUpdateMapSettings({
+      const result = await updateMapSettingsAction({
         mapId,
         tagScheme: scheme,
         homeMapSystemId: homeMapSystemId === '' ? null : homeMapSystemId,
@@ -124,11 +59,11 @@ function TaggingForm({
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-4">
       <div className="flex flex-col gap-1.5">
-        <label htmlFor="admin-tag-scheme" className="text-sm font-medium">
+        <label htmlFor="map-tag-scheme" className="text-sm font-medium">
           Auto-tagging scheme
         </label>
         <select
-          id="admin-tag-scheme"
+          id="map-tag-scheme"
           value={scheme}
           onChange={(e) => setScheme(e.target.value as TagScheme)}
           className={selectClass}
@@ -146,11 +81,11 @@ function TaggingForm({
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <label htmlFor="admin-home-system" className="text-sm font-medium">
+        <label htmlFor="map-home-system" className="text-sm font-medium">
           Home system
         </label>
         <select
-          id="admin-home-system"
+          id="map-home-system"
           value={homeMapSystemId}
           onChange={(e) => setHomeMapSystemId(e.target.value)}
           disabled={scheme === 'none'}
@@ -193,51 +128,5 @@ function TaggingForm({
         </Button>
       </div>
     </form>
-  );
-}
-
-export function MapAdminSettingsForm({
-  mapId,
-  settings,
-  systems,
-}: {
-  mapId: string;
-  settings: {
-    deleteExpiredConnections: boolean;
-    deleteEolConnections: boolean;
-    trackAbyssalJumps: boolean;
-    logActivity: boolean;
-    tagScheme: TagScheme;
-    homeMapSystemId: string | null;
-    exemptHomeStaticFromTag: boolean;
-  };
-  systems: { id: string; name: string; alias: string | null }[];
-}) {
-  return (
-    <div className="flex flex-col gap-6">
-      <section className="flex flex-col gap-3">
-        <h2 className="text-base font-semibold">Behavior</h2>
-        <BehaviorForm
-          mapId={mapId}
-          initialValues={{
-            deleteExpiredConnections: settings.deleteExpiredConnections,
-            deleteEolConnections: settings.deleteEolConnections,
-            trackAbyssalJumps: settings.trackAbyssalJumps,
-            logActivity: settings.logActivity,
-          }}
-        />
-      </section>
-      <hr className="border-border" />
-      <section className="flex flex-col gap-3">
-        <h2 className="text-base font-semibold">Auto-tagging</h2>
-        <TaggingForm
-          mapId={mapId}
-          initialScheme={settings.tagScheme}
-          initialHomeMapSystemId={settings.homeMapSystemId}
-          initialExemptHomeStatic={settings.exemptHomeStaticFromTag}
-          systems={systems}
-        />
-      </section>
-    </div>
   );
 }

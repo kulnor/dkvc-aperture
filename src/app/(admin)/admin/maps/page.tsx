@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { ScrollText, Settings2, Webhook } from 'lucide-react';
 import { auth } from '@/lib/auth';
 import { adminVisibilityScope, isAdmin } from '@/lib/auth/rights';
 import { listAdminMaps } from '@/lib/map/loadMap';
@@ -105,35 +104,11 @@ export default async function AdminMapsPage() {
                     </td>
                     <td className="px-3 py-2 align-middle">
                       <div className="flex items-center justify-end gap-1">
-                        {!softDeleted && (
-                          <>
-                            <Link
-                              href={{ pathname: `/admin/maps/${m.id}/settings` }}
-                              aria-label={`Settings for ${m.name}`}
-                              title="Settings"
-                              className="inline-flex size-7 items-center justify-center rounded-[12px] text-muted-foreground hover:bg-muted hover:text-foreground"
-                            >
-                              <Settings2 className="size-3.5" />
-                            </Link>
-                            <Link
-                              href={{ pathname: `/admin/maps/${m.id}/webhooks` }}
-                              aria-label={`Webhooks for ${m.name}`}
-                              title="Webhooks"
-                              className="inline-flex size-7 items-center justify-center rounded-[12px] text-muted-foreground hover:bg-muted hover:text-foreground"
-                            >
-                              <Webhook className="size-3.5" />
-                            </Link>
-                          </>
-                        )}
-                        {/* Audit reaches the commit history even for soft-deleted maps. */}
-                        <Link
-                          href={{ pathname: `/admin/maps/${m.id}/audit` }}
-                          aria-label={`Audit log for ${m.name}`}
-                          title="Audit log"
-                          className="inline-flex size-7 items-center justify-center rounded-[12px] text-muted-foreground hover:bg-muted hover:text-foreground"
-                        >
-                          <ScrollText className="size-3.5" />
-                        </Link>
+                        {/*
+                          Per-map settings / webhooks / audit now live in-place on
+                          the map (open via the active map's name link), gated by
+                          `canManageMap`. This list keeps only operator actions.
+                        */}
                         <MapActionsMenu map={m} canPurge={canPurge} />
                       </div>
                     </td>

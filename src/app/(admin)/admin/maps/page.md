@@ -4,7 +4,7 @@
 **File:** `src/app/(admin)/admin/maps/page.tsx`
 
 ### Renders
-A scope label header and a plain HTML table with columns: Name (linked to `/map/<id>` for active rows, struck-through plain text for soft-deleted), Scope, Type, Owner (formatted from the map's owner FK matching its `type`), Created (Intl-formatted date), Status badge (`Active` / `Soft-deleted <date>`), and an action cell. The action cell hosts a Settings link and a Webhooks link (active rows only, deep-linking to `/admin/maps/<id>/settings` and `/admin/maps/<id>/webhooks`), then an Audit-log link (`ScrollText`, shown for **all** rows incl. soft-deleted, deep-linking to `/admin/maps/<id>/audit`), followed by `<MapActionsMenu>`.
+A scope label header and a plain HTML table with columns: Name (linked to `/map/<id>` for active rows, struck-through plain text for soft-deleted), Scope, Type, Owner (formatted from the map's owner FK matching its `type`), Created (Intl-formatted date), Status badge (`Active` / `Soft-deleted <date>`), and an action cell hosting only `<MapActionsMenu>` (delete / restore / purge). Per-map settings, webhooks, and audit are no longer here — they live in-place on the map (open via the active map's name link), gated by `canManageMap`.
 
 ### Behaviour & Interactions
 - `auth()` then `adminVisibilityScope(session)`; `null` scope redirects to `/maps` (defence in depth — the layout already gated).
