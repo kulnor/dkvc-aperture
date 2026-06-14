@@ -28,7 +28,7 @@ export type PanelCharacter = {
   id: string;
   name: string;
   status: 'active' | 'kicked' | 'banned';
-  authzLevel: 'member' | 'manager' | 'admin';
+  authzLevel: 'member' | 'admin';
 };
 
 function portraitUrl(characterId: string, size = 64): string {

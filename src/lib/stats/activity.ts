@@ -94,7 +94,7 @@ const KIND_MAP: Record<string, [keyof Pick<ActivityStatRow, 'system' | 'connecti
 };
 
 interface ActorScopeRow {
-  authzLevel: 'member' | 'manager' | 'admin';
+  authzLevel: 'member' | 'admin';
   status: 'active' | 'kicked' | 'banned';
   corporationId: bigint | null;
   allianceId: bigint | null;

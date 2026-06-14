@@ -9,9 +9,9 @@ import { apMap } from './map';
 // one capability at one scope.
 //
 // What each row means now:
-//   * scope='instance', capability='login'           — allowlist entry.
-//   * scope='instance', capability='admin' | 'manage' — explicit super-admin /
-//     manager hand-grant on a character (read by `resolveAuthzLevel`).
+//   * scope='instance', capability='login'  — allowlist entry.
+//   * scope='instance', capability='admin'  — explicit super-admin hand-grant
+//     on a character (read by `resolveAuthzLevel`).
 // Reserved for the later sharing feature (table exists now; read-path consult
 // is added with that feature):
 //   * scope='map', capability='view' | 'edit'         — a named-entity map share
@@ -54,11 +54,11 @@ export const apAccessGrant = pgTable(
       .nullsNotDistinct(),
     // scope and map_id move together.
     check('ap_access_grant_scope_map_chk', sql`(${t.scope} = 'instance') = (${t.mapId} is null)`),
-    // capability pairs with scope: instance caps are login/admin/manage; map
-    // caps are view/edit.
+    // capability pairs with scope: instance caps are login/admin; map caps are
+    // view/edit.
     check(
       'ap_access_grant_capability_scope_chk',
-      sql`(${t.scope} = 'instance' and ${t.capability} in ('login', 'admin', 'manage'))
+      sql`(${t.scope} = 'instance' and ${t.capability} in ('login', 'admin'))
           or (${t.scope} = 'map' and ${t.capability} in ('view', 'edit'))`,
     ),
     // Resolver lookup: "all grants for this principal".

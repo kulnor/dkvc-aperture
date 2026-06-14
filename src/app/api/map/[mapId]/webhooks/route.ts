@@ -16,7 +16,7 @@ import { requireMapView } from '../../utils';
  * so a missing / unviewable map returns 404 (no existence leak) and a plain
  * member with view access gets 403.
  *
- * Returns the full webhook URL (the manager needs it to edit) — the client
+ * Returns the full webhook URL (a map manager needs it to edit) — the client
  * masks it in the table for shoulder-surfing defense.
  */
 

@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { auth } from '@/lib/auth';
-import { adminVisibilityScope, isAdmin } from '@/lib/auth/rights';
+import { isAdmin } from '@/lib/auth/rights';
 import { listAdminMaps } from '@/lib/map/loadMap';
 import { MapActionsMenu } from '@/components/admin/MapActionsMenu';
 
@@ -31,22 +31,20 @@ const DATE_FORMAT = new Intl.DateTimeFormat('en-US', {
 
 export default async function AdminMapsPage() {
   const session = await auth();
-  const scope = await adminVisibilityScope(session);
-  if (scope === null) redirect('/maps');
-  const [maps, canPurge] = await Promise.all([listAdminMaps(scope), isAdmin(session)]);
+  if (!(await isAdmin(session))) redirect('/maps');
+  const maps = await listAdminMaps();
+  // Everyone reaching this page is a global admin, who may purge.
+  const canPurge = true;
 
   return (
     <section className="flex flex-col gap-4">
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Maps</h1>
-        <span className="text-xs text-muted-foreground">
-          Scope: {scope.kind === 'global' ? 'global' : `corp ${scope.corporationId.toString()}`}
-        </span>
       </header>
 
       {maps.length === 0 ? (
         <div className="rounded-lg border border-border bg-card p-6 text-sm text-muted-foreground">
-          No maps in scope.
+          No maps.
         </div>
       ) : (
         <div className="overflow-hidden rounded-lg border border-border">

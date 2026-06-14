@@ -39,7 +39,7 @@ export interface SerializedGrant {
   id: string;
   principalKind: 'character' | 'corporation' | 'alliance' | 'role';
   principalId: string;
-  capability: 'login' | 'admin' | 'manage';
+  capability: 'login' | 'admin';
   expiresAt: string | null;
   note: string | null;
 }
@@ -201,7 +201,6 @@ function OwnersCard({ owners }: { owners: SerializedOwner[] }) {
 const CAPABILITY_HINT: Record<SerializedGrant['capability'], string> = {
   login: 'allowlist',
   admin: 'super-admin',
-  manage: 'manager',
 };
 
 function GrantsCard({ grants }: { grants: SerializedGrant[] }) {
@@ -242,8 +241,8 @@ function GrantsCard({ grants }: { grants: SerializedGrant[] }) {
         <CardTitle>Allowlist &amp; grants</CardTitle>
         <CardDescription>
           Instance-scoped grants. <code>login</code> = allowlist entry; <code>admin</code> =
-          super-admin; <code>manage</code> = manager. A character/corp/alliance/role principal id is
-          required. Leave expiry empty for a permanent grant.
+          super-admin. A character/corp/alliance/role principal id is required. Leave expiry
+          empty for a permanent grant.
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
@@ -330,7 +329,6 @@ function GrantsCard({ grants }: { grants: SerializedGrant[] }) {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="login">login</SelectItem>
-              <SelectItem value="manage">manage</SelectItem>
               <SelectItem value="admin">admin</SelectItem>
             </SelectContent>
           </Select>

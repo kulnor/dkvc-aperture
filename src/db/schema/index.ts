@@ -28,6 +28,5 @@ export * from './ap/webhook';
 export * from './ap/corporation';
 export * from './ap/alliance';
 export * from './ap/role';
-export * from './ap/corporation_right';
 export * from './ap/structure';
 export * from './ap/structure_event';

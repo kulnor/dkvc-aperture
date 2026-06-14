@@ -281,6 +281,13 @@
       "when": 1780015200000,
       "tag": "0040_derived_authority",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1780016400000,
+      "tag": "0041_admin_teardown",
+      "breakpoints": true
     }
   ]
 }

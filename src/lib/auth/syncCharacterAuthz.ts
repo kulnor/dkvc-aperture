@@ -31,11 +31,12 @@ import {
  * a single transactional pass. Three pieces of state are touched:
  *
  *   1. `ap_character.authz_level`         — recomputed via `resolveAuthzLevel`:
- *                                            any Director ⇒ corp-scoped
- *                                            `'manager'` (instance ownership is
- *                                            irrelevant here); global `'admin'`
- *                                            only from an explicit
- *                                            `ap_access_grant` `capability='admin'`.
+ *                                            `'member'` or `'admin'` only.
+ *                                            Global `'admin'` comes only from an
+ *                                            explicit `ap_access_grant`
+ *                                            `capability='admin'`; the Director
+ *                                            role does NOT raise the tier (it is
+ *                                            carried separately by `is_director`).
  *                                            The level is a deterministic cache,
  *                                            written verbatim every pass — no
  *                                            preserve-hack.
@@ -44,8 +45,7 @@ import {
  *      `ap_character.is_director`         — refreshed from `getCharacter` +
  *                                            `getCharacterRoles`. `ap_corporation`
  *                                            row upserted as a side effect (FK
- *                                            target for `ap_corporation_right` +
- *                                            role rows); `ap_alliance` row
+ *                                            target for role rows); `ap_alliance` row
  *                                            upserted from `getAlliance` when the
  *                                            character has an alliance (caches the
  *                                            executor corp for `canManageMap`).
@@ -69,7 +69,7 @@ import {
  * before mutating the DB so a partial sync never lands.
  */
 export interface SyncCharacterAuthzResult {
-  authzLevel: 'member' | 'manager' | 'admin';
+  authzLevel: 'member' | 'admin';
   isDirector: boolean;
   corporationId: bigint | null;
   allianceId: bigint | null;
@@ -139,8 +139,9 @@ export async function syncCharacterAuthz(
       : null;
 
   // Resolve the cached level before the transaction — the grant table it reads
-  // is independent of the writes below.
-  const resolvedLevel = await resolveAuthzLevel({ characterId, isDirector });
+  // is independent of the writes below. `is_director` is persisted separately
+  // below; it no longer feeds the authz tier.
+  const resolvedLevel = await resolveAuthzLevel(characterId);
 
   await db.transaction(async (tx) => {
     // 1. Upsert the corp row so subsequent FK targets resolve.

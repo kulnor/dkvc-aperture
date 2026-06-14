@@ -7,7 +7,7 @@
 
 ### View rule (in order)
 
-1. **Admin** — `authz_level='admin'` always wins.
+1. **Admin** — `authz_level='admin'` (global deployment operator) always wins.
 2. **Owner match** per `ap_map.type`:
    - `private`  → `owner_character_id` matches the actor's id.
    - `corp`     → `owner_corporation_id` matches the actor's `corporation_id`.
@@ -45,19 +45,10 @@ The alliance's executor corporation from the `ap_alliance` cache (`syncCharacter
 Binary "can the actor manage this map" (full mutation surface + settings/webhooks/audit; no per-right granularity at baseline). Admin → true. `private` → `owner_character_id == actor`. `corp` → `actor.is_director && owner_corporation_id == actor.corporation_id`. `alliance` → `actor.is_director && owner_alliance_id == actor.alliance_id && actor.corporation_id == executorCorpOf(owner_alliance_id)`. All-NULL owner / missing / inactive → false.
 
 ### isAdmin(session): Promise<boolean>
-Cheap session-level admin probe — does not touch any map table.
-
-### isManagerOrAdmin(session): Promise<boolean>
-True iff the active character is `status='active'` AND `authz_level >= 'manager'`. The admin-panel layout gate (`/admin/*`). Returns `false` for kicked/banned characters even at manager level — defence in depth.
+Cheap session-level admin probe (`authz_level='admin'` AND `status='active'`) — does not touch any map table. The gate for the entire `/admin` operator console and all moderation actions.
 
 ### adminVisibilityScope(session): Promise<AdminVisibilityScope | null>
-Returns `{ kind: 'global' }` for admin, `{ kind: 'corp', corporationId, allianceId }` for an active manager with a non-null `corporation_id`, and `null` otherwise (member/none, kicked/banned, or manager with NULL corp). Callers branch on `null` and redirect / 403 as appropriate. The `allianceId` is included so dashboard queries can scope `ap_map.owner_alliance_id` without an extra DB read.
-
-### mapScopeFilterFor(scope): SQL | undefined
-Returns a drizzle `WHERE` clause that restricts `ap_map` rows to those visible to the given `AdminVisibilityScope`. `global` → `undefined` (no extra filter); `corp` → matches `owner_corporation_id`, OR `owner_alliance_id` when the manager's corp has an alliance, OR `owner_character_id IN (members of that corp)` so private maps owned by corp members are scoped in too. Shared by the admin dashboard counts and the admin maps list (`listAdminMaps`).
-
-### characterScopeFilterFor(scope): SQL | undefined
-Returns a drizzle `WHERE` clause that restricts `ap_character` rows to a scope. `global` → `undefined`; `corp` → `corporation_id = $corp`.
+Returns `{ kind: 'global' }` for an active global admin, else `null`. `/admin` is operator-only — there is no corp-scoped variant — so this is effectively `isAdmin` returning a scope object. Callers branch on `null` and redirect / 403 as appropriate.
 
 ### requireMapRight(session, mapId, right): Promise<RightGuard>
 Tuple-shaped guard for API routes. Returns `{ ok: true, characterId }` or `{ ok: false, status, error }`. Status codes:

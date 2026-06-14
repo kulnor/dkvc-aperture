@@ -1,14 +1,12 @@
 ## members.ts
 
-**Purpose:** Admin-panel data loader for `/admin/members`. Returns the `ap_character` rows visible to the actor's `AdminVisibilityScope`, with the moderation + authz fields the action menu needs to decide which controls to show.
+**Purpose:** Admin-panel data loader for `/admin/members`. Returns every `ap_character` row (the panel is global-admin-only), with the moderation + authz fields the action menu needs to decide which controls to show.
 **File:** `src/lib/auth/members.ts`
 
 ---
 
-### listAdminMembers(scope: AdminVisibilityScope): Promise<AdminMemberRow[]>
-Selects `ap_character` rows filtered by `characterScopeFilterFor(scope)`:
-- `global` (admin) → every character.
-- `corp` (manager) → characters whose `corporation_id` matches the manager's corp.
+### listAdminMembers(): Promise<AdminMemberRow[]>
+Selects every `ap_character` row (unscoped — `/admin` is global-admin-only).
 
 Ordering: `(status ASC, name ASC)`. Because the enum is declared `['active', 'kicked', 'banned']` in DB order, an ASC sort puts active rows first, then kicked, then banned. *Within each band* rows alphabetise by name.
 
@@ -23,7 +21,6 @@ Bigints serialised to strings; timestamps to ISO so the row is safe to pass stra
 
 ### Depends on
 - `apCharacter` — `@/db/schema`.
-- `characterScopeFilterFor`, `AdminVisibilityScope` — `@/lib/auth/rights`.
 
 ### Notes
 - `server-only` import guard — never bundled to the client.

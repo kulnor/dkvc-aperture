@@ -363,7 +363,7 @@ describe.skipIf(!run)('Stage 15 — permissions (real Postgres)', () => {
 // ─── helpers ───────────────────────────────────────────────────────────────
 
 interface CharOverrides {
-  authzLevel?: 'member' | 'manager' | 'admin';
+  authzLevel?: 'member' | 'admin';
   corporationId?: bigint;
   allianceId?: bigint;
   isDirector?: boolean;

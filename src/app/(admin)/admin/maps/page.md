@@ -1,17 +1,17 @@
 ## AdminMapsPage
 
-**Purpose:** `/admin/maps` — table of every map in the admin's scope (admin: all maps incl. soft-deleted; manager: corp-scoped). Each row exposes the destructive action surface (`MapActionsMenu`).
+**Purpose:** `/admin/maps` — table of every map (global-admin-only; all maps incl. soft-deleted). Each row exposes the destructive action surface (`MapActionsMenu`).
 **File:** `src/app/(admin)/admin/maps/page.tsx`
 
 ### Renders
-A scope label header and a plain HTML table with columns: Name (linked to `/map/<id>` for active rows, struck-through plain text for soft-deleted), Scope, Type, Owner (formatted from the map's owner FK matching its `type`), Created (Intl-formatted date), Status badge (`Active` / `Soft-deleted <date>`), and an action cell hosting only `<MapActionsMenu>` (delete / restore / purge). Per-map settings, webhooks, and audit are no longer here — they live in-place on the map (open via the active map's name link), gated by `canManageMap`.
+A header and a plain HTML table with columns: Name (linked to `/map/<id>` for active rows, struck-through plain text for soft-deleted), Scope, Type, Owner (formatted from the map's owner FK matching its `type`), Created (Intl-formatted date), Status badge (`Active` / `Soft-deleted <date>`), and an action cell hosting only `<MapActionsMenu>` (delete / restore / purge). Per-map settings, webhooks, and audit are no longer here — they live in-place on the map (open via the active map's name link), gated by `canManageMap`.
 
 ### Behaviour & Interactions
-- `auth()` then `adminVisibilityScope(session)`; `null` scope redirects to `/maps` (defence in depth — the layout already gated).
-- `isAdmin(session)` is resolved in parallel and threaded into every row as `canPurge` so the menu can decide whether to render `Purge now`.
+- `auth()` then `isAdmin(session)`; non-admin redirects to `/maps` (defence in depth — the layout already gated).
+- Everyone reaching the page is a global admin, so `canPurge` is always `true` (threaded to each `MapActionsMenu`).
 - Server component. No client cache to manage — Server Actions in `MapActionsMenu` `revalidatePath('/admin/maps')` to refresh.
 
 ### Depends On
-- `auth`, `adminVisibilityScope`, `isAdmin` — `@/lib/auth/rights` / `@/lib/auth`.
+- `auth`, `isAdmin` — `@/lib/auth` / `@/lib/auth/rights`.
 - `listAdminMaps` — `@/lib/map/loadMap`.
 - `MapActionsMenu` — `@/components/admin/MapActionsMenu`.

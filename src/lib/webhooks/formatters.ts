@@ -76,7 +76,7 @@ const JUMP_MASS_LABEL: Record<string, string> = {
  * The single human-readable, one-line description of a map event — the *action*
  * only, with no leading actor name (e.g. `"set **Jita** status to \`friendly\`"`).
  * Shared by the Discord history formatter (which prepends the acting character)
- * and the manager audit console (`src/lib/map/audit.ts`, which has its own actor
+ * and the in-map audit console (`src/lib/map/audit.ts`, which has its own actor
  * column and capitalizes the first letter). Returns `null` when the event has
  * nothing worth saying — notably a position-only `system.updated` (a canvas
  * drag) or an update whose only changed fields are unrecognized — which both

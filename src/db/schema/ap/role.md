@@ -42,4 +42,4 @@
 - `ap_map_role_access_pk` — composite PK `(map_id, role_id)`.
 - `ap_map_role_access_role_id_idx` — btree on `(role_id)`. Backs "which maps does this role unlock" queries used by `listViewableMaps`.
 
-Semantics: a character holding any role listed for a map gets **view access** to it. Mutation rights are still gated by `ap_corporation_right` + `authz_level` (see `src/lib/auth/rights.ts`) — roles do not by themselves grant arbitrary mutation, and `map_delete`/`map_share` remain owner-or-admin only.
+Semantics: a character holding any role listed for a map gets **view access** to it. Mutation authority is the derived `canManageMap` (owner / corp Director / executor-corp Director / admin; see `src/lib/auth/rights.ts`) — roles do not by themselves grant mutation.

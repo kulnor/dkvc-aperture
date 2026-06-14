@@ -11,7 +11,7 @@ import type { AccessMode } from '@/types';
  * Read/write helper for the per-deployment access
  * configuration the `/setup` ops console drives: the `ap_instance` singleton's
  * `access_mode`, the `ap_instance_owner` entries, and the instance-scoped
- * `ap_access_grant` allowlist (login / admin / manage).
+ * `ap_access_grant` allowlist (login / admin).
  *
  * Pure DB layer — no auth gating (the caller, `src/app/(setup)/actions.ts`,
  * gates on the `ap_setup` cookie). Writes take effect immediately for the
@@ -22,7 +22,7 @@ import type { AccessMode } from '@/types';
 /** `ap_instance_owner` is constrained to organisations by a CHECK. */
 export type OwnerKind = 'corporation' | 'alliance';
 /** Instance-scoped capabilities — the only ones the setup allowlist issues. */
-export type InstanceGrantCapability = 'login' | 'admin' | 'manage';
+export type InstanceGrantCapability = 'login' | 'admin';
 export type GrantPrincipalKind = 'character' | 'corporation' | 'alliance' | 'role';
 
 export interface InstanceOwnerRow {

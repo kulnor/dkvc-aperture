@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { Toaster } from 'sonner';
-import { isManagerOrAdmin } from '@/lib/auth/rights';
+import { isAdmin } from '@/lib/auth/rights';
 import {
   getAccountCharacters,
   getActiveCharacter,
@@ -17,7 +17,7 @@ import { AdminNav } from '@/components/admin/AdminNav';
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
   const session = await requireSession();
-  if (!(await isManagerOrAdmin(session))) redirect('/maps');
+  if (!(await isAdmin(session))) redirect('/maps');
   const active = await getActiveCharacter();
   if (!active) redirect('/');
   const characters = await getAccountCharacters(session.userId);

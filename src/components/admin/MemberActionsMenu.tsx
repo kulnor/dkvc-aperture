@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { Ban, ShieldCheck, ShieldX, Timer, UserCheck } from 'lucide-react';
+import { Ban, Timer, UserCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   Dialog,
@@ -18,9 +18,7 @@ import { Input } from '@/components/ui/input';
 import {
   adminActivateCharacter,
   adminBanCharacter,
-  adminGrantManager,
   adminKickCharacter,
-  adminRevokeManager,
 } from '@/app/(admin)/actions/members';
 import type { AdminMemberRow } from '@/lib/auth/members';
 
@@ -32,13 +30,7 @@ const KICK_PRESETS: { minutes: KickMinutes; label: string; aria: string }[] = [
   { minutes: 1440, label: '24h', aria: 'Kick for 24 hours' },
 ];
 
-export function MemberActionsMenu({
-  member,
-  canManageAuthz,
-}: {
-  member: AdminMemberRow;
-  canManageAuthz: boolean;
-}) {
+export function MemberActionsMenu({ member }: { member: AdminMemberRow }) {
   const moderated = member.status !== 'active';
 
   return (
@@ -52,9 +44,6 @@ export function MemberActionsMenu({
           ))}
           <BanButton member={member} />
         </>
-      )}
-      {canManageAuthz && member.authzLevel !== 'admin' && (
-        <ManagerToggleButton member={member} />
       )}
     </div>
   );
@@ -193,45 +182,6 @@ function ActivateButton({ member }: { member: AdminMemberRow }) {
     >
       <UserCheck className="size-3.5" />
       <span className="text-xs">Activate</span>
-    </Button>
-  );
-}
-
-function ManagerToggleButton({ member }: { member: AdminMemberRow }) {
-  const isManager = member.authzLevel === 'manager';
-  const [pending, startTransition] = useTransition();
-
-  function onClick() {
-    startTransition(async () => {
-      const result = isManager
-        ? await adminRevokeManager(member.id)
-        : await adminGrantManager(member.id);
-      if (result.ok) {
-        toast.success(
-          isManager
-            ? `${member.name} demoted to member.`
-            : `${member.name} promoted to manager.`,
-        );
-      } else {
-        toast.error(result.error);
-      }
-    });
-  }
-
-  return (
-    <Button
-      type="button"
-      variant="ghost"
-      size="sm"
-      aria-label={
-        isManager ? `Revoke manager from ${member.name}` : `Grant manager to ${member.name}`
-      }
-      onClick={onClick}
-      disabled={pending}
-      className="text-muted-foreground hover:text-foreground"
-    >
-      {isManager ? <ShieldX className="size-3.5" /> : <ShieldCheck className="size-3.5" />}
-      <span className="text-xs">{isManager ? 'Revoke mgr' : 'Grant mgr'}</span>
     </Button>
   );
 }

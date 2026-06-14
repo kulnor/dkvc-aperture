@@ -8,7 +8,7 @@
 | Prop | Type | Required | Description |
 |---|---|---|---|
 | map | AdminMapListItem | yes | The row being acted on; `deletedAt` selects the layout. |
-| canPurge | boolean | yes | `true` only for `isAdmin`-true actors. Hides the Purge-now button for managers. |
+| canPurge | boolean | yes | `true` for global admins (everyone reaching `/admin/maps`). Gates the Purge-now button. |
 
 ### Renders
 - Active row → `SoftDeleteButton` (trash icon, opens confirm dialog).

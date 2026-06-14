@@ -23,8 +23,9 @@ export type EsiCharacterPublic = z.infer<typeof characterPublicSchema>;
  * corporation role memberships. `roles` is the "main" set; the three location-
  * scoped variants list the same role names where granted only at HQ / base /
  * other offices. A character whose `roles` contains
- * `apertureConfig.AUTHZ_ADMIN_ROLE` ('Director') resolves to corp-scoped
- * `authz_level='manager'`.
+ * `apertureConfig.AUTHZ_ADMIN_ROLE` ('Director') has `ap_character.is_director`
+ * set, which carries corp/alliance map-management authority (`canManageMap`);
+ * it does not raise `authz_level`.
  *
  * All four arrays are optional in the swagger schema and absent when the
  * character has no corporation roles at all (e.g. line members of an NPC corp).

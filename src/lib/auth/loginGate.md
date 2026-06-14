@@ -23,7 +23,7 @@ The gate the Auth.js `signIn` callback consults. DB-only — the caller resolves
 **Logic:**
 1. `access_mode='open'` ⇒ `true` (no gate).
 2. **Owner membership** — `true` if `corporationId`/`allianceId` (non-null) match an `ap_instance_owner` row.
-3. **Instance grant** — `true` if an unexpired `ap_access_grant` (`scope='instance'`, `capability IN ('login','admin','manage')`) exists for the character, its corp, or its alliance. (`admin`/`manage` imply login.) Expiry filter: `expires_at IS NULL OR expires_at > now()`.
+3. **Instance grant** — `true` if an unexpired `ap_access_grant` (`scope='instance'`, `capability IN ('login','admin')`) exists for the character, its corp, or its alliance. (`admin` implies login.) Expiry filter: `expires_at IS NULL OR expires_at > now()`.
 4. **Bootstrap** — see `tryBootstrap`; admits the first caller on a completely unconfigured instance.
 5. Otherwise `false`.
 

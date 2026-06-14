@@ -8,7 +8,6 @@ import type {
   apCharacterRole,
   apAlliance,
   apCorporation,
-  apCorporationRight,
   apEventKind,
   apInstance,
   apInstanceOwner,
@@ -165,9 +164,6 @@ export type NewApCharacterRole = InferInsertModel<typeof apCharacterRole>;
 
 export type ApMapRoleAccess = InferSelectModel<typeof apMapRoleAccess>;
 export type NewApMapRoleAccess = InferInsertModel<typeof apMapRoleAccess>;
-
-export type ApCorporationRight = InferSelectModel<typeof apCorporationRight>;
-export type NewApCorporationRight = InferInsertModel<typeof apCorporationRight>;
 
 export type ApInstance = InferSelectModel<typeof apInstance>;
 export type NewApInstance = InferInsertModel<typeof apInstance>;

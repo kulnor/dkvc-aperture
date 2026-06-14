@@ -4,8 +4,7 @@
 // `server-only` default export throws on load. Every caller is server-side
 // (API routes, Server Actions, the WS upgrade handler); we rely on that
 // rather than the marker package.
-import { and, eq, exists, inArray, isNull, or, sql } from 'drizzle-orm';
-import type { SQL } from 'drizzle-orm';
+import { and, eq, exists, isNull, or, sql } from 'drizzle-orm';
 import type { Session } from 'next-auth';
 import { db } from '@/db/client';
 import {
@@ -44,14 +43,8 @@ import type { MapRight, MapType } from '@/types';
  * default, surfaces unowned rows for repair.
  */
 
-const AUTHZ_ORDINAL: Record<'member' | 'manager' | 'admin', number> = {
-  member: 0,
-  manager: 1,
-  admin: 2,
-};
-
 interface ActorRow {
-  authzLevel: 'member' | 'manager' | 'admin';
+  authzLevel: 'member' | 'admin';
   status: 'active' | 'kicked' | 'banned';
   corporationId: bigint | null;
   allianceId: bigint | null;
@@ -409,72 +402,19 @@ export async function viewableMapPredicate(characterId: bigint) {
   return or(...ownerMatches, roleAccess);
 }
 
-/** True iff the active character is `active` AND `authz_level >= 'manager'`. */
-export async function isManagerOrAdmin(session: Session | null | undefined): Promise<boolean> {
-  if (!session?.characterId) return false;
-  const actor = await loadActor(BigInt(session.characterId));
-  if (actor === null || actor.status !== 'active') return false;
-  return AUTHZ_ORDINAL[actor.authzLevel] >= AUTHZ_ORDINAL.manager;
-}
-
-export type AdminVisibilityScope =
-  | { kind: 'global' }
-  | { kind: 'corp'; corporationId: bigint; allianceId: bigint | null };
+export type AdminVisibilityScope = { kind: 'global' };
 
 /**
- * Scope primitive for admin-panel pages. Returns `null` for member/none so the
- * layout can redirect; admin → `{ kind: 'global' }`; manager → `{ kind: 'corp', corporationId, allianceId }`.
- * A manager row with `corporation_id IS NULL` is treated as no-scope (returns
- * null) — the row is broken and shouldn't see any panel content.
+ * Gate primitive for the `/admin` operator console. Returns `{ kind: 'global' }`
+ * for an active global admin, else `null` (so the layout / actions can redirect
+ * or 403). `/admin` is operator-only now — corp Directors manage their maps
+ * in-place via `canManageMap`, not through this panel — so there is no
+ * corp-scoped variant; the panel is always global.
  */
 export async function adminVisibilityScope(
   session: Session | null | undefined,
 ): Promise<AdminVisibilityScope | null> {
-  if (!session?.characterId) return null;
-  const actor = await loadActor(BigInt(session.characterId));
-  if (actor === null || actor.status !== 'active') return null;
-  if (actor.authzLevel === 'admin') return { kind: 'global' };
-  if (actor.authzLevel === 'manager' && actor.corporationId !== null) {
-    return { kind: 'corp', corporationId: actor.corporationId, allianceId: actor.allianceId };
-  }
-  return null;
-}
-
-/**
- * SQL `where` clause that restricts `ap_map` rows to those visible to an
- * `AdminVisibilityScope`. Shared by the admin dashboard counts
- * (`src/app/(admin)/admin/page.tsx`) and the admin maps list
- * (`src/lib/map/loadMap.ts#listAdminMaps`).
- *
- * - `global` → `undefined` (no extra filter; the caller still applies
- *   `isNull(apMap.deletedAt)` for active-only queries).
- * - `corp`   → match `owner_corporation_id`, OR `owner_alliance_id` when the
- *   manager's corp has an alliance, OR `owner_character_id IN (members of that corp)`
- *   so private maps owned by corp members are scoped in too.
- */
-export function mapScopeFilterFor(scope: AdminVisibilityScope): SQL | undefined {
-  if (scope.kind === 'global') return undefined;
-  const corpChars = db
-    .select({ id: apCharacter.id })
-    .from(apCharacter)
-    .where(eq(apCharacter.corporationId, scope.corporationId));
-  const clauses: SQL[] = [
-    eq(apMap.ownerCorporationId, scope.corporationId),
-    inArray(apMap.ownerCharacterId, corpChars),
-  ];
-  if (scope.allianceId !== null) {
-    clauses.push(eq(apMap.ownerAllianceId, scope.allianceId));
-  }
-  return or(...clauses);
-}
-
-/**
- * SQL `where` clause that restricts `ap_character` rows to those visible to an
- * `AdminVisibilityScope`. `global` → `undefined`; `corp` → `corporation_id = $corp`.
- */
-export function characterScopeFilterFor(scope: AdminVisibilityScope): SQL | undefined {
-  if (scope.kind === 'global') return undefined;
-  return eq(apCharacter.corporationId, scope.corporationId);
+  return (await isAdmin(session)) ? { kind: 'global' } : null;
 }
 
 /** Re-export for ergonomic imports at call sites. */

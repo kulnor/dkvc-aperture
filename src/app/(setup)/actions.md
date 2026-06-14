@@ -38,7 +38,7 @@ Validates `kind ∈ {corporation, alliance}` + numeric id, calls `addOwner`. Own
 Validates + calls `removeOwner`.
 
 ### setupAddGrant(args: { principalKind; principalId; capability; expiresAt; note }): Promise<ActionResult>
-Validates `principalKind ∈ {character, corporation, alliance, role}`, numeric `principalId`, `capability ∈ {login, admin, manage}`, optional `expiresAt` (`datetime-local` string; empty = permanent) and `note`, then calls `addInstanceGrant`. `login` = allowlist entry; `admin`/`manage` are read by `resolveAuthzLevel` on the next resync.
+Validates `principalKind ∈ {character, corporation, alliance, role}`, numeric `principalId`, `capability ∈ {login, admin}`, optional `expiresAt` (`datetime-local` string; empty = permanent) and `note`, then calls `addInstanceGrant`. `login` = allowlist entry; `admin` is read by `resolveAuthzLevel` on the next resync.
 
 ### setupRemoveGrant(id: string): Promise<ActionResult>
 Validates numeric id, calls `removeGrant` (which guards `scope='instance'`).

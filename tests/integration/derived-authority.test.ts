@@ -199,7 +199,7 @@ describe.skipIf(!run)('Derived authority — canManageMap / canCreateMap (real P
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
 interface CharOverrides {
-  authzLevel?: 'member' | 'manager' | 'admin';
+  authzLevel?: 'member' | 'admin';
   corporationId?: bigint;
   allianceId?: bigint;
   isDirector?: boolean;

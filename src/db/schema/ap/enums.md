@@ -9,7 +9,7 @@
 `pgEnum('character_status', ['active', 'kicked', 'banned'])` — per-character moderation state, modelled as a single state machine.
 
 ### authzLevel
-`pgEnum('authz_level', ['member', 'manager', 'admin'])` — in-app authority level on `ap_character`; gates admin actions.
+`pgEnum('authz_level', ['member', 'admin'])` — in-app authority level on `ap_character`; gates the `/admin` operator console. `admin` (global deployment operator) is reachable only via an explicit `ap_access_grant` (`capability='admin'`). Corp/alliance map authority is NOT a tier here — it is the derived `ap_character.is_director` bit consumed by `canManageMap` / `canCreateMap`. The `manager` tier was removed in migration 0041.
 
 ### mapScope
 `pgEnum('map_scope', ['wh', 'k_space', 'none', 'all'])` — which kinds of systems a map may hold. On `ap_map`.
@@ -42,7 +42,7 @@
 `pgEnum('ap_webhook_event', ['history', 'rally'])` — which class of map events a webhook subscribes to. `history` mirrors every `ap_map_event` insert on the map; `rally` fires only when a `system.updated` event carries a non-null `rallyAt` (rally set, not cleared).
 
 ### mapRight
-`pgEnum('map_right', ['map_create', 'map_update', 'map_delete', 'map_import', 'map_export', 'map_share'])` — the six rights a corp may grant via `ap_corporation_right`. `map_create` is a global capability; the others gate per-map mutations.
+`pgEnum('map_right', ['map_create', 'map_update', 'map_delete', 'map_import', 'map_export', 'map_share'])` — the map-management rights vocabulary, reserved for the future title-delegation overlay (R4). No table stores these (the `ap_corporation_right` matrix was retired in 0041); at the baseline the mutate guards take a `MapRight` argument but ignore it (authority is the binary `canManageMap`).
 
 ### roleSource
 `pgEnum('role_source', ['builtin', 'corp_title', 'external'])` — where an `ap_role` row originates. `corp_title` rows are mirrored from EVE corporation titles; `external_ref` is `'<corp_id>:<title_id>'`. `external` rows come from Discord/third-party syncs.
@@ -60,7 +60,7 @@
 `pgEnum('access_principal', ['character', 'corporation', 'alliance', 'role'])` — what kind of entity an `ap_access_grant` / `ap_instance_owner` row names. `character`/`corporation`/`alliance` carry EVE ids; `role` carries an `ap_role.id`. `ap_instance_owner` is CHECK-constrained to `corporation`/`alliance`; `ap_access_grant` accepts all four.
 
 ### accessScope
-`pgEnum('access_scope', ['instance', 'map'])` — the reach of an `ap_access_grant` row. `instance` grants carry NULL `map_id` (login/admin/manage); `map` grants carry a non-NULL `map_id` (view/edit — reserved for the sharing feature). A CHECK ties scope to `map_id` nullness.
+`pgEnum('access_scope', ['instance', 'map'])` — the reach of an `ap_access_grant` row. `instance` grants carry NULL `map_id` (login/admin); `map` grants carry a non-NULL `map_id` (view/edit — reserved for the sharing feature). A CHECK ties scope to `map_id` nullness.
 
 ### accessCapability
-`pgEnum('access_capability', ['login', 'admin', 'manage', 'view', 'edit'])` — what an `ap_access_grant` row permits. `login`/`admin`/`manage` are instance-scoped (allowlist entry / super-admin / manager hand-grant); `view`/`edit` are map-scoped and reserved for the temporary-sharing feature (declared to avoid a future `ALTER TYPE`). A CHECK pairs capability with scope.
+`pgEnum('access_capability', ['login', 'admin', 'view', 'edit'])` — what an `ap_access_grant` row permits. `login`/`admin` are instance-scoped (allowlist entry / super-admin); `view`/`edit` are map-scoped and reserved for the temporary-sharing feature (declared to avoid a future `ALTER TYPE`). A CHECK pairs capability with scope. The `manage` capability (the old manager hand-grant) was retired in migration 0041.

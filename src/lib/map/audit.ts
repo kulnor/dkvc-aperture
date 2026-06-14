@@ -5,13 +5,11 @@ import type { SQL } from 'drizzle-orm';
 import { db } from '@/db/client';
 import {
   apCharacter,
-  apMap,
   apMapEvent,
   apMapSystem,
   apUser,
   universeSystem,
 } from '@/db/schema';
-import { mapScopeFilterFor, type AdminVisibilityScope } from '@/lib/auth/rights';
 import {
   mapEventPayloadSchema,
   type MapEventKind,
@@ -20,7 +18,8 @@ import {
 import { describeMapEvent, type WebhookEventContext } from '@/lib/webhooks/formatters';
 
 /**
- * Read layer for the manager audit console (`/admin/maps/[mapId]/audit`).
+ * Read layer for the in-map audit console (`GET /api/map/[mapId]/audit`, gated
+ * by `canManageMap`).
  *
  * Every map mutation already lands as one `ap_map_event` row; this module is the
  * only read path that turns that append-only log into a human-browsable feed.
@@ -130,21 +129,6 @@ function decodeCursor(cursor: string): { occurredAt: Date; id: bigint } | null {
   } catch {
     return null;
   }
-}
-
-/**
- * Confirm the map is within the manager's admin scope and return its display name.
- * Soft-deleted maps are intentionally included — a manager auditing *why* a map
- * was deleted still needs to reach its history. Returns `null` → caller 404s.
- */
-export async function loadAuditMap(
-  mapId: bigint,
-  scope: AdminVisibilityScope,
-): Promise<{ id: bigint; name: string } | null> {
-  const scopeFilter = mapScopeFilterFor(scope);
-  const where = scopeFilter ? and(eq(apMap.id, mapId), scopeFilter) : eq(apMap.id, mapId);
-  const [row] = await db.select({ id: apMap.id, name: apMap.name }).from(apMap).where(where);
-  return row ?? null;
 }
 
 /**

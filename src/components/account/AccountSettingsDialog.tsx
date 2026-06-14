@@ -31,7 +31,7 @@ export type AccountCharacter = {
   id: string;
   name: string;
   status: 'active' | 'kicked' | 'banned';
-  authzLevel: 'member' | 'manager' | 'admin';
+  authzLevel: 'member' | 'admin';
 };
 
 function portraitUrl(characterId: string, size = 64): string {
@@ -40,7 +40,6 @@ function portraitUrl(characterId: string, size = 64): string {
 
 const ROLE_LABEL: Record<AccountCharacter['authzLevel'], string> = {
   member: 'Member',
-  manager: 'Manager',
   admin: 'Admin',
 };
 

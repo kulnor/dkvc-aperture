@@ -17,7 +17,7 @@ opKey = our short internal operation name (e.g. `getCharacterLocation`). It reso
 
 **Note:** `getCharacterRoles` and `getCorporationRoles` both map to `GetCharactersCharacterIdRoles` (corp roles are a subset of that response) — intentional, not a duplicate bug.
 
-**Authz-related:** `getCharacterTitles` (`GetCharactersCharacterIdTitles`) is mirrored into `ap_role(source='corp_title')` by `syncCharacterAuthz`; `getCharacterRoles` drives the Director → `authz_level='manager'` resolution. Both require character auth.
+**Authz-related:** `getCharacterTitles` (`GetCharactersCharacterIdTitles`) is mirrored into `ap_role(source='corp_title')` by `syncCharacterAuthz`; `getCharacterRoles` drives the `ap_character.is_director` bit (corp/alliance map authority), not the `authz_level` tier. Both require character auth.
 
 **Killboard:** `getKillmail` (`GetKillmailsKillmailIdKillmailHash`, auth none) fetches the full killmail body (victim / ship / time / attacker count) that zKillboard's per-system list endpoint omits. Consumed by `@/lib/map/killboard`.
 
