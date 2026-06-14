@@ -11,7 +11,6 @@ import {
 import { fetchWormholeTypes } from '@/lib/map/client';
 import { systemClassColor } from '@/components/map/styling';
 import type { WormholeTypeOption } from '@/types';
-import { exit } from 'process';
 
 const NONE_VALUE = '__none__';
 
