@@ -16,3 +16,7 @@
 ### Behaviour & Interactions
 - Submits `tagScheme` + `homeMapSystemId` + `exemptHomeStaticFromTag` via `updateMapSettingsAction` (gated by `canManageMap`).
 - Home picker disabled when scheme is `none`; the exemption checkbox enables only for ABC with a Home set.
+- Scheme and Home pickers use the app's `Select` primitive (portalled dark popup) rather than native `<select>` — native option popups are OS-painted and ignore the page `color-scheme` on Windows. The Home picker's "— None —" entry is the empty-string value.
+
+### Depends On
+- `Select` (`@/components/ui/select`) — themed single-select for the scheme and Home pickers.

@@ -4,6 +4,13 @@ import { useState, useTransition } from 'react';
 import { Save } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { updateMapSettingsAction } from '@/app/(app)/actions/map';
 
 type TagScheme = 'none' | 'abc' | '0121';
@@ -13,6 +20,10 @@ const TAG_SCHEME_OPTIONS: { value: TagScheme; label: string }[] = [
   { value: 'abc', label: 'ABC — per-class letters' },
   { value: '0121', label: '0121 — chain numbering' },
 ];
+const TAG_SCHEME_LABELS = Object.fromEntries(TAG_SCHEME_OPTIONS.map((o) => [o.value, o.label]));
+
+const NO_HOME = '';
+const NO_HOME_LABEL = '— None —';
 
 /**
  * Auto-tagging config for the in-map Settings → Auto-tagging tab. Persists via
@@ -39,6 +50,13 @@ export function MapTaggingForm({
 
   const canExempt = scheme === 'abc' && homeMapSystemId !== '';
 
+  const homeLabels: Record<string, string> = {
+    [NO_HOME]: NO_HOME_LABEL,
+    ...Object.fromEntries(
+      systems.map((s) => [s.id, s.alias ? `${s.alias} (${s.name})` : s.name]),
+    ),
+  };
+
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     startTransition(async () => {
@@ -53,27 +71,26 @@ export function MapTaggingForm({
     });
   }
 
-  const selectClass =
-    'h-9 rounded-md border border-input bg-transparent px-3 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring';
-
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-4">
       <div className="flex flex-col gap-1.5">
-        <label htmlFor="map-tag-scheme" className="text-sm font-medium">
-          Auto-tagging scheme
-        </label>
-        <select
-          id="map-tag-scheme"
+        <span className="text-sm font-medium">Auto-tagging scheme</span>
+        <Select<TagScheme>
           value={scheme}
-          onChange={(e) => setScheme(e.target.value as TagScheme)}
-          className={selectClass}
+          onValueChange={(v) => v && setScheme(v)}
+          items={TAG_SCHEME_LABELS}
         >
-          {TAG_SCHEME_OPTIONS.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
-        </select>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {TAG_SCHEME_OPTIONS.map((o) => (
+              <SelectItem key={o.value} value={o.value}>
+                {o.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <p className="text-xs text-muted-foreground">
           Newly discovered systems are tagged automatically. ABC assigns per-class letters; 0121
           numbers each system by its position in the chain off Home.
@@ -81,23 +98,25 @@ export function MapTaggingForm({
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <label htmlFor="map-home-system" className="text-sm font-medium">
-          Home system
-        </label>
-        <select
-          id="map-home-system"
+        <span className="text-sm font-medium">Home system</span>
+        <Select<string>
           value={homeMapSystemId}
-          onChange={(e) => setHomeMapSystemId(e.target.value)}
+          onValueChange={(v) => setHomeMapSystemId(v ?? NO_HOME)}
+          items={homeLabels}
           disabled={scheme === 'none'}
-          className={`${selectClass} disabled:opacity-50`}
         >
-          <option value="">— None —</option>
-          {systems.map((s) => (
-            <option key={s.id} value={s.id}>
-              {s.alias ? `${s.alias} (${s.name})` : s.name}
-            </option>
-          ))}
-        </select>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={NO_HOME}>{NO_HOME_LABEL}</SelectItem>
+            {systems.map((s) => (
+              <SelectItem key={s.id} value={s.id}>
+                {s.alias ? `${s.alias} (${s.name})` : s.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <p className="text-xs text-muted-foreground">
           The central node both schemes calculate from. It cannot be removed from the map while
           designated.
