@@ -27,7 +27,7 @@ export function MapAuditDialog({
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl">
+      <DialogContent className="flex max-h-[85vh] w-full max-w-4xl flex-col">
         <DialogHeader>
           <DialogTitle>Audit log</DialogTitle>
           <DialogDescription>{mapName}</DialogDescription>

@@ -243,9 +243,9 @@ export function MapAuditBrowser({ mapId }: { mapId: string }) {
     q.trim() !== '';
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex min-h-0 flex-1 flex-col gap-3">
       {/* Toolbar */}
-      <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-card p-3">
+      <div className="flex shrink-0 flex-wrap items-center gap-2 rounded-lg border border-border bg-card p-3">
         <select
           value={actor}
           onChange={(e) => setActor(e.target.value)}
@@ -372,7 +372,7 @@ export function MapAuditBrowser({ mapId }: { mapId: string }) {
 
       {/* Actor drill-down summary */}
       {selectedActor && actorSummary && (
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-1 rounded-lg border border-border bg-muted/30 px-4 py-2 text-sm">
+        <div className="flex shrink-0 flex-wrap items-center gap-x-6 gap-y-1 rounded-lg border border-border bg-muted/30 px-4 py-2 text-sm">
           <span className="font-medium">{selectedActor.name}</span>
           <span className="text-muted-foreground">
             {actorSummary.total} {actorSummary.total === 1 ? 'commit' : 'commits'}
@@ -394,15 +394,15 @@ export function MapAuditBrowser({ mapId }: { mapId: string }) {
       )}
 
       {error && (
-        <div className="rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
+        <div className="shrink-0 rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
           {error}
         </div>
       )}
 
       {/* Feed table */}
-      <div className="overflow-hidden rounded-lg border border-border">
+      <div className="min-h-0 flex-1 overflow-auto rounded-lg border border-border">
         <table className="w-full text-sm">
-          <thead className="bg-muted/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
+          <thead className="sticky top-0 z-10 bg-muted/50 text-left text-xs uppercase tracking-wide text-muted-foreground backdrop-blur-sm">
             <tr>
               <th className="px-3 py-2 font-medium">When</th>
               <th className="px-3 py-2 font-medium">Actor</th>
@@ -469,7 +469,7 @@ export function MapAuditBrowser({ mapId }: { mapId: string }) {
         </table>
       </div>
 
-      <div className="flex items-center justify-center">
+      <div className="flex shrink-0 items-center justify-center">
         {loading ? (
           <span className="py-2 text-xs text-muted-foreground">Loading…</span>
         ) : nextCursor ? (

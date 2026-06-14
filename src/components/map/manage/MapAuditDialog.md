@@ -14,4 +14,5 @@
 
 ### Behaviour & Interactions
 - Renders `MapAuditBrowser` only while `open`, so its auto-refresh poll doesn't run in the background.
+- `DialogContent` is a `max-h-[85vh]` flex column: the header stays fixed and `MapAuditBrowser` grows to fill the remaining height with its own internal scroll, so the dialog never overflows the viewport.
 - Launched from the `MapCanvas` toolbar "Audit log" button, which is shown only to `canManageMap` holders; the feed is gated server-side regardless.

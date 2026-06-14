@@ -17,6 +17,7 @@ A filter toolbar (actor dropdown, category chips, "Deletions only", date range, 
 - Filters rebuild the request URL; changing any filter refetches the first page (search debounced 250ms).
 - Auto-refresh polls the first page every 3s (hard-coded `AUTO_REFRESH_MS`).
 - Clicking an actor (row or avatar) filters to that actor; the summary bar then shows their per-category + destructive breakdown.
+- Fills its parent's height (`flex-1 min-h-0`): the toolbar, summary bar, and "Load more" footer stay fixed (`shrink-0`) while only the feed table scrolls. The table header is `sticky top-0` so it stays visible while scrolling.
 
 ### Depends On
 - `GET /api/map/[mapId]/audit` (gated by `canManageMap`)
