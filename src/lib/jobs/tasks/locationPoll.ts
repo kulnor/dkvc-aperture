@@ -25,6 +25,7 @@ import {
 } from '@/lib/esi/decoders';
 import { classifyJump, type JumpClass } from '@/lib/map/locationToConnection';
 import { logConnectionJump } from '@/lib/map/connectionMassLog';
+import { getMapViewerUserIds } from '@/lib/realtime/mapViewers';
 import { shipMass } from '@/lib/eve/shipMass';
 import { foldWormholeJumpOntoMap } from '../locationCommit';
 import { withInstrumentation } from '../withInstrumentation';
@@ -68,6 +69,12 @@ interface FoldSummary {
   fromSystemAdded: boolean;
   toSystemAdded: boolean;
   connectionCreated: boolean;
+  /**
+   * Whether the moving pilot's account had this map open, so the jump was
+   * allowed to add a system not already on the map. When `false`, the jump only
+   * recorded movement between already-visible systems (or did nothing).
+   */
+  addNewSystems: boolean;
 }
 
 interface PollNotes {
@@ -217,24 +224,37 @@ async function poll(payload: LocationPollPayload, helpers: JobHelpers): Promise<
         const jumpMass = await shipMass(ship.ship_type_id);
         folds = [];
         for (const mapId of trackedMapIds) {
+          // A jump may add a system not already on the map only when the moving
+          // pilot's account currently has *this* map open in a live tab. The WS
+          // viewer roster is in-process (`server.ts` runs the worker beside the
+          // WS server) and account-keyed. With the map closed, the fold records
+          // movement only between systems already placed — so a pilot
+          // day-tripping with Aperture closed doesn't pollute a dormant map.
+          const addNewSystems = getMapViewerUserIds(mapId).includes(character.userId);
           const result = await foldWormholeJumpOntoMap({
             mapId,
             characterId,
             fromSystemId: character.lastSystemId,
             toSystemId: location.solar_system_id,
+            addNewSystems,
           });
-          await logConnectionJump({
-            mapId,
-            connectionId: result.connectionId,
-            characterId,
-            shipTypeId: ship.ship_type_id,
-            mass: jumpMass,
-          });
+          // No connection means the jump was suppressed (map closed, endpoint
+          // off-map) — nothing to log a jump's mass against.
+          if (result.connectionId !== null) {
+            await logConnectionJump({
+              mapId,
+              connectionId: result.connectionId,
+              characterId,
+              shipTypeId: ship.ship_type_id,
+              mass: jumpMass,
+            });
+          }
           folds.push({
             mapId: mapId.toString(),
             fromSystemAdded: result.fromSystemAdded,
             toSystemAdded: result.toSystemAdded,
             connectionCreated: result.connectionCreated,
+            addNewSystems,
           });
         }
       }

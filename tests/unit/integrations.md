@@ -6,7 +6,7 @@
 ---
 
 ### Stage 13 decoders
-Asserts representative ESI sov/FW, zKillboard, EVE-Scout, and GitHub payloads pass their Zod schemas.
+Asserts representative ESI sov/FW, zKillboard, EVE-Scout, and GitHub payloads pass their Zod schemas. The sovereignty case also asserts the decoder flattens the nested 2026 `claim` (faction / alliance / unclaimed) shape back to the legacy flat owner row.
 
 ---
 

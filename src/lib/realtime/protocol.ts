@@ -169,6 +169,10 @@ const signatureBody = {
   expiresAt: z.string(),
   createdAt: z.string(),
   updatedAt: z.string(),
+  // Audit descriptor: the far endpoint (`ap_map_system` id) of the linked
+  // connection — what the sig "leads to". Null/absent when unlinked. The canvas
+  // ignores it; the audit/Discord resolve it to a system name.
+  leadsToMapSystemId: z.string().nullable().optional(),
 };
 
 export const mapEventPayloadSchema = z.discriminatedUnion('kind', [
@@ -200,14 +204,35 @@ export const mapEventPayloadSchema = z.discriminatedUnion('kind', [
     isRolling: z.boolean().optional(),
     isStatic: z.boolean().optional(),
     eolAt: z.string().nullable().optional(),
+    // Audit descriptors (endpoint `ap_map_system` ids). Carried so the event
+    // self-describes its endpoints even after the connection is hard-deleted —
+    // the canvas ignores them. See the preamble's payload-philosophy note.
+    source: z.string().optional(),
+    target: z.string().optional(),
   }),
-  z.object({ kind: z.literal('connection.delete'), eventId, id: z.string() }),
+  // `source`/`target` are the endpoint `ap_map_system` ids, captured at delete
+  // time because the connection row is hard-deleted (unrecoverable afterwards).
+  z.object({
+    kind: z.literal('connection.delete'),
+    eventId,
+    id: z.string(),
+    source: z.string().optional(),
+    target: z.string().optional(),
+  }),
   z.object({ kind: z.literal('signature.create'), eventId, ...signatureBody }),
   z.object({
     kind: z.literal('signature.update'),
     eventId,
     id: z.string(),
+    // Audit descriptor: the owning `ap_map_system` id, and `sigId` always carries
+    // the resulting in-game code (even when the code itself wasn't the edited
+    // field) so the event names *which* signature without an extra join. The
+    // canvas re-applying the unchanged code is a no-op.
+    mapSystemId: z.string().optional(),
     mapConnectionId: z.string().nullable().optional(),
+    // Far endpoint of the connection being linked/unlinked (audit descriptor) —
+    // resolves "leads to / unlinked from **X**". Present only when the link changes.
+    leadsToMapSystemId: z.string().nullable().optional(),
     sigId: z.string().optional(),
     groupKey: signatureGroupKeyEnum.nullable().optional(),
     typeId: z.number().int().nullable().optional(),
@@ -217,7 +242,15 @@ export const mapEventPayloadSchema = z.discriminatedUnion('kind', [
     expiresAt: z.string().optional(),
     updatedAt: z.string().optional(),
   }),
-  z.object({ kind: z.literal('signature.delete'), eventId, id: z.string() }),
+  // `mapSystemId`/`sigId` captured at delete time (the signature row is
+  // hard-deleted) so the audit names the system and the in-game code.
+  z.object({
+    kind: z.literal('signature.delete'),
+    eventId,
+    id: z.string(),
+    mapSystemId: z.string().optional(),
+    sigId: z.string().optional(),
+  }),
   z.object({
     kind: z.literal('map.create'),
     eventId,

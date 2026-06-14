@@ -17,6 +17,7 @@ describe('mapEventPayloadSchema', () => {
       name: 'Jita',
       alias: null,
       tag: null,
+      intelNotes: null,
       status: 'occupied',
       security: '0.9',
       trueSec: 0.9,

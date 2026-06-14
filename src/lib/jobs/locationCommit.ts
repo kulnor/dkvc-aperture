@@ -23,6 +23,13 @@ import { assignTagOnAdd, assignTagOnConnect } from '@/lib/tagging/service';
  * Each commit is its own transaction. A failure between
  * commits leaves a consistent state — the next poll tick will skip the parts
  * that succeeded and retry the parts that didn't.
+ *
+ * `addNewSystems` gates whether a jump may introduce a *new* system to the
+ * map. It is `true` only when the moving pilot's account currently has this map
+ * open (the caller resolves that from the live WS viewer roster). When `false`
+ * the fold never makes a non-visible system visible — it records the connection
+ * and breadcrumb only between systems already on the map, so a pilot day-tripping
+ * with Aperture closed doesn't pollute a dormant map with every hole they transit.
  */
 
 export interface FoldArgs {
@@ -30,6 +37,8 @@ export interface FoldArgs {
   characterId: bigint;
   fromSystemId: number;
   toSystemId: number;
+  /** Whether this jump may add a system not already on the map (pilot has the map open). */
+  addNewSystems: boolean;
 }
 
 export interface FoldResult {
@@ -37,11 +46,46 @@ export interface FoldResult {
   fromSystemAdded: boolean;
   toSystemAdded: boolean;
   connectionCreated: boolean;
-  /** The connection the pilot traversed — created or pre-existing. Used by the mass-log. */
-  connectionId: bigint;
+  /**
+   * The connection the pilot traversed — created or pre-existing. Used by the
+   * mass-log. `null` when the jump was suppressed (`addNewSystems = false` and an
+   * endpoint isn't on the map): there's no connection to log against.
+   */
+  connectionId: bigint | null;
 }
 
 export async function foldWormholeJumpOntoMap(args: FoldArgs): Promise<FoldResult> {
+  // Pilot has the map closed: never add a new system. Only record movement
+  // between two systems already visible on the map; skip the jump entirely
+  // when either endpoint isn't there yet.
+  if (!args.addNewSystems) {
+    const fromMapSystemId = await visibleMapSystemId(args.mapId, args.fromSystemId);
+    const toMapSystemId = await visibleMapSystemId(args.mapId, args.toSystemId);
+    if (fromMapSystemId === null || toMapSystemId === null) {
+      return {
+        mapId: args.mapId,
+        fromSystemAdded: false,
+        toSystemAdded: false,
+        connectionCreated: false,
+        connectionId: null,
+      };
+    }
+    const connection = await ensureConnection(
+      args.mapId,
+      fromMapSystemId,
+      toMapSystemId,
+      args.characterId,
+    );
+    await tagOnJump(args.mapId, fromMapSystemId, toMapSystemId, args.characterId);
+    return {
+      mapId: args.mapId,
+      fromSystemAdded: false,
+      toSystemAdded: false,
+      connectionCreated: connection.created,
+      connectionId: connection.connectionId,
+    };
+  }
+
   const fromOutcome = await ensureSystemVisible(args.mapId, args.fromSystemId, args.characterId);
   // Anchor the destination on the system the pilot came from so a fresh insert
   // fans off the parent's real position instead of piling up at (0,0).
@@ -67,6 +111,21 @@ export async function foldWormholeJumpOntoMap(args: FoldArgs): Promise<FoldResul
     connectionCreated: connection.created,
     connectionId: connection.connectionId,
   };
+}
+
+/** The `ap_map_system.id` for a system already visible on the map, or `null` if it isn't placed/visible. */
+async function visibleMapSystemId(mapId: bigint, systemId: number): Promise<bigint | null> {
+  const [row] = await db
+    .select({ id: apMapSystem.id })
+    .from(apMapSystem)
+    .where(
+      and(
+        eq(apMapSystem.mapId, mapId),
+        eq(apMapSystem.systemId, systemId),
+        eq(apMapSystem.visible, true),
+      ),
+    );
+  return row?.id ?? null;
 }
 
 interface EnsureSystemOutcome {

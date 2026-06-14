@@ -14,7 +14,7 @@ import {
 } from '@/db/schema';
 import { addSystem, removeSystem, updateSystem } from '@/lib/map/mutations/systems';
 import { foldWormholeJumpOntoMap } from '@/lib/jobs/locationCommit';
-import { isMapOwnerOrAdmin } from '@/lib/auth/rights';
+import { canManageMap } from '@/lib/auth/rights';
 
 /**
  * Per-map auto-tagging (ABC + 0121).
@@ -170,16 +170,16 @@ describe.skipIf(!run)('Stage 17.10 — auto-tagging (real Postgres)', () => {
     const homeMapSystemId = await mapSystemId(chainMapId, HOME_SYS);
     await db.update(apMap).set({ homeMapSystemId }).where(eq(apMap.id, chainMapId));
 
-    await foldWormholeJumpOntoMap({ mapId: chainMapId, characterId: OWNER_ID, fromSystemId: HOME_SYS, toSystemId: S1 });
+    await foldWormholeJumpOntoMap({ mapId: chainMapId, characterId: OWNER_ID, fromSystemId: HOME_SYS, toSystemId: S1, addNewSystems: true });
     expect(await tagOf(chainMapId, S1)).toBe('1');
 
-    await foldWormholeJumpOntoMap({ mapId: chainMapId, characterId: OWNER_ID, fromSystemId: S1, toSystemId: S2 });
+    await foldWormholeJumpOntoMap({ mapId: chainMapId, characterId: OWNER_ID, fromSystemId: S1, toSystemId: S2, addNewSystems: true });
     expect(await tagOf(chainMapId, S2)).toBe('11');
 
-    await foldWormholeJumpOntoMap({ mapId: chainMapId, characterId: OWNER_ID, fromSystemId: S1, toSystemId: S3 });
+    await foldWormholeJumpOntoMap({ mapId: chainMapId, characterId: OWNER_ID, fromSystemId: S1, toSystemId: S3, addNewSystems: true });
     expect(await tagOf(chainMapId, S3)).toBe('12');
 
-    await foldWormholeJumpOntoMap({ mapId: chainMapId, characterId: OWNER_ID, fromSystemId: S2, toSystemId: S4 });
+    await foldWormholeJumpOntoMap({ mapId: chainMapId, characterId: OWNER_ID, fromSystemId: S2, toSystemId: S4, addNewSystems: true });
     expect(await tagOf(chainMapId, S4)).toBe('111');
 
     // Remove 11 (S2); the next child off 1 reclaims 11.
@@ -188,7 +188,7 @@ describe.skipIf(!run)('Stage 17.10 — auto-tagging (real Postgres)', () => {
       mapSystemId: await mapSystemId(chainMapId, S2),
       characterId: null,
     });
-    await foldWormholeJumpOntoMap({ mapId: chainMapId, characterId: OWNER_ID, fromSystemId: S1, toSystemId: S5 });
+    await foldWormholeJumpOntoMap({ mapId: chainMapId, characterId: OWNER_ID, fromSystemId: S1, toSystemId: S5, addNewSystems: true });
     expect(await tagOf(chainMapId, S5)).toBe('11');
   });
 
@@ -215,9 +215,9 @@ describe.skipIf(!run)('Stage 17.10 — auto-tagging (real Postgres)', () => {
     expect((await addOk(noneMapId, N1)).tag).toBe('X');
   });
 
-  it('owner/admin gate: only the owner (or an admin) may configure tagging', async () => {
-    expect(await isMapOwnerOrAdmin(OWNER_ID, abcMapId)).toBe(true);
-    expect(await isMapOwnerOrAdmin(STRANGER_ID, abcMapId)).toBe(false);
+  it('manage gate: only a manager of the map may configure tagging', async () => {
+    expect(await canManageMap(OWNER_ID, abcMapId)).toBe(true);
+    expect(await canManageMap(STRANGER_ID, abcMapId)).toBe(false);
   });
 });
 

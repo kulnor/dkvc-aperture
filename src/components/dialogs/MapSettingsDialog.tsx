@@ -15,29 +15,39 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { updateMapSettingsAction } from '@/app/(app)/actions/map';
 import { exportMapOnServer, importMapOnServer } from '@/lib/map/client';
+import { readLowContrast, writeLowContrast } from '@/lib/lowContrast';
+import { MapBehaviorForm } from '@/components/map/manage/MapBehaviorForm';
+import { MapTaggingForm } from '@/components/map/manage/MapTaggingForm';
+import { MapWebhooksPanel } from '@/components/map/manage/MapWebhooksPanel';
 import type { MapEventPayload, MapSettings } from '@/types';
 
 /**
- * Map Settings dialog — the consolidated edit / settings /
+ * Map Settings dialog — the consolidated edit / settings / management /
  * import-export surface, launched from the `MapCanvas` toolbar. General
  * persists via `updateMapSettingsAction` (`map_update`); Export reads
  * `/export` (`map_export`) and downloads the JSON client-side; Import posts to
  * `/import` (`map_import`) and folds the returned payloads onto the canvas via
- * `onImported`. Behavior toggles and auto-tagging are admin-only and live at
- * `/admin/maps/<id>/settings`. Webhooks are intentionally NOT here — they stay
- * in the admin panel.
+ * `onImported`. When `canManage` (derived `canManageMap`), the Behavior,
+ * Auto-tagging, and Webhooks tabs appear — all gated server-side regardless of
+ * this flag. The audit log lives in its own wider dialog (`MapAuditDialog`).
  */
 export function MapSettingsDialog({
   open,
   onOpenChange,
   mapId,
   settings,
+  canManage,
+  systems,
   onImported,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   mapId: string;
   settings: MapSettings;
+  /** Whether the viewer can manage this map — reveals the management tabs. */
+  canManage: boolean;
+  /** Visible map systems for the Auto-tagging Home picker. */
+  systems: { id: string; name: string; alias: string | null }[];
   /** Fold imported event payloads onto the live canvas (reuses the bulk-paste handler). */
   onImported: (payloads: MapEventPayload[]) => void;
 }) {
@@ -55,6 +65,9 @@ export function MapSettingsDialog({
           <TabsList>
             <TabsTab value="general">General</TabsTab>
             <TabsTab value="settings">Settings</TabsTab>
+            {canManage && <TabsTab value="behavior">Behavior</TabsTab>}
+            {canManage && <TabsTab value="tagging">Auto-tagging</TabsTab>}
+            {canManage && <TabsTab value="webhooks">Webhooks</TabsTab>}
             <TabsTab value="export">Export</TabsTab>
             <TabsTab value="import">Import</TabsTab>
           </TabsList>
@@ -63,8 +76,37 @@ export function MapSettingsDialog({
             <GeneralPanel mapId={mapId} settings={settings} />
           </TabsPanel>
           <TabsPanel value="settings">
-            <SettingsPlaceholder />
+            <SettingsPanel />
           </TabsPanel>
+          {canManage && (
+            <TabsPanel value="behavior">
+              <MapBehaviorForm
+                mapId={mapId}
+                initialValues={{
+                  deleteExpiredConnections: settings.deleteExpiredConnections,
+                  deleteEolConnections: settings.deleteEolConnections,
+                  trackAbyssalJumps: settings.trackAbyssalJumps,
+                  logActivity: settings.logActivity,
+                }}
+              />
+            </TabsPanel>
+          )}
+          {canManage && (
+            <TabsPanel value="tagging">
+              <MapTaggingForm
+                mapId={mapId}
+                initialScheme={settings.tagScheme}
+                initialHomeMapSystemId={settings.homeMapSystemId}
+                initialExemptHomeStatic={settings.exemptHomeStaticFromTag}
+                systems={systems}
+              />
+            </TabsPanel>
+          )}
+          {canManage && (
+            <TabsPanel value="webhooks">
+              <MapWebhooksPanel mapId={mapId} />
+            </TabsPanel>
+          )}
           <TabsPanel value="export">
             <ExportPanel mapId={mapId} mapName={settings.name} />
           </TabsPanel>
@@ -77,11 +119,39 @@ export function MapSettingsDialog({
   );
 }
 
-function SettingsPlaceholder() {
+function SettingsPanel() {
+  // Client-only display prefs, persisted to localStorage. The lazy initializer
+  // reads localStorage on first render; safe because this panel only mounts once
+  // the dialog opens (never during SSR), so there's no hydration mismatch.
+  const [lowContrast, setLowContrast] = useState(readLowContrast);
+
+  function onToggleLowContrast(next: boolean) {
+    setLowContrast(next);
+    writeLowContrast(next);
+  }
+
   return (
-    <p className="py-2 text-sm text-muted-foreground">
-      User display preferences will appear here.
-    </p>
+    <div className="flex flex-col gap-4">
+      <p className="text-sm text-muted-foreground">
+        These preferences are stored on this device only.
+      </p>
+
+      <label className="flex items-center gap-3 rounded-lg px-2 py-1.5 text-sm hover:bg-muted">
+        <div className="flex flex-1 flex-col gap-0.5">
+          <span className="font-medium text-foreground">Low-contrast theme</span>
+          <span className="text-xs text-muted-foreground">
+            Softens the interface contrast. Off by default.
+          </span>
+        </div>
+        <input
+          type="checkbox"
+          className="size-4 accent-primary"
+          checked={lowContrast}
+          onChange={(e) => onToggleLowContrast(e.target.checked)}
+          aria-label="Low-contrast theme"
+        />
+      </label>
+    </div>
   );
 }
 

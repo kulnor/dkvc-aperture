@@ -152,10 +152,12 @@ describe('formatHistoryMessage', () => {
       kind: 'connection.update',
       eventId: 7,
       id: '7',
+      source: '1',
+      target: '2',
       eolStage: 'eol',
     };
     expect(formatHistoryMessage(event, baseCtx)?.content).toBe(
-      '**Test Map** — Pilot Foo marked **Jita** ↔ **Amarr** as EOL (~4h).',
+      '**Test Map** — Pilot Foo updated **Jita** ↔ **Amarr** (EOL → ~4h).',
     );
   });
 
@@ -164,11 +166,53 @@ describe('formatHistoryMessage', () => {
       kind: 'connection.update',
       eventId: 7,
       id: '7',
+      source: '1',
+      target: '2',
       eolStage: 'critical',
     };
     expect(formatHistoryMessage(event, baseCtx)?.content).toBe(
-      '**Test Map** — Pilot Foo marked **Jita** ↔ **Amarr** as critical EOL (~1h).',
+      '**Test Map** — Pilot Foo updated **Jita** ↔ **Amarr** (EOL → critical (~1h)).',
     );
+  });
+
+  it('renders connection.update jump-mass-class change with a friendly size label', () => {
+    const event: MapEventPayload = {
+      kind: 'connection.update',
+      eventId: 7,
+      id: '7',
+      source: '1',
+      target: '2',
+      jumpMassClass: 'l',
+    };
+    expect(formatHistoryMessage(event, baseCtx)?.content).toBe(
+      '**Test Map** — Pilot Foo updated **Jita** ↔ **Amarr** (max ship size → large).',
+    );
+  });
+
+  it('renders connection.update listing every changed field', () => {
+    const event: MapEventPayload = {
+      kind: 'connection.update',
+      eventId: 7,
+      id: '7',
+      source: '1',
+      target: '2',
+      massStatus: 'critical',
+      isRolling: true,
+    };
+    expect(formatHistoryMessage(event, baseCtx)?.content).toBe(
+      '**Test Map** — Pilot Foo updated **Jita** ↔ **Amarr** (mass → `critical`, rolling started).',
+    );
+  });
+
+  it('returns null for a connection.update carrying no recognized change', () => {
+    const event: MapEventPayload = {
+      kind: 'connection.update',
+      eventId: 7,
+      id: '7',
+      source: '1',
+      target: '2',
+    };
+    expect(formatHistoryMessage(event, baseCtx)).toBeNull();
   });
 
   it('renders signature.create with the sig id', () => {
@@ -190,6 +234,143 @@ describe('formatHistoryMessage', () => {
     };
     expect(formatHistoryMessage(event, baseCtx)?.content).toBe(
       '**Test Map** — Pilot Foo added signature `ABC-123` in **Jita**.',
+    );
+  });
+
+  it('renders signature.update naming the changed wormhole type', () => {
+    const event: MapEventPayload = {
+      kind: 'signature.update',
+      eventId: 9,
+      id: '99',
+      mapSystemId: '42',
+      sigId: 'AUQ',
+      typeId: 31000,
+      wormholeCode: 'B274',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    };
+    expect(formatHistoryMessage(event, baseCtx)?.content).toBe(
+      '**Test Map** — Pilot Foo updated signature `AUQ` in **Jita** (type → `B274`).',
+    );
+  });
+
+  it('renders signature.update with no recognized field change as a bare update', () => {
+    const event: MapEventPayload = {
+      kind: 'signature.update',
+      eventId: 9,
+      id: '99',
+      mapSystemId: '42',
+      sigId: 'AUQ',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    };
+    expect(formatHistoryMessage(event, baseCtx)?.content).toBe(
+      '**Test Map** — Pilot Foo updated signature `AUQ` in **Jita**.',
+    );
+  });
+
+  it('suppresses the housekeeping name-clear the client folds into a type change', () => {
+    const event: MapEventPayload = {
+      kind: 'signature.update',
+      eventId: 9,
+      id: '99',
+      mapSystemId: '42',
+      sigId: 'AUQ',
+      typeId: 31000,
+      wormholeCode: 'B274',
+      // The client sends `name: null` alongside a WH-type pick (code-mirror reset);
+      // the audit should report the type, not a spurious "name cleared".
+      name: null,
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    };
+    expect(formatHistoryMessage(event, baseCtx)?.content).toBe(
+      '**Test Map** — Pilot Foo updated signature `AUQ` in **Jita** (type → `B274`).',
+    );
+  });
+
+  it('names the destination when a signature is unlinked from its connection', () => {
+    const event: MapEventPayload = {
+      kind: 'signature.update',
+      eventId: 9,
+      id: '99',
+      mapSystemId: '42',
+      sigId: 'AUQ',
+      mapConnectionId: null,
+      leadsToMapSystemId: '7', // resolves to baseCtx.targetSystemName = 'Amarr'
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    };
+    expect(formatHistoryMessage(event, baseCtx)?.content).toBe(
+      '**Test Map** — Pilot Foo updated signature `AUQ` in **Jita** (unlinked from **Amarr**).',
+    );
+  });
+
+  it('summarizes a created wormhole signature with its code and destination', () => {
+    const event: MapEventPayload = {
+      kind: 'signature.create',
+      eventId: 8,
+      id: '99',
+      mapSystemId: '42',
+      mapConnectionId: '5',
+      sigId: 'LBS-432',
+      groupKey: 'wormhole',
+      typeId: 31000,
+      wormholeCode: 'C008',
+      name: null,
+      description: null,
+      expiresAt: '2026-06-01T00:00:00.000Z',
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+      leadsToMapSystemId: '7', // → 'Amarr'
+    };
+    expect(formatHistoryMessage(event, baseCtx)?.content).toBe(
+      '**Test Map** — Pilot Foo added signature `LBS-432` in **Jita** (wormhole `C008`, leads to **Amarr**).',
+    );
+  });
+
+  it('labels a created cosmic signature by its scanner group', () => {
+    const event: MapEventPayload = {
+      kind: 'signature.create',
+      eventId: 8,
+      id: '99',
+      mapSystemId: '42',
+      mapConnectionId: null,
+      sigId: 'XYZ-111',
+      groupKey: 'relic',
+      typeId: null,
+      wormholeCode: null,
+      name: 'Forgotten Frontier',
+      description: null,
+      expiresAt: '2026-06-01T00:00:00.000Z',
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+      leadsToMapSystemId: null,
+    };
+    expect(formatHistoryMessage(event, baseCtx)?.content).toBe(
+      '**Test Map** — Pilot Foo added signature `XYZ-111` in **Jita** (relic site).',
+    );
+  });
+
+  it('renders connection.delete with both endpoint names (carried in the payload)', () => {
+    const event: MapEventPayload = {
+      kind: 'connection.delete',
+      eventId: 10,
+      id: '7',
+      source: '1',
+      target: '2',
+    };
+    expect(formatHistoryMessage(event, baseCtx)?.content).toBe(
+      '**Test Map** — Pilot Foo removed the connection **Jita** ↔ **Amarr**.',
+    );
+  });
+
+  it('renders signature.delete with the sig id (carried in the payload)', () => {
+    const event: MapEventPayload = {
+      kind: 'signature.delete',
+      eventId: 11,
+      id: '99',
+      mapSystemId: '42',
+      sigId: 'ABC-123',
+    };
+    expect(formatHistoryMessage(event, baseCtx)?.content).toBe(
+      '**Test Map** — Pilot Foo removed signature `ABC-123` from **Jita**.',
     );
   });
 });

@@ -4,7 +4,18 @@ import type { ReactNode } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { PreviewCard } from '@base-ui/react/preview-card';
 import { Tooltip } from '@base-ui/react/tooltip';
-import { Atom, CircleDashed, Clock, Home, Lock, Signal, Users, type LucideIcon } from 'lucide-react';
+import {
+  Atom,
+  CircleDashed,
+  Clock,
+  Home,
+  Lock,
+  Radiation,
+  Signal,
+  Swords,
+  Users,
+  type LucideIcon,
+} from 'lucide-react';
 import type { MapSystemNode } from '@/lib/map/loadMap';
 import { formatAgoFromMs } from '@/lib/map/relativeTime';
 import {
@@ -34,6 +45,10 @@ export type SystemNodeData = MapSystemNode & {
   onAliasOrTagCommit?: (mapSystemId: string, field: 'alias' | 'tag', next: string | null) => void;
   /** Derived in `MapCanvas` from the map's `homeMapSystemId`; marks this tile as the Home system. */
   isHome?: boolean;
+  /** Derived in `MapCanvas` from the load-time intel: this system has a faction-warfare row. */
+  inFactionWarfare?: boolean;
+  /** Derived in `MapCanvas` from the load-time intel: this system is part of an active incursion. */
+  hasIncursion?: boolean;
 };
 
 function securityLabel(node: MapSystemNode): string {
@@ -121,6 +136,10 @@ export function SystemNode({ data, selected }: NodeProps & { data: SystemNodeDat
         stale={sigIndicator.stale}
         ageMs={sigIndicator.ageMs}
         unscanned={sigIndicator.unscanned}
+      />
+      <IntelIndicators
+        inFactionWarfare={!!data.inFactionWarfare}
+        hasIncursion={!!data.hasIncursion}
       />
       {/* Each handle carries a unique id so xyflow resolves the actual grabbed /
           hovered handle. Without an id, `getHandle` falls back to `handles[0]`
@@ -276,6 +295,38 @@ function SignatureIndicators({
         >
           <Signal className="size-2.5" aria-hidden />
           {unscanned}
+        </IndicatorPill>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Faction-warfare and incursion indicators, floating just off the bottom-right
+ * corner of the tile. Mirrors `SignatureIndicators` (same pill look, off-border
+ * float) but pinned to the opposite corner so the two sets never collide.
+ * `pointer-events-none` so they never swallow a node click; `nodrag nopan` keeps
+ * xyflow from panning if one is grabbed. Fed by load-time intel, so the flags
+ * reflect map-load state (no realtime), like the Home marker.
+ */
+function IntelIndicators({
+  inFactionWarfare,
+  hasIncursion,
+}: {
+  inFactionWarfare: boolean;
+  hasIncursion: boolean;
+}) {
+  if (!inFactionWarfare && !hasIncursion) return null;
+  return (
+    <div className="nodrag nopan pointer-events-none absolute -right-2 -bottom-2 flex items-center gap-1">
+      {inFactionWarfare && (
+        <IndicatorPill className="text-orange-400 ring-orange-400/40" label="Faction Warfare system">
+          <Swords className="size-2.5" aria-hidden />
+        </IndicatorPill>
+      )}
+      {hasIncursion && (
+        <IndicatorPill className="text-red-400 ring-red-400/40" label="Active incursion">
+          <Radiation className="size-2.5" aria-hidden />
         </IndicatorPill>
       )}
     </div>

@@ -212,6 +212,9 @@ export async function esiCall<T>(opKey: OpKey, opts: EsiCallOptions<T>): Promise
       'User-Agent': env.EVE_USER_AGENT,
       'Accept-Encoding': 'gzip',
       Accept: 'application/json',
+      // The unversioned ESI surface is pinned by compatibility date; without it
+      // CCP defaults to 2020-01-01, which no longer matches our routes/decoders.
+      'X-Compatibility-Date': apertureConfig.ESI_COMPATIBILITY_DATE,
     };
     if (isAuthed) {
       const token =

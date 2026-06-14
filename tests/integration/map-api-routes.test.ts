@@ -183,6 +183,10 @@ describe.skipIf(!run)('map API routes — signature mutations + broadcast (real 
       id: signatureId.toString(),
       name: 'Renamed Sig',
       description: 'gas site',
+      updatedAt: expect.any(String),
+      // Audit descriptors ride every update: owning system + the (here unchanged) code.
+      mapSystemId: mapSystemIdA.toString(),
+      sigId: 'ABC',
     });
     expect(await eventCount()).toBe(before + 1);
 
@@ -237,6 +241,8 @@ describe.skipIf(!run)('map API routes — signature mutations + broadcast (real 
       kind: 'signature.delete',
       eventId: result.eventId,
       id: signatureId.toString(),
+      mapSystemId: mapSystemIdA.toString(),
+      sigId: 'ABC',
     });
     expect(await eventCount()).toBe(before + 1);
 

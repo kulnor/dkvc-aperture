@@ -2,13 +2,10 @@
 
 import { Menu as MenuPrimitive } from '@base-ui/react/menu';
 import { ContextMenu } from '@base-ui/react/context-menu';
-import { Navigation, Plus, Radar, Scissors, Trash2, Unlink } from 'lucide-react';
-import { toast } from 'sonner';
+import { Plus, Radar, Scissors, Trash2, Unlink } from 'lucide-react';
 
 import type { MapContextMenuTarget, MapSystemNode, MapConnectionEdge } from '@/types';
 import type { UpdateSystemBody, UpdateConnectionBody } from '@/lib/map/client';
-import { setWaypointOnServer } from '@/lib/character/client';
-import { useMapActiveChar } from './MapActiveCharContext';
 import { computeDisconnected, neighborsOf } from '@/lib/map/subchainGraph';
 import {
   MenuItem,
@@ -35,6 +32,7 @@ import {
   type EolStage,
 } from '@/lib/map/enumLabels';
 import { cn } from '@/lib/utils';
+import { SetDestinationItem } from './SetDestinationItem';
 
 /** Sentinel radio value for "jump mass unknown" — mirrors `InspectorModule.tsx`. */
 const NONE_JUMP_MASS = '__none__';
@@ -296,41 +294,6 @@ function renderItems({
       );
     }
   }
-}
-
-/**
- * "Set destination" — appends this system as an autopilot waypoint on the map's
- * active character. Reads the active character from `MapActiveCharContext`
- * directly (it isn't available to `MapCanvas`, which sits above the provider),
- * so the action and the network call live here rather than flowing through a
- * parent callback. Disabled when no character is active.
- */
-function SetDestinationItem({
-  system,
-  onClose,
-}: {
-  system: MapSystemNode;
-  onClose: () => void;
-}) {
-  const { activeCharId } = useMapActiveChar();
-  return (
-    <MenuItem
-      icon={<Navigation className="size-3.5" />}
-      disabled={activeCharId === null}
-      onClick={() => {
-        if (activeCharId === null) return;
-        void setWaypointOnServer({
-          characterId: activeCharId,
-          destinationId: system.systemId,
-        }).then((result) => {
-          if (result.ok) toast.success(`Waypoint set to ${systemLabel(system)}`);
-        });
-        onClose();
-      }}
-    >
-      Set destination
-    </MenuItem>
-  );
 }
 
 function SystemItems({

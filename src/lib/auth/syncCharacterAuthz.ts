@@ -2,6 +2,7 @@ import { and, eq, inArray, notInArray } from 'drizzle-orm';
 import { apertureConfig } from '../../../aperture.config';
 import { db } from '@/db/client';
 import {
+  apAlliance,
   apCharacter,
   apCharacterRole,
   apCorporation,
@@ -16,9 +17,11 @@ import {
   EsiTokenError,
 } from '@/lib/esi/client';
 import {
+  allianceSchema,
   characterPublicSchema,
   characterRolesSchema,
   characterTitlesSchema,
+  type EsiAlliance,
   type EsiCharacterRoles,
   type EsiCharacterTitles,
 } from '@/lib/esi/decoders';
@@ -28,19 +31,27 @@ import {
  * a single transactional pass. Three pieces of state are touched:
  *
  *   1. `ap_character.authz_level`         — recomputed via `resolveAuthzLevel`:
- *                                            any Director ⇒ corp-scoped
- *                                            `'manager'` (instance ownership is
- *                                            irrelevant here); global `'admin'`
- *                                            only from an explicit
- *                                            `ap_access_grant` `capability='admin'`.
+ *                                            `'member'` or `'admin'` only.
+ *                                            Global `'admin'` comes only from an
+ *                                            explicit `ap_access_grant`
+ *                                            `capability='admin'`; the Director
+ *                                            role does NOT raise the tier (it is
+ *                                            carried separately by `is_director`).
  *                                            The level is a deterministic cache,
  *                                            written verbatim every pass — no
  *                                            preserve-hack.
  *   2. `ap_character.corporation_id` /
- *      `ap_character.alliance_id`         — refreshed from `getCharacter`.
- *                                            `ap_corporation` row upserted as
- *                                            a side effect (FK target for
- *                                            `ap_corporation_right` + role rows).
+ *      `ap_character.alliance_id` /
+ *      `ap_character.is_director`         — refreshed from `getCharacter` +
+ *                                            `getCharacterRoles`. `ap_corporation`
+ *                                            row upserted as a side effect (FK
+ *                                            target for role rows); `ap_alliance` row
+ *                                            upserted from `getAlliance` when the
+ *                                            character has an alliance (caches the
+ *                                            executor corp for `canManageMap`).
+ *                                            `is_director` is the raw ESI Director
+ *                                            bit, carrying corp/alliance map
+ *                                            authority in the derived model.
  *   3. `ap_character_role` rows tagged
  *      `source='corp_title'`              — reconciled to match the titles ESI
  *                                            returns; roles upserted into
@@ -58,10 +69,12 @@ import {
  * before mutating the DB so a partial sync never lands.
  */
 export interface SyncCharacterAuthzResult {
-  authzLevel: 'member' | 'manager' | 'admin';
+  authzLevel: 'member' | 'admin';
   isDirector: boolean;
   corporationId: bigint | null;
   allianceId: bigint | null;
+  /** Executor corp of the character's alliance (from the `ap_alliance` upsert), null when unaffiliated. */
+  executorCorporationId: bigint | null;
   titleCount: number;
   /** `true` when ESI was reachable and the DB was updated. */
   applied: boolean;
@@ -73,6 +86,7 @@ export async function syncCharacterAuthz(
   characterId: bigint,
 ): Promise<SyncCharacterAuthzResult> {
   let publicProfile, roles: EsiCharacterRoles, titles: EsiCharacterTitles;
+  let alliance: EsiAlliance | null = null;
   try {
     [publicProfile, roles, titles] = await Promise.all([
       esiCall('getCharacter', {
@@ -90,6 +104,15 @@ export async function syncCharacterAuthz(
         characterId,
       }),
     ]);
+    // Alliance lookup depends on the just-resolved affiliation, so it follows
+    // the parallel batch. Guarded by the same try/catch — if ESI is
+    // unreachable the whole sync skips rather than landing a partial write.
+    if (publicProfile.alliance_id !== undefined) {
+      alliance = await esiCall('getAlliance', {
+        schema: allianceSchema,
+        pathParams: { alliance_id: publicProfile.alliance_id },
+      });
+    }
   } catch (err) {
     if (err instanceof EsiBreakerOpenError) {
       return emptyResult({ skipped: 'esi-breaker' });
@@ -110,10 +133,15 @@ export async function syncCharacterAuthz(
   const corporationId = BigInt(publicProfile.corporation_id);
   const allianceId =
     publicProfile.alliance_id !== undefined ? BigInt(publicProfile.alliance_id) : null;
+  const executorCorporationId =
+    alliance?.executor_corporation_id !== undefined
+      ? BigInt(alliance.executor_corporation_id)
+      : null;
 
   // Resolve the cached level before the transaction — the grant table it reads
-  // is independent of the writes below.
-  const resolvedLevel = await resolveAuthzLevel({ characterId, isDirector });
+  // is independent of the writes below. `is_director` is persisted separately
+  // below; it no longer feeds the authz tier.
+  const resolvedLevel = await resolveAuthzLevel(characterId);
 
   await db.transaction(async (tx) => {
     // 1. Upsert the corp row so subsequent FK targets resolve.
@@ -136,13 +164,38 @@ export async function syncCharacterAuthz(
         },
       });
 
+    // 1b. Upsert the alliance cache when the character has one, so
+    //     `executor_corporation_id` is available to the derived-authority gates.
+    //     `name` and executor come from ESI `getAlliance`; this is the only
+    //     writer of `ap_alliance`.
+    if (allianceId !== null && alliance !== null) {
+      await tx
+        .insert(apAlliance)
+        .values({
+          id: allianceId,
+          name: alliance.name,
+          executorCorporationId,
+          lastSyncedAt: new Date(),
+        })
+        .onConflictDoUpdate({
+          target: apAlliance.id,
+          set: {
+            name: alliance.name,
+            executorCorporationId,
+            lastSyncedAt: new Date(),
+          },
+        });
+    }
+
     // 2. Update the character row. `authz_level` is the recomputed cache from
-    //    `resolveAuthzLevel` — written verbatim, no preserve-hack.
+    //    `resolveAuthzLevel` — written verbatim, no preserve-hack. `is_director`
+    //    is the raw ESI Director bit, carrying corp/alliance map authority.
     await tx
       .update(apCharacter)
       .set({
         corporationId,
         allianceId,
+        isDirector,
         authzLevel: resolvedLevel,
         authzSyncedAt: new Date(),
         updatedAt: new Date(),
@@ -243,6 +296,7 @@ export async function syncCharacterAuthz(
     isDirector,
     corporationId,
     allianceId,
+    executorCorporationId,
     titleCount: titles.length,
     applied: true,
   };
@@ -260,6 +314,7 @@ function emptyResult(
     isDirector: false,
     corporationId: null,
     allianceId: null,
+    executorCorporationId: null,
     titleCount: 0,
     applied: false,
     ...init,

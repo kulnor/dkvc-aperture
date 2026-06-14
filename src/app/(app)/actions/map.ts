@@ -10,7 +10,7 @@ import type { InferInsertModel } from 'drizzle-orm';
 import { commitMapEvent, type ActionResult } from '@/lib/map/mutations/core';
 import type { MapEventPatch, MapEventPayload } from '@/lib/realtime/protocol';
 import { applyHomeStaticExemption } from '@/lib/tagging/exemption';
-import { canCreateMap, isMapOwnerOrAdmin, requireMapRight } from '@/lib/auth/rights';
+import { canCreateMap, requireMapRight } from '@/lib/auth/rights';
 
 /**
  * Low-frequency, user-initiated map mutations via Server Actions (CLAUDE.md
@@ -18,14 +18,16 @@ import { canCreateMap, isMapOwnerOrAdmin, requireMapRight } from '@/lib/auth/rig
  * the natural next step). Each one validates input, lands exactly one
  * `ap_map_event` through `commitMapEvent`, and revalidates the maps list.
  *
- * Access:
- *   - `createMapAction`         requires `canCreateMap` (corp-right grant or admin).
- *                               Sets the owner FK that matches the chosen `type`.
- *   - `updateMapSettingsAction` requires `map_update` right.
- *   - `deleteMapAction`         requires `map_delete` right via the same per-type
- *                               rule (private: owner/admin; corp/alliance: owning
- *                               entity member + corp-right grant). Corps that want
- *                               to restrict deletion simply omit the grant row.
+ * Access (derived authority — EVE state + ownership):
+ *   - `createMapAction`         requires `canCreateMap(actor, type)`: private →
+ *                               any active character; corp → a Director (owned to
+ *                               the actor's corp); alliance → an executor-corp
+ *                               Director (owned to the actor's alliance).
+ *   - `updateMapSettingsAction` requires `canManageMap` (via `requireMapRight`).
+ *   - `deleteMapAction`         requires `canManageMap` (via `requireMapRight`):
+ *                               private owner, owning corp's Director, or the
+ *                               owning alliance's executor-corp Director; admin
+ *                               overrides everywhere.
  */
 
 const createMapSchema = z.object({
@@ -43,7 +45,7 @@ const updateMapSettingsSchema = z.object({
   deleteEolConnections: z.boolean().optional(),
   trackAbyssalJumps: z.boolean().optional(),
   logActivity: z.boolean().optional(),
-  // Auto-tagging (owner/admin-gated; see the action body).
+  // Auto-tagging (gated by canManageMap, like the rest of the dialog).
   tagScheme: z.enum(tagScheme.enumValues).optional(),
   homeMapSystemId: z.string().regex(/^\d+$/, 'Invalid system id.').nullable().optional(),
   exemptHomeStaticFromTag: z.boolean().optional(),
@@ -64,7 +66,7 @@ export async function createMapAction(
   const { name, scope, type, icon } = parsed.data;
 
   const characterId = BigInt(session.characterId);
-  if (!(await canCreateMap(characterId))) {
+  if (!(await canCreateMap(characterId, type))) {
     return { ok: false, error: 'You do not have permission to create maps.' };
   }
 
@@ -179,13 +181,11 @@ export async function updateMapSettingsAction(
     return { ok: false, error: guard.error };
   }
 
-  // Auto-tagging config (scheme + Home) is owner/admin-only — strictly tighter
-  // than the corp-grantable `map_update` that gates the rest of the dialog.
+  // Auto-tagging config (scheme + Home) rides the same `canManageMap` authority
+  // as the rest of the dialog — no separate gate now that the corp-right matrix
+  // is gone. `touchesTagging` only drives the Home-static exemption reconcile.
   const touchesTagging =
     'tagScheme' in patch || 'homeMapSystemId' in patch || 'exemptHomeStaticFromTag' in patch;
-  if (touchesTagging && !(await isMapOwnerOrAdmin(guard.characterId, id))) {
-    return { ok: false, error: 'Only the map owner or an admin can change auto-tagging.' };
-  }
 
   const result = await commitMapEvent({
     mapId: id,

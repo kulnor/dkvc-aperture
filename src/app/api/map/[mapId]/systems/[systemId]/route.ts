@@ -57,12 +57,13 @@ export async function PATCH(
     );
   }
 
-  const patch = {
-    ...parsed.data,
-    rallyAt: parsed.data.rallyAt !== undefined
-      ? (parsed.data.rallyAt ? new Date(parsed.data.rallyAt) : null)
-      : undefined,
-  };
+  // Only carry `rallyAt` into the patch when the body actually sent it — spreading
+  // an explicit `rallyAt: undefined` would leave the key present, and `updateSystem`
+  // keys off `'rallyAt' in patch`, so a pure move would spuriously write rallyAt=null
+  // (and surface as "cleared the rally point" in the audit log).
+  const { rallyAt, ...rest } = parsed.data;
+  const patch: Parameters<typeof updateSystem>[0]['patch'] = { ...rest };
+  if (rallyAt !== undefined) patch.rallyAt = rallyAt ? new Date(rallyAt) : null;
 
   const result = await updateSystem({
     mapId: guard.mapId,

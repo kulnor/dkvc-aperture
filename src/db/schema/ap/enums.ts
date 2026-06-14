@@ -6,8 +6,14 @@ import { pgEnum } from 'drizzle-orm/pg-core';
 /** Per-character moderation state. */
 export const characterStatus = pgEnum('character_status', ['active', 'kicked', 'banned']);
 
-/** In-app authority level. */
-export const authzLevel = pgEnum('authz_level', ['member', 'manager', 'admin']);
+/**
+ * In-app authority level. `admin` is the deployment operator (global) and is
+ * reached only via an explicit `ap_access_grant` (`capability='admin'`);
+ * everyone else is `member`. Corp/alliance map-management authority is NOT a
+ * tier here — it is the derived `ap_character.is_director` bit consumed by
+ * `canManageMap` / `canCreateMap`.
+ */
+export const authzLevel = pgEnum('authz_level', ['member', 'admin']);
 
 /** What kinds of systems a map is allowed to hold. */
 export const mapScope = pgEnum('map_scope', ['wh', 'k_space', 'none', 'all']);
@@ -72,9 +78,11 @@ export const apWebhookChannel = pgEnum('ap_webhook_channel', ['discord']);
 export const apWebhookEvent = pgEnum('ap_webhook_event', ['history', 'rally']);
 
 /**
- * The six rights a corp may grant its members on `ap_corporation_right`.
- * `map_create` is a global capability checked against the actor's corp rights;
- * the remaining five are per-map.
+ * The map-management rights vocabulary. Reserved as the granular delegation
+ * vocabulary for the future title-delegation overlay (R4); at the baseline the
+ * mutate guards take a `MapRight` argument but ignore it (authority is the
+ * binary `canManageMap`). No table stores these today — the old
+ * `ap_corporation_right` matrix was retired in 0041.
  */
 export const mapRight = pgEnum('map_right', [
   'map_create',
@@ -166,9 +174,8 @@ export const accessPrincipal = pgEnum('access_principal', [
 export const accessScope = pgEnum('access_scope', ['instance', 'map']);
 
 /**
- * What an access grant permits. `login`/`admin`/`manage`
- * are instance-scoped (allowlist entry / super-admin / manager
- * hand-grant); `view`/`edit` are map-scoped and reserved for the
+ * What an access grant permits. `login`/`admin` are instance-scoped (allowlist
+ * entry / super-admin); `view`/`edit` are map-scoped and reserved for the
  * temporary-sharing feature — declared so adding sharing needs no
  * `ALTER TYPE access_capability ADD VALUE`. The capability↔scope pairing is
  * enforced by a CHECK.
@@ -176,7 +183,6 @@ export const accessScope = pgEnum('access_scope', ['instance', 'map']);
 export const accessCapability = pgEnum('access_capability', [
   'login',
   'admin',
-  'manage',
   'view',
   'edit',
 ]);

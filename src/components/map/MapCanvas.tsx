@@ -31,6 +31,7 @@ import type {
   RouteDestinationView,
   RoutePrefs,
   SignatureIndicatorPrefs,
+  SigSearchFilters,
   StructureIntel,
 } from '@/types';
 import type { SystemStatsSummary } from '@/lib/map/stats';
@@ -52,6 +53,7 @@ import {
   deleteSignatureOnServer,
   deleteSubchainOnServer,
   fetchMapSnapshot,
+  fetchSystemData,
   pingSystemOnServer,
   removeSystemOnServer,
   updateConnectionOnServer,
@@ -84,7 +86,7 @@ import {
   SignatureModule,
   SignatureModuleHeaderActions,
 } from '@/components/sidebar/SignatureModule';
-import { Info, LayoutDashboard, Plus, RotateCcw, Settings, Trash2, User } from 'lucide-react';
+import { Info, LayoutDashboard, Plus, RotateCcw, ScrollText, Search, Settings, Trash2, User } from 'lucide-react';
 import { Tooltip } from '@base-ui/react/tooltip';
 import { Button } from '@/components/ui/button';
 import {
@@ -106,6 +108,8 @@ import { MapInfoDialog } from '@/components/dialogs/MapInfoDialog';
 import { PilotRosterButton } from './PilotRosterButton';
 import { SystemOverlayButton } from './SystemOverlayButton';
 import { MapSettingsDialog } from '@/components/dialogs/MapSettingsDialog';
+import { MapAuditDialog } from '@/components/map/manage/MapAuditDialog';
+import { SignatureSearchDialog } from '@/components/dialogs/SignatureSearchDialog';
 import { AddSystemDialog } from './AddSystemDialog';
 import { ConnectionEdge, type ConnectionEdgeData } from './ConnectionEdge';
 import { MapPresenceProvider } from './MapPresenceContext';
@@ -218,10 +222,11 @@ type SubchainSigOffer = {
 
 export function MapCanvas({
   data,
-  stats,
-  intel,
+  stats: initialStats,
+  intel: initialIntel,
   structures: initialStructures,
   settings,
+  canManage,
   travelAnimation,
   signatureIndicators,
   viewerCharacterIds,
@@ -236,6 +241,8 @@ export function MapCanvas({
   intel: Record<number, SystemIntelSummary>;
   structures: Record<number, StructureIntel[]>;
   settings: MapSettings;
+  /** Whether the viewer can manage this map (derived `canManageMap`) — reveals settings/webhooks/audit. */
+  canManage: boolean;
   travelAnimation: boolean;
   /** Viewer's resolved stale/unscanned indicator prefs (threshold + toggles). */
   signatureIndicators: SignatureIndicatorPrefs;
@@ -283,7 +290,17 @@ export function MapCanvas({
   const [disconnectedPreview, setDisconnectedPreview] = useState<{ count: number } | null>(null);
   const [mapInfoOpen, setMapInfoOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [auditOpen, setAuditOpen] = useState(false);
   const [addSystemOpen, setAddSystemOpen] = useState(false);
+  const [sigSearchOpen, setSigSearchOpen] = useState(false);
+  const [sigSearchFilters, setSigSearchFilters] = useState<SigSearchFilters>({
+    name: '',
+    groupKey: null,
+    maxAgeHours: null,
+    securityClasses: [],
+  });
+  const [flashSigId, setFlashSigId] = useState<string | null>(null);
+  const flashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // One-shot "Lazy delete" arm for the CTRL+V fast paste: when on, the next
   // direct scanner paste also removes missing sigs, then disarms itself.
   const [lazyDeleteSigs, setLazyDeleteSigs] = useState(false);
@@ -304,15 +321,53 @@ export function MapCanvas({
   // reconciler would fight the click handlers and loop. Box drag is the only
   // selection source we must adopt from xyflow.
   const boxSelecting = useRef(false);
-  // Structure intel is deployment-global and not realtime-synced; we manage it
-  // as plain local state seeded from the page load and updated on our own CRUD.
+  // Read-side per-system data (intel / activity stats / structure intel) is
+  // server-rendered for the systems present at page load, then held as state so
+  // systems added live can be backfilled (see the effect below) without a reload.
+  // Structure intel is also updated in place by our own CRUD callbacks.
+  const [intel, setIntel] = useState(initialIntel);
+  const [stats, setStats] = useState(initialStats);
   const [structures, setStructures] = useState(initialStructures);
+
+  // EVE solar-system ids whose read-side data has been loaded or is in flight.
+  // Seeded from the load-time intel (one entry per initially-rendered system).
+  const requestedSystemData = useRef<Set<number>>(
+    new Set(Object.keys(initialIntel).map(Number)),
+  );
+  // Backfill systems added after the initial render (paste, tracked-pilot jump,
+  // manual add): one batched fetch per new id-set, merged into state so their
+  // sov/FW/incursion decorators and sidebar modules fill in without a reload.
+  // Additive only — an id already requested is never refetched (a stale snapshot
+  // matches the existing load-time model); a failed fetch is retried on the next
+  // system change by un-marking its ids.
+  useEffect(() => {
+    const missing = viewData.systems
+      .map((s) => s.systemId)
+      .filter((id) => !requestedSystemData.current.has(id));
+    if (missing.length === 0) return;
+    for (const id of missing) requestedSystemData.current.add(id);
+    fetchSystemData({ mapId: data.map.id, systemIds: missing }).then((result) => {
+      if (!result.ok) {
+        for (const id of missing) requestedSystemData.current.delete(id);
+        return;
+      }
+      setIntel((prev) => ({ ...prev, ...result.data.intel }));
+      setStats((prev) => ({ ...prev, ...result.data.stats }));
+      setStructures((prev) => ({ ...prev, ...result.data.structures }));
+    });
+  }, [viewData.systems, data.map.id]);
+
   const [nodes, setNodes] = useState<Node<SystemNodeData>[]>(() =>
     data.systems.map((s) => ({
       id: s.id,
       type: 'system' as const,
       position: { x: s.positionX, y: s.positionY },
-      data: { ...s, isHome: s.id === data.map.homeMapSystemId },
+      data: {
+        ...s,
+        isHome: s.id === data.map.homeMapSystemId,
+        inFactionWarfare: intel[s.systemId]?.factionWar != null,
+        hasIncursion: intel[s.systemId]?.incursion != null,
+      },
       selected: false,
       draggable: !s.locked,
     })),
@@ -352,6 +407,7 @@ export function MapCanvas({
 
   // Flush nothing but cancel a pending debounce on unmount.
   useEffect(() => () => clearTimeout(saveTimer.current ?? undefined), []);
+  useEffect(() => () => clearTimeout(flashTimer.current ?? undefined), []);
 
   const handleLayoutChange = useCallback(
     (_current: Layout, all: ResponsiveLayouts<Breakpoint>) => {
@@ -401,6 +457,16 @@ export function MapCanvas({
     setLayout(next);
     saveLayout(next);
   }, [saveLayout]);
+
+  const handleNavigateToSig = useCallback((systemId: string, sigId: string) => {
+    setSigSearchOpen(false);
+    setSelected({ kind: 'system', id: systemId });
+    setSelectedSystemIds(new Set([systemId]));
+    flowInstance.current?.fitView({ nodes: [{ id: systemId }], padding: 0.5, duration: 400 });
+    if (flashTimer.current) clearTimeout(flashTimer.current);
+    setFlashSigId(sigId);
+    flashTimer.current = setTimeout(() => setFlashSigId(null), 3000);
+  }, []);
 
   useMapSubscription(Number(data.map.id));
 
@@ -1024,13 +1090,17 @@ export function MapCanvas({
   const [lastSync, setLastSync] = useState<{
     systems: MapViewData['systems'];
     selectedSystemIds: Set<string>;
+    intel: Record<number, SystemIntelSummary>;
   } | null>(null);
   if (
     !lastSync ||
     lastSync.systems !== viewData.systems ||
-    lastSync.selectedSystemIds !== selectedSystemIds
+    lastSync.selectedSystemIds !== selectedSystemIds ||
+    // `intel` is replaced by reference when a live-added system's data backfills;
+    // re-sync so its decorators (sov/FW/incursion) appear without a systems change.
+    lastSync.intel !== intel
   ) {
-    setLastSync({ systems: viewData.systems, selectedSystemIds });
+    setLastSync({ systems: viewData.systems, selectedSystemIds, intel });
     setNodes((prev) => {
       const prevById = new Map(prev.map((n) => [n.id, n]));
       return viewData.systems.map((s) => {
@@ -1043,7 +1113,13 @@ export function MapCanvas({
           id: s.id,
           type: 'system' as const,
           position,
-          data: { ...s, onAliasOrTagCommit, isHome: s.id === viewData.map.homeMapSystemId },
+          data: {
+            ...s,
+            onAliasOrTagCommit,
+            isHome: s.id === viewData.map.homeMapSystemId,
+            inFactionWarfare: intel[s.systemId]?.factionWar != null,
+            hasIncursion: intel[s.systemId]?.incursion != null,
+          },
           selected: selectedSystemIds.has(s.id),
           draggable: !s.locked,
         };
@@ -1086,6 +1162,15 @@ export function MapCanvas({
   // EVE solar-system ids already placed — lets the add dialog flag duplicates.
   const existingSystemIds = useMemo(
     () => new Set(viewData.systems.map((s) => s.systemId)),
+    [viewData.systems],
+  );
+
+  // Visible map systems for the settings dialog's Auto-tagging Home picker.
+  const manageSystems = useMemo(
+    () =>
+      [...viewData.systems]
+        .map((s) => ({ id: s.id, name: s.name, alias: s.alias }))
+        .sort((a, b) => a.name.localeCompare(b.name)),
     [viewData.systems],
   );
 
@@ -1272,6 +1357,7 @@ export function MapCanvas({
             onPatch={onSignaturePatch}
             onDelete={onSignatureDelete}
             onConnectionPatch={onConnectionPatch}
+            flashSigId={flashSigId}
           />
         );
       case 'inspector':
@@ -1340,6 +1426,7 @@ export function MapCanvas({
           onBulkPaste={onBulkPaste}
           lazyDelete={lazyDeleteSigs}
           onLazyDeleteChange={setLazyDeleteSigs}
+          onOpenSearch={() => setSigSearchOpen(true)}
         />
       );
     }
@@ -1413,6 +1500,10 @@ export function MapCanvas({
                 Add system
               </Button>
 
+              <Button variant="ghost" size="sm" onClick={() => setSigSearchOpen(true)}>
+                <Search />
+                Sig Search
+              </Button>
               <Button variant="ghost" size="sm" onClick={() => setMapInfoOpen(true)}>
                 <Info />
                 Map info
@@ -1421,6 +1512,12 @@ export function MapCanvas({
                 <Settings />
                 Settings
               </Button>
+              {canManage && (
+                <Button variant="ghost" size="sm" onClick={() => setAuditOpen(true)}>
+                  <ScrollText />
+                  Audit log
+                </Button>
+              )}
             </div>
           </div>
           <MapLayoutGrid layouts={layout.layouts} onLayoutChange={handleLayoutChange}>
@@ -1448,14 +1545,33 @@ export function MapCanvas({
           onOpenChange={setSettingsOpen}
           mapId={mapId}
           settings={settings}
+          canManage={canManage}
+          systems={manageSystems}
           onImported={onBulkPaste}
         />
+        {canManage && (
+          <MapAuditDialog
+            open={auditOpen}
+            onOpenChange={setAuditOpen}
+            mapId={mapId}
+            mapName={settings.name}
+          />
+        )}
         <AddSystemDialog
           open={addSystemOpen}
           onOpenChange={setAddSystemOpen}
           mapId={mapId}
           existingSystemIds={existingSystemIds}
           onAdd={onAddSystem}
+        />
+        <SignatureSearchDialog
+          open={sigSearchOpen}
+          onOpenChange={setSigSearchOpen}
+          signatures={viewData.signatures}
+          systems={viewData.systems}
+          filters={sigSearchFilters}
+          onFiltersChange={setSigSearchFilters}
+          onNavigate={handleNavigateToSig}
         />
         </MapSignatureIndicatorProvider>
         </MapUnderglowProvider>

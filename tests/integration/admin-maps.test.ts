@@ -7,17 +7,19 @@ import { db, pool } from '@/db/client';
 import { apCharacter, apCorporation, apMap, apUser } from '@/db/schema';
 
 /**
- * Admin map actions (real Postgres).
+ * Admin map actions (real Postgres), post Stage-4 teardown.
  *
  * Drives `adminSoftDeleteMap` / `adminRestoreMap` / `adminPurgeMap` end to end
  * against a live Postgres + asserts:
  *   - soft-delete sets `deleted_at` and lands one `map.delete` event;
  *   - restore clears `deleted_at` and lands one `map.restore` event;
  *   - purge hard-deletes the row AND cascades through `ap_map_event`;
- *   - manager cannot purge (admin-only);
- *   - manager in corp B is denied for actions on a corp-A map.
+ *   - all three are global-admin-only — a corp Director (who CAN manage the same
+ *     map in-place via `canManageMap`), a plain member, and an unauthenticated
+ *     session are all denied here. (These are the operator's cross-tenant
+ *     override surfaces, not day-to-day map management.)
  *
- *   docker compose up -d && pnpm db:migrate && RUN_DB_TESTS=1 pnpm test
+ *   docker compose up -d && pnpm db:migrate && RUN_DB_TESTS=1 pnpm test admin-maps
  */
 const run = process.env.RUN_DB_TESTS === '1';
 
@@ -34,20 +36,17 @@ const { adminSoftDeleteMap, adminRestoreMap, adminPurgeMap } = await import(
 );
 
 const CORP_A = 96000001n;
-const CORP_B = 96000002n;
 const ALLIANCE_A = 96000901n;
 
 const ADMIN_ID = 96001001n;
-const MANAGER_A_ID = 96001002n; // manager in corp A
-const MANAGER_B_ID = 96001003n; // manager in corp B
+const DIRECTOR_ID = 96001002n; // corp-A Director — can manage corp-A maps, but NOT a global operator
 const MEMBER_A_ID = 96001004n;
 
 let userId = 0;
 let activeMapId = 0n;
 let softDeletedMapId = 0n;
-let crossCorpMapId = 0n;
 
-const characterIds = [ADMIN_ID, MANAGER_A_ID, MANAGER_B_ID, MEMBER_A_ID];
+const characterIds = [ADMIN_ID, DIRECTOR_ID, MEMBER_A_ID];
 
 function asSession(characterId: bigint): Session {
   // `Session` is from next-auth; the actions only read `.characterId`. Cast
@@ -69,7 +68,7 @@ async function softDelete(mapId: bigint): Promise<void> {
   await db.update(apMap).set({ deletedAt: new Date() }).where(eq(apMap.id, mapId));
 }
 
-describe.skipIf(!run)('Stage 16.2 — admin map actions (real Postgres)', () => {
+describe.skipIf(!run)('admin map actions (real Postgres)', () => {
   beforeAll(async () => {
     await migrate(db, { migrationsFolder: 'src/db/migrations' });
     await cleanup();
@@ -79,35 +78,26 @@ describe.skipIf(!run)('Stage 16.2 — admin map actions (real Postgres)', () => 
 
     await db.insert(apCorporation).values([
       { id: CORP_A, name: 'Admin Test Corp A', allianceId: ALLIANCE_A },
-      { id: CORP_B, name: 'Admin Test Corp B' },
     ]);
 
     await db.insert(apCharacter).values([
       {
         id: ADMIN_ID,
         userId,
-        name: 'Admin Director',
+        name: 'Super Admin',
         ownerHash: `hash-${ADMIN_ID.toString()}`,
         authzLevel: 'admin',
         corporationId: CORP_A,
         allianceId: ALLIANCE_A,
       },
       {
-        id: MANAGER_A_ID,
+        id: DIRECTOR_ID,
         userId,
-        name: 'Manager Corp A',
-        ownerHash: `hash-${MANAGER_A_ID.toString()}`,
-        authzLevel: 'manager',
+        name: 'Corp Director',
+        ownerHash: `hash-${DIRECTOR_ID.toString()}`,
+        isDirector: true,
         corporationId: CORP_A,
         allianceId: ALLIANCE_A,
-      },
-      {
-        id: MANAGER_B_ID,
-        userId,
-        name: 'Manager Corp B',
-        ownerHash: `hash-${MANAGER_B_ID.toString()}`,
-        authzLevel: 'manager',
-        corporationId: CORP_B,
       },
       {
         id: MEMBER_A_ID,
@@ -130,9 +120,7 @@ describe.skipIf(!run)('Stage 16.2 — admin map actions (real Postgres)', () => 
     // Drop any leftover test maps from prior iterations.
     await db
       .delete(apMap)
-      .where(
-        sql`name IN ('Admin Test Active', 'Admin Test SoftDeleted', 'Admin Test CrossCorp')`,
-      );
+      .where(sql`name IN ('Admin Test Active', 'Admin Test SoftDeleted')`);
 
     const inserted = await db
       .insert(apMap)
@@ -149,18 +137,11 @@ describe.skipIf(!run)('Stage 16.2 — admin map actions (real Postgres)', () => 
           type: 'corp',
           ownerCorporationId: CORP_A,
         },
-        {
-          name: 'Admin Test CrossCorp',
-          scope: 'wh',
-          type: 'corp',
-          ownerCorporationId: CORP_B,
-        },
       ])
       .returning({ id: apMap.id, name: apMap.name });
 
     activeMapId = inserted.find((m) => m.name === 'Admin Test Active')!.id;
     softDeletedMapId = inserted.find((m) => m.name === 'Admin Test SoftDeleted')!.id;
-    crossCorpMapId = inserted.find((m) => m.name === 'Admin Test CrossCorp')!.id;
     await softDelete(softDeletedMapId);
   });
 
@@ -245,61 +226,32 @@ describe.skipIf(!run)('Stage 16.2 — admin map actions (real Postgres)', () => 
     expect(result.error).toMatch(/soft-deleted/i);
   });
 
-  it('adminPurgeMap as manager is denied (admin-only)', async () => {
-    currentSession = asSession(MANAGER_A_ID);
-    const result = await adminPurgeMap(softDeletedMapId.toString());
-    expect(result.ok).toBe(false);
-    if (result.ok) return;
-    expect(result.error).toMatch(/admin/i);
+  // ─── auth gate (admin-only) ─────────────────────────────────────────────────
 
-    // The map row must still exist after the denied call.
-    const [row] = await db
-      .select({ id: apMap.id })
+  it('a corp Director is denied every admin map action (operator-only surface)', async () => {
+    currentSession = asSession(DIRECTOR_ID);
+    expect((await adminSoftDeleteMap(activeMapId.toString())).ok).toBe(false);
+    expect((await adminRestoreMap(softDeletedMapId.toString())).ok).toBe(false);
+    expect((await adminPurgeMap(softDeletedMapId.toString())).ok).toBe(false);
+
+    // The maps must be untouched after the denied calls.
+    const [active] = await db
+      .select({ deletedAt: apMap.deletedAt })
       .from(apMap)
-      .where(eq(apMap.id, softDeletedMapId));
-    expect(row).toBeDefined();
+      .where(eq(apMap.id, activeMapId));
+    expect(active?.deletedAt).toBeNull();
+    const [soft] = await db.select({ id: apMap.id }).from(apMap).where(eq(apMap.id, softDeletedMapId));
+    expect(soft).toBeDefined();
   });
 
-  // ─── manager scope ───────────────────────────────────────────────────────
-
-  it('manager in corp B cannot soft-delete a corp-A map', async () => {
-    currentSession = asSession(MANAGER_B_ID);
-    const result = await adminSoftDeleteMap(activeMapId.toString());
-    expect(result.ok).toBe(false);
-    if (result.ok) return;
-    expect(result.error).toMatch(/not found/i);
-  });
-
-  it('manager in corp B cannot restore a corp-A map', async () => {
-    currentSession = asSession(MANAGER_B_ID);
-    const result = await adminRestoreMap(softDeletedMapId.toString());
-    expect(result.ok).toBe(false);
-    if (result.ok) return;
-    expect(result.error).toMatch(/not found/i);
-  });
-
-  it('manager in corp A can soft-delete a corp-A map', async () => {
-    currentSession = asSession(MANAGER_A_ID);
-    const result = await adminSoftDeleteMap(activeMapId.toString());
-    expect(result.ok).toBe(true);
-  });
-
-  it('manager in corp B can soft-delete their own corp-B map', async () => {
-    currentSession = asSession(MANAGER_B_ID);
-    const result = await adminSoftDeleteMap(crossCorpMapId.toString());
-    expect(result.ok).toBe(true);
-  });
-
-  // ─── auth gate ───────────────────────────────────────────────────────────
-
-  it('member is denied every admin action', async () => {
+  it('a plain member is denied every admin map action', async () => {
     currentSession = asSession(MEMBER_A_ID);
     expect((await adminSoftDeleteMap(activeMapId.toString())).ok).toBe(false);
     expect((await adminRestoreMap(softDeletedMapId.toString())).ok).toBe(false);
     expect((await adminPurgeMap(softDeletedMapId.toString())).ok).toBe(false);
   });
 
-  it('unauthenticated session is denied every admin action', async () => {
+  it('an unauthenticated session is denied every admin map action', async () => {
     currentSession = null;
     expect((await adminSoftDeleteMap(activeMapId.toString())).ok).toBe(false);
     expect((await adminRestoreMap(softDeletedMapId.toString())).ok).toBe(false);
@@ -310,11 +262,9 @@ describe.skipIf(!run)('Stage 16.2 — admin map actions (real Postgres)', () => 
 async function cleanup() {
   await db
     .delete(apMap)
-    .where(
-      sql`name IN ('Admin Test Active', 'Admin Test SoftDeleted', 'Admin Test CrossCorp')`,
-    );
+    .where(sql`name IN ('Admin Test Active', 'Admin Test SoftDeleted')`);
   await db.delete(apCharacter).where(inArray(apCharacter.id, characterIds));
-  await db.delete(apCorporation).where(inArray(apCorporation.id, [CORP_A, CORP_B]));
+  await db.delete(apCorporation).where(inArray(apCorporation.id, [CORP_A]));
   if (userId) {
     await db.delete(apUser).where(eq(apUser.id, userId));
     userId = 0;

@@ -21,6 +21,7 @@ export {
   type EsiFactionWarSystems,
 } from './sovereignty';
 export { incursionsSchema, type EsiIncursions } from './incursions';
+export { allianceSchema, type EsiAlliance } from './alliance';
 export {
   characterPublicSchema,
   characterRolesSchema,

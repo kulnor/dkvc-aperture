@@ -11,8 +11,11 @@ import type {
   ParsedSigRow,
   ResolvedSigRow,
   SignatureGroupKey,
+  StructureIntel,
   SubchainDeleteResult,
+  SystemIntelSummary,
   SystemSearchResult,
+  SystemStatsSummary,
   TheraConnection,
   TheraSyncInput,
   TheraSyncResult,
@@ -429,6 +432,34 @@ export function syncTheraConnectionsOnServer(args: {
   return mutationFetch<TheraSyncResult>('POST', `/api/map/${args.mapId}/thera/sync`, {
     connections: args.connections,
   });
+}
+
+// ---------------------------------------------------------------------------
+// Batched read-side per-system data backfill (live-added systems)
+// ---------------------------------------------------------------------------
+
+/** Wire shape of `GET /api/map/[mapId]/system-data` — `stats`/`structures` are sparse. */
+export type SystemDataBatch = {
+  intel: Record<number, SystemIntelSummary>;
+  stats: Record<number, SystemStatsSummary>;
+  structures: Record<number, StructureIntel[]>;
+};
+
+/**
+ * Backfill read-side per-system data (sov / FW / incursion intel + 24h activity
+ * stats + structure intel) for systems added after the initial server render.
+ * Read-only (view rights) — returns a plain `FetchResult`, no `eventId`.
+ * `MapCanvas` calls this when new system ids appear in `viewData` and merges the
+ * result into its intel / stats / structures state, so decorators and sidebar
+ * modules fill in without a page reload.
+ */
+export function fetchSystemData(args: {
+  mapId: string;
+  systemIds: number[];
+}): Promise<FetchResult<SystemDataBatch>> {
+  return readFetch<SystemDataBatch>(
+    `/api/map/${args.mapId}/system-data?systems=${args.systemIds.join(',')}`,
+  );
 }
 
 // ---------------------------------------------------------------------------

@@ -26,12 +26,7 @@ import {
   whJumpMass,
   whMass,
 } from '@/db/schema';
-import {
-  canViewMap,
-  mapScopeFilterFor,
-  viewableMapPredicate,
-  type AdminVisibilityScope,
-} from '@/lib/auth/rights';
+import { canViewMap, viewableMapPredicate } from '@/lib/auth/rights';
 import { apertureConfig } from '../../../aperture.config';
 
 const HUB_NAME_BY_ID = new Map<number, string>(
@@ -536,22 +531,15 @@ export async function listViewableMaps(
 }
 
 /**
- * Maps an admin / manager can act on, including soft-deleted rows.
- * Distinct from `listViewableMaps`, which applies the per-character view rule
- * and filters out `deleted_at IS NOT NULL`.
- *
- * Scoping (via `mapScopeFilterFor`):
- *   - `global` (admin): every `ap_map`, active or soft-deleted.
- *   - `corp`  (manager): maps `owner_corporation_id = $corp` OR
- *     `owner_alliance_id = $allianceId` (if the corp has an alliance) OR
- *     `owner_character_id` belongs to a member of that corp.
+ * Every `ap_map` the operator console can act on, including soft-deleted rows.
+ * `/admin` is global-admin-only, so this is unscoped. Distinct from
+ * `listViewableMaps`, which applies the per-character view rule and filters out
+ * `deleted_at IS NOT NULL`.
  *
  * Ordering: soft-deleted rows first (so the admin sees in-grace maps near the
  * top of the list), then by name.
  */
-export async function listAdminMaps(
-  scope: AdminVisibilityScope,
-): Promise<AdminMapListItem[]> {
+export async function listAdminMaps(): Promise<AdminMapListItem[]> {
   const rows = await db
     .select({
       id: apMap.id,
@@ -567,7 +555,6 @@ export async function listAdminMaps(
       deletedAt: apMap.deletedAt,
     })
     .from(apMap)
-    .where(mapScopeFilterFor(scope))
     .orderBy(sql`${apMap.deletedAt} DESC NULLS LAST`, apMap.name);
 
   return rows.map((r) => ({

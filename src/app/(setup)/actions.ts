@@ -265,7 +265,7 @@ const eveIdSchema = z
 const accessModeSchema = z.enum(['open', 'restricted']);
 const ownerKindSchema = z.enum(['corporation', 'alliance']);
 const grantKindSchema = z.enum(['character', 'corporation', 'alliance', 'role']);
-const grantCapabilitySchema = z.enum(['login', 'admin', 'manage']);
+const grantCapabilitySchema = z.enum(['login', 'admin']);
 
 /** Set the instance-wide access mode (`open` admits any EVE login; `restricted` gates on the allowlist). */
 export async function setupSetAccessMode(mode: string): Promise<ActionResult> {
@@ -359,8 +359,8 @@ interface AddGrantArgs {
 
 /**
  * Add an instance-scoped allowlist/admin grant. `capability='login'` is a plain
- * allowlist entry; `admin`/`manage` are super-admin / manager hand-grants read
- * by `resolveAuthzLevel`. A non-empty `expiresAt` time-boxes the grant.
+ * allowlist entry; `admin` is the super-admin hand-grant read by
+ * `resolveAuthzLevel`. A non-empty `expiresAt` time-boxes the grant.
  */
 export async function setupAddGrant(args: AddGrantArgs): Promise<ActionResult> {
   const gated = await gate();

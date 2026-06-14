@@ -1,8 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { Settings2, Webhook } from 'lucide-react';
 import { auth } from '@/lib/auth';
-import { adminVisibilityScope, isAdmin } from '@/lib/auth/rights';
+import { isAdmin } from '@/lib/auth/rights';
 import { listAdminMaps } from '@/lib/map/loadMap';
 import { MapActionsMenu } from '@/components/admin/MapActionsMenu';
 
@@ -32,22 +31,20 @@ const DATE_FORMAT = new Intl.DateTimeFormat('en-US', {
 
 export default async function AdminMapsPage() {
   const session = await auth();
-  const scope = await adminVisibilityScope(session);
-  if (scope === null) redirect('/maps');
-  const [maps, canPurge] = await Promise.all([listAdminMaps(scope), isAdmin(session)]);
+  if (!(await isAdmin(session))) redirect('/maps');
+  const maps = await listAdminMaps();
+  // Everyone reaching this page is a global admin, who may purge.
+  const canPurge = true;
 
   return (
     <section className="flex flex-col gap-4">
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Maps</h1>
-        <span className="text-xs text-muted-foreground">
-          Scope: {scope.kind === 'global' ? 'global' : `corp ${scope.corporationId.toString()}`}
-        </span>
       </header>
 
       {maps.length === 0 ? (
         <div className="rounded-lg border border-border bg-card p-6 text-sm text-muted-foreground">
-          No maps in scope.
+          No maps.
         </div>
       ) : (
         <div className="overflow-hidden rounded-lg border border-border">
@@ -105,26 +102,11 @@ export default async function AdminMapsPage() {
                     </td>
                     <td className="px-3 py-2 align-middle">
                       <div className="flex items-center justify-end gap-1">
-                        {!softDeleted && (
-                          <>
-                            <Link
-                              href={{ pathname: `/admin/maps/${m.id}/settings` }}
-                              aria-label={`Settings for ${m.name}`}
-                              title="Settings"
-                              className="inline-flex size-7 items-center justify-center rounded-[12px] text-muted-foreground hover:bg-muted hover:text-foreground"
-                            >
-                              <Settings2 className="size-3.5" />
-                            </Link>
-                            <Link
-                              href={{ pathname: `/admin/maps/${m.id}/webhooks` }}
-                              aria-label={`Webhooks for ${m.name}`}
-                              title="Webhooks"
-                              className="inline-flex size-7 items-center justify-center rounded-[12px] text-muted-foreground hover:bg-muted hover:text-foreground"
-                            >
-                              <Webhook className="size-3.5" />
-                            </Link>
-                          </>
-                        )}
+                        {/*
+                          Per-map settings / webhooks / audit now live in-place on
+                          the map (open via the active map's name link), gated by
+                          `canManageMap`. This list keeps only operator actions.
+                        */}
                         <MapActionsMenu map={m} canPurge={canPurge} />
                       </div>
                     </td>

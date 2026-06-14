@@ -3,7 +3,6 @@ import { db } from '@/db/client';
 import {
   apCharacter,
   apMap,
-  apMapConnection,
   apMapEvent,
   apMapSystem,
   apMapWebhook,
@@ -230,7 +229,7 @@ async function resolveContext(
     characterName = charRow?.name ?? null;
   }
 
-  const refs = await collectSystemRefs(event);
+  const refs = collectSystemRefs(event);
   const systemNamesById = refs.mapSystemIds.length
     ? await loadSystemNames(refs.mapSystemIds)
     : new Map<bigint, string>();
@@ -255,12 +254,12 @@ async function resolveContext(
   };
 }
 
-async function collectSystemRefs(event: MapEventPayload): Promise<{
+function collectSystemRefs(event: MapEventPayload): {
   primaryMapSystemId: bigint | null;
   sourceMapSystemId: bigint | null;
   targetMapSystemId: bigint | null;
   mapSystemIds: bigint[];
-}> {
+} {
   let primaryMapSystemId: bigint | null = null;
   let sourceMapSystemId: bigint | null = null;
   let targetMapSystemId: bigint | null = null;
@@ -272,27 +271,22 @@ async function collectSystemRefs(event: MapEventPayload): Promise<{
       primaryMapSystemId = safeBigInt(event.id);
       break;
     case 'connection.create':
+    case 'connection.update':
+    case 'connection.delete':
+      // Endpoint ids ride the payload (the create body, and the audit descriptors
+      // added to update/delete) so the hole is named even after it's hard-deleted.
       sourceMapSystemId = safeBigInt(event.source);
       targetMapSystemId = safeBigInt(event.target);
       break;
-    case 'connection.update': {
-      const endpoints = await loadConnectionEndpoints(safeBigInt(event.id));
-      sourceMapSystemId = endpoints?.sourceId ?? null;
-      targetMapSystemId = endpoints?.targetId ?? null;
-      break;
-    }
-    case 'connection.delete':
-      // Connection row is hard-deleted; endpoint names unrecoverable. Formatter
-      // falls back to generic phrasing.
-      break;
     case 'signature.create':
-      primaryMapSystemId = safeBigInt(event.mapSystemId);
-      break;
     case 'signature.update':
+      // `mapSystemId` rides every signature payload; `leadsToMapSystemId` (when the
+      // sig is/was linked) names the destination — both resolve without a join.
+      primaryMapSystemId = safeBigInt(event.mapSystemId);
+      targetMapSystemId = safeBigInt(event.leadsToMapSystemId);
+      break;
     case 'signature.delete':
-      // Update / delete payloads don't carry `mapSystemId`. Resolving it would
-      // require an extra join on `ap_map_signature` (and the row is gone for
-      // delete); richer signature context is deferred.
+      primaryMapSystemId = safeBigInt(event.mapSystemId);
       break;
     default:
       break;
@@ -316,20 +310,6 @@ async function loadSystemNames(mapSystemIds: bigint[]): Promise<Map<bigint, stri
     .innerJoin(universeSystem, eq(apMapSystem.systemId, universeSystem.id))
     .where(inArray(apMapSystem.id, mapSystemIds));
   return new Map(rows.map((r) => [r.mapSystemId, r.name]));
-}
-
-async function loadConnectionEndpoints(
-  connectionId: bigint | null,
-): Promise<{ sourceId: bigint; targetId: bigint } | null> {
-  if (connectionId === null) return null;
-  const [row] = await db
-    .select({
-      sourceId: apMapConnection.sourceMapSystemId,
-      targetId: apMapConnection.targetMapSystemId,
-    })
-    .from(apMapConnection)
-    .where(eq(apMapConnection.id, connectionId));
-  return row ?? null;
 }
 
 function uniqueBigInts(input: Array<bigint | null>): bigint[] {

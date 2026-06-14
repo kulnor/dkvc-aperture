@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { MapCanvas } from '@/components/map/MapCanvas';
 import { loadMapForView, loadMapSettings } from '@/lib/map/loadMap';
+import { canManageMap } from '@/lib/auth/rights';
 import { loadRouteConfig } from '@/lib/map/routeConfig';
 import { statsForSystems } from '@/lib/map/stats';
 import { intelForSystems } from '@/lib/map/intel';
@@ -58,6 +59,7 @@ export default async function MapPage({ params }: { params: Promise<{ slug?: str
     mapLayout,
     routeConfig,
     mainCharacterId,
+    canManage,
   ] = await Promise.all([
     statsForSystems(systemIds),
     intelForSystems(systemIds),
@@ -69,6 +71,7 @@ export default async function MapPage({ params }: { params: Promise<{ slug?: str
     getMapLayout(session.userId),
     loadRouteConfig(session.userId),
     getMainCharacterId(session.userId),
+    canManageMap(BigInt(session.characterId), mapId),
   ]);
 
   // Active characters drive both the CTRL+V paste location check (ids) and the
@@ -91,6 +94,7 @@ export default async function MapPage({ params }: { params: Promise<{ slug?: str
       intel={intel}
       structures={structures}
       settings={settings}
+      canManage={canManage}
       travelAnimation={travelAnimation}
       signatureIndicators={signatureIndicators}
       viewerCharacterIds={viewerCharacterIds}

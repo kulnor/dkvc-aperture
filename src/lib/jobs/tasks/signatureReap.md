@@ -11,7 +11,7 @@
 - `run`: `withInstrumentation('signature-reap', reap)`.
 
 ### reap(): { scanned, deleted, failed }
-Selects up to `JOB_DELETE_BATCH_SIZE` expired signature rows on non-soft-deleted maps via `ap_map_signature → ap_map_system → ap_map`. For each row, calls `commitMapEvent` with `kind: 'signature.delete'`, `characterId: null` (system-initiated) — the trigger fires `pg_notify`, the bus forwards it as `mapUpdate`, client tabs apply the disappearance the same way they'd handle a user delete.
+Selects up to `JOB_DELETE_BATCH_SIZE` expired signature rows on non-soft-deleted maps via `ap_map_signature → ap_map_system → ap_map`. For each row, calls `commitMapEvent` with `kind: 'signature.delete'`, `characterId: null` (system-initiated); the delete's `RETURNING` carries `mapSystemId` + `sigId` into the payload (audit descriptors) so the reap entry names the removed sig. The trigger fires `pg_notify`, the bus forwards it as `mapUpdate`, client tabs apply the disappearance the same way they'd handle a user delete.
 
 Per-row transactions: one bad row never blocks the rest. The counts land in `ap_job_run.notes`.
 

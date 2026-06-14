@@ -25,8 +25,8 @@ Maps the viewer can see, ordered by name. Feeds the `/maps` list. Filtered serve
 
 ---
 
-### listAdminMaps(scope: AdminVisibilityScope): Promise<AdminMapListItem[]>
-Maps an admin / manager can act on, **including soft-deleted rows** (which `listViewableMaps` filters out). Distinct from the user-facing listing because the admin row shape carries the full owner FKs + `deleted_at` so the admin UI can render ownership and offer restore / purge-now actions. Scoping is delegated to `mapScopeFilterFor` — global for admin, corp-scoped (owner_corporation / owner_alliance / owner_character∈corp-members) for manager. Soft-deleted rows are ordered first, then by name. Feeds `/admin/maps`.
+### listAdminMaps(): Promise<AdminMapListItem[]>
+Every `ap_map` the operator console can act on, **including soft-deleted rows** (which `listViewableMaps` filters out). Unscoped — `/admin` is global-admin-only. Distinct from the user-facing listing because the admin row shape carries the full owner FKs + `deleted_at` so the admin UI can render ownership and offer restore / purge-now actions. Soft-deleted rows are ordered first, then by name. Feeds `/admin/maps`.
 
 ---
 
@@ -43,4 +43,4 @@ Maps an admin / manager can act on, **including soft-deleted rows** (which `list
 These are re-exported from `src/types/index.ts`.
 
 ### Depends on
-- `@/db/client` (`db`), `@/db/schema` (tables + enums), `@/lib/auth/rights` (`canViewMap`, `viewableMapPredicate`, `mapScopeFilterFor`, `AdminVisibilityScope`).
+- `@/db/client` (`db`), `@/db/schema` (tables + enums), `@/lib/auth/rights` (`canViewMap`, `viewableMapPredicate`).

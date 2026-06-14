@@ -63,9 +63,17 @@ async function expireEol(): Promise<{ scanned: number; deleted: number; failed: 
         const [del] = await tx
           .delete(apMapConnection)
           .where(eq(apMapConnection.id, row.connectionId))
-          .returning({ id: apMapConnection.id });
+          .returning({
+            id: apMapConnection.id,
+            source: apMapConnection.sourceMapSystemId,
+            target: apMapConnection.targetMapSystemId,
+          });
         if (!del) throw new Error('Connection already gone.');
-        return { id: del.id.toString() };
+        return {
+          id: del.id.toString(),
+          source: del.source.toString(),
+          target: del.target.toString(),
+        };
       },
     });
     if (result.ok) deleted += 1;

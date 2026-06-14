@@ -4,26 +4,24 @@
 // `server-only` default export throws on load. Every caller is server-side
 // (API routes, Server Actions, the WS upgrade handler); we rely on that
 // rather than the marker package.
-import { and, eq, exists, inArray, isNull, or, sql } from 'drizzle-orm';
-import type { SQL } from 'drizzle-orm';
+import { and, eq, exists, isNull, or, sql } from 'drizzle-orm';
 import type { Session } from 'next-auth';
 import { db } from '@/db/client';
 import {
+  apAlliance,
   apCharacter,
   apCharacterRole,
-  apCorporationRight,
   apMap,
   apMapRoleAccess,
 } from '@/db/schema';
-import type { MapRight } from '@/types';
+import type { MapRight, MapType } from '@/types';
 
 /**
  * The single rights module every controller imports. `requireSession`
  * still owns "is this user logged in"; this file answers "given an
  * authenticated character, can they perform action X on map Y".
  *
- * Reading rule (in order, first match wins for view; mutate combines view +
- * right grant):
+ * View rule (in order, first match wins):
  *   1. `authz_level='admin'` — global override, always wins.
  *   2. Owner match per `ap_map.type`:
  *        private  → `owner_character_id` matches the actor
@@ -33,25 +31,24 @@ import type { MapRight } from '@/types';
  *      appears in `ap_map_role_access` for the target map grants view access.
  *   4. Otherwise no access.
  *
- * For mutation: pass step 1-3 AND the right is granted by `ap_corporation_right`
- * for the actor's corp (with `min_authz_level <= actor's authz_level`), EXCEPT
- * `map_delete` / `map_share` which require owner-or-admin (not corp-right-grantable).
+ * Management (mutate) is the derived-authority model: a binary "can this
+ * character manage this map" computed purely from EVE state + ownership
+ * (`canManageMap`) — admin, the private map's owner, the owning corp's
+ * Director, or the owning alliance's executor-corp Director. The corp-right
+ * matrix no longer participates and the role overlay never unlocks mutation
+ * (view only). The `MapRight` argument is retained on the mutate guards for the
+ * future title-delegation overlay (R4) but is ignored at the baseline.
  *
  * Maps with all three owner columns NULL are treated as admin-only — defensive
  * default, surfaces unowned rows for repair.
  */
 
-const AUTHZ_ORDINAL: Record<'member' | 'manager' | 'admin', number> = {
-  member: 0,
-  manager: 1,
-  admin: 2,
-};
-
 interface ActorRow {
-  authzLevel: 'member' | 'manager' | 'admin';
+  authzLevel: 'member' | 'admin';
   status: 'active' | 'kicked' | 'banned';
   corporationId: bigint | null;
   allianceId: bigint | null;
+  isDirector: boolean;
 }
 
 async function loadActor(characterId: bigint): Promise<ActorRow | null> {
@@ -61,6 +58,7 @@ async function loadActor(characterId: bigint): Promise<ActorRow | null> {
       status: apCharacter.status,
       corporationId: apCharacter.corporationId,
       allianceId: apCharacter.allianceId,
+      isDirector: apCharacter.isDirector,
     })
     .from(apCharacter)
     .where(eq(apCharacter.id, characterId));
@@ -151,22 +149,14 @@ export async function canViewMap(characterId: bigint, mapId: bigint): Promise<bo
 }
 
 /**
- * Is the character allowed to mutate this map with the given `right`?
+ * Is the character allowed to mutate this map? Baseline derived-authority:
+ * mutation authority is the binary `canManageMap` — admin, the private map's
+ * owner, the owning corp's Director, or the owning alliance's executor-corp
+ * Director. The `right` argument is retained for the future title-delegation
+ * overlay (R4) but is ignored at the baseline; neither the corp-right matrix
+ * nor the role overlay unlocks mutation.
  *
- * Two pathways depending on `ap_map.type`:
- *   - **`type='private'`** — the map's `owner_character_id` is the actor (or
- *     the actor is admin). The corp-right matrix does not apply: a private
- *     map's mutation surface is owner-only, period. Roles can grant view but
- *     never mutation.
- *   - **`type='corp'` / `'alliance'`** — the actor must (a) be allowed to view
- *     the map (corp/alliance owner match — *not* the role overlay; mutation
- *     by role is intentionally not granted, only view) and (b) have a matching
- *     `ap_corporation_right` row in the actor's own corp with
- *     `min_authz_level <= actor's authz_level`. Every right (`map_update`,
- *     `map_delete`, `map_share`, `map_import`, `map_export`) is grantable
- *     via this matrix, server-enforced on every controller.
- *
- * `map_create` is checked by `canCreateMap` (no target map).
+ * `map_create` has no target map and must be checked via `canCreateMap`.
  */
 export async function canMutateMap(
   characterId: bigint,
@@ -176,7 +166,74 @@ export async function canMutateMap(
   if (right === 'map_create') {
     throw new Error('canMutateMap: map_create must be checked via canCreateMap');
   }
+  return canManageMap(characterId, mapId);
+}
 
+/**
+ * Can this character create a map of the given `type`? Derived-authority:
+ *   private  → any active character
+ *   corp     → actor.is_director (owned to actor.corporation_id)
+ *   alliance → actor.is_director && actor.corporation_id == executorCorpOf(actor.alliance_id)
+ * Admin may create anything. No target map; the caller resolves the owner FK
+ * from the actor's affiliation.
+ */
+export async function canCreateMap(characterId: bigint, type: MapType): Promise<boolean> {
+  const actor = await loadActor(characterId);
+  if (!actor || actor.status !== 'active') return false;
+  if (actor.authzLevel === 'admin') return true;
+
+  switch (type) {
+    case 'private':
+      return true;
+    case 'corp':
+      return actor.isDirector && actor.corporationId !== null;
+    case 'alliance': {
+      if (!actor.isDirector || actor.allianceId === null || actor.corporationId === null) {
+        return false;
+      }
+      const executor = await executorCorpOf(actor.allianceId);
+      return executor !== null && executor === actor.corporationId;
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Derived-authority model (permissions multi-tenant).
+//
+// Map-management authority is a pure function of EVE state + ownership:
+// members own their private maps, corp Directors manage their corp's maps, and
+// the alliance executor corp's Directors manage alliance maps. This is the live
+// mutate path — `canMutateMap` / `requireMapRight` / `assertMapRight` all
+// resolve to `canManageMap`, and `canCreateMap` is the typed create gate. The
+// corp-right matrix no longer participates.
+// ---------------------------------------------------------------------------
+
+/**
+ * The executor corporation of an alliance, read from the `ap_alliance` cache
+ * (`syncCharacterAuthz` keeps it fresh from ESI). Returns `null` when the
+ * alliance is unknown or has no executor (closed/dissolving).
+ */
+export async function executorCorpOf(allianceId: bigint): Promise<bigint | null> {
+  const [row] = await db
+    .select({ executorCorporationId: apAlliance.executorCorporationId })
+    .from(apAlliance)
+    .where(eq(apAlliance.id, allianceId));
+  return row?.executorCorporationId ?? null;
+}
+
+/**
+ * Can the actor *manage* this map (settings, webhooks, audit, the full mutation
+ * surface) under the derived-authority model? Binary — no per-right granularity
+ * at the baseline (title-delegation is the future R4 overlay).
+ *
+ *   admin                                   → true (deployment operator)
+ *   private  → owner_character_id == actor
+ *   corp     → actor.is_director && actor.corporation_id == owner_corporation_id
+ *   alliance → actor.is_director && actor.alliance_id == owner_alliance_id
+ *              && actor.corporation_id == executorCorpOf(owner_alliance_id)
+ *   all-NULL owner                          → admin only (defensive default)
+ */
+export async function canManageMap(characterId: bigint, mapId: bigint): Promise<boolean> {
   const actor = await loadActor(characterId);
   if (!actor || actor.status !== 'active') return false;
   if (actor.authzLevel === 'admin') return true;
@@ -184,80 +241,30 @@ export async function canMutateMap(
   const map = await loadMap(mapId);
   if (!map) return false;
 
-  // Unowned map (all three owner columns NULL) → admin only.
-  if (
-    map.ownerCharacterId === null &&
-    map.ownerCorporationId === null &&
-    map.ownerAllianceId === null
-  ) {
-    return false;
+  switch (map.type) {
+    case 'private':
+      return map.ownerCharacterId !== null && map.ownerCharacterId === characterId;
+    case 'corp':
+      return (
+        actor.isDirector &&
+        map.ownerCorporationId !== null &&
+        actor.corporationId !== null &&
+        map.ownerCorporationId === actor.corporationId
+      );
+    case 'alliance': {
+      if (
+        !actor.isDirector ||
+        map.ownerAllianceId === null ||
+        actor.allianceId === null ||
+        actor.corporationId === null ||
+        map.ownerAllianceId !== actor.allianceId
+      ) {
+        return false;
+      }
+      const executor = await executorCorpOf(map.ownerAllianceId);
+      return executor !== null && executor === actor.corporationId;
+    }
   }
-
-  if (map.type === 'private') {
-    return map.ownerCharacterId === characterId;
-  }
-
-  // type === 'corp' | 'alliance'. Require entity membership match against the
-  // map's owner; the role overlay is view-only and does not unlock mutation.
-  const memberOfOwner = isOwner(actor, map, characterId);
-  if (!memberOfOwner) return false;
-
-  if (actor.corporationId === null) return false;
-  const [grant] = await db
-    .select({ min: apCorporationRight.minAuthzLevel })
-    .from(apCorporationRight)
-    .where(
-      and(
-        eq(apCorporationRight.corporationId, actor.corporationId),
-        eq(apCorporationRight.right, right),
-      ),
-    );
-  if (!grant) return false;
-  return AUTHZ_ORDINAL[actor.authzLevel] >= AUTHZ_ORDINAL[grant.min];
-}
-
-/**
- * Can this character spawn a new map? Pure corp-right check against
- * the actor's own corp; no per-target lookup. Admin always allowed.
- */
-export async function canCreateMap(characterId: bigint): Promise<boolean> {
-  const actor = await loadActor(characterId);
-  if (!actor || actor.status !== 'active') return false;
-  if (actor.authzLevel === 'admin') return true;
-  if (actor.corporationId === null) return false;
-  const [grant] = await db
-    .select({ min: apCorporationRight.minAuthzLevel })
-    .from(apCorporationRight)
-    .where(
-      and(
-        eq(apCorporationRight.corporationId, actor.corporationId),
-        eq(apCorporationRight.right, 'map_create'),
-      ),
-    );
-  if (!grant) return false;
-  return AUTHZ_ORDINAL[actor.authzLevel] >= AUTHZ_ORDINAL[grant.min];
-}
-
-/**
- * Owner-or-admin gate, bypassing the corp-right matrix. Used to
- * restrict map-level auto-tagging config (scheme + Home) to the map owner or a
- * global admin — strictly tighter than `map_update`, which a corp may grant to
- * ordinary members. Returns false for non-existent / soft-deleted / unowned maps.
- */
-export async function isMapOwnerOrAdmin(characterId: bigint, mapId: bigint): Promise<boolean> {
-  const actor = await loadActor(characterId);
-  if (!actor || actor.status !== 'active') return false;
-  if (actor.authzLevel === 'admin') return true;
-  const map = await loadMap(mapId);
-  if (!map) return false;
-  if (
-    map.ownerCharacterId === null &&
-    map.ownerCorporationId === null &&
-    map.ownerAllianceId === null
-  ) {
-    return false;
-  }
-  return isOwner(actor, map, characterId);
 }
 
 /** True iff the active character has `authz_level='admin'` and is `active`. */
@@ -395,72 +402,19 @@ export async function viewableMapPredicate(characterId: bigint) {
   return or(...ownerMatches, roleAccess);
 }
 
-/** True iff the active character is `active` AND `authz_level >= 'manager'`. */
-export async function isManagerOrAdmin(session: Session | null | undefined): Promise<boolean> {
-  if (!session?.characterId) return false;
-  const actor = await loadActor(BigInt(session.characterId));
-  if (actor === null || actor.status !== 'active') return false;
-  return AUTHZ_ORDINAL[actor.authzLevel] >= AUTHZ_ORDINAL.manager;
-}
-
-export type AdminVisibilityScope =
-  | { kind: 'global' }
-  | { kind: 'corp'; corporationId: bigint; allianceId: bigint | null };
+export type AdminVisibilityScope = { kind: 'global' };
 
 /**
- * Scope primitive for admin-panel pages. Returns `null` for member/none so the
- * layout can redirect; admin → `{ kind: 'global' }`; manager → `{ kind: 'corp', corporationId, allianceId }`.
- * A manager row with `corporation_id IS NULL` is treated as no-scope (returns
- * null) — the row is broken and shouldn't see any panel content.
+ * Gate primitive for the `/admin` operator console. Returns `{ kind: 'global' }`
+ * for an active global admin, else `null` (so the layout / actions can redirect
+ * or 403). `/admin` is operator-only now — corp Directors manage their maps
+ * in-place via `canManageMap`, not through this panel — so there is no
+ * corp-scoped variant; the panel is always global.
  */
 export async function adminVisibilityScope(
   session: Session | null | undefined,
 ): Promise<AdminVisibilityScope | null> {
-  if (!session?.characterId) return null;
-  const actor = await loadActor(BigInt(session.characterId));
-  if (actor === null || actor.status !== 'active') return null;
-  if (actor.authzLevel === 'admin') return { kind: 'global' };
-  if (actor.authzLevel === 'manager' && actor.corporationId !== null) {
-    return { kind: 'corp', corporationId: actor.corporationId, allianceId: actor.allianceId };
-  }
-  return null;
-}
-
-/**
- * SQL `where` clause that restricts `ap_map` rows to those visible to an
- * `AdminVisibilityScope`. Shared by the admin dashboard counts
- * (`src/app/(admin)/admin/page.tsx`) and the admin maps list
- * (`src/lib/map/loadMap.ts#listAdminMaps`).
- *
- * - `global` → `undefined` (no extra filter; the caller still applies
- *   `isNull(apMap.deletedAt)` for active-only queries).
- * - `corp`   → match `owner_corporation_id`, OR `owner_alliance_id` when the
- *   manager's corp has an alliance, OR `owner_character_id IN (members of that corp)`
- *   so private maps owned by corp members are scoped in too.
- */
-export function mapScopeFilterFor(scope: AdminVisibilityScope): SQL | undefined {
-  if (scope.kind === 'global') return undefined;
-  const corpChars = db
-    .select({ id: apCharacter.id })
-    .from(apCharacter)
-    .where(eq(apCharacter.corporationId, scope.corporationId));
-  const clauses: SQL[] = [
-    eq(apMap.ownerCorporationId, scope.corporationId),
-    inArray(apMap.ownerCharacterId, corpChars),
-  ];
-  if (scope.allianceId !== null) {
-    clauses.push(eq(apMap.ownerAllianceId, scope.allianceId));
-  }
-  return or(...clauses);
-}
-
-/**
- * SQL `where` clause that restricts `ap_character` rows to those visible to an
- * `AdminVisibilityScope`. `global` → `undefined`; `corp` → `corporation_id = $corp`.
- */
-export function characterScopeFilterFor(scope: AdminVisibilityScope): SQL | undefined {
-  if (scope.kind === 'global') return undefined;
-  return eq(apCharacter.corporationId, scope.corporationId);
+  return (await isAdmin(session)) ? { kind: 'global' } : null;
 }
 
 /** Re-export for ergonomic imports at call sites. */

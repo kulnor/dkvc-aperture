@@ -27,4 +27,4 @@ Read/written via `/setup` and consulted by the login gate.
 - `ap_instance_owner_pk` — composite PK `(principal_kind, principal_id)`.
 - `ap_instance_owner_kind_chk` — CHECK `principal_kind IN ('corporation','alliance')`. An instance is owned by an organisation, never a single character or role.
 
-**Semantics:** members of an owner entity are implicitly allowed to log in (no self-lockout), and a character holding the in-game Director role in an owner entity resolves to global `admin` (`resolveAuthzLevel`). Owner designation lives in the DB so it is reachable from the password-gated `/setup` console before anyone can log in.
+**Semantics:** members of an owner entity are implicitly allowed to log in (no self-lockout). Ownership is login-gating only — it does NOT confer authz; global `admin` comes solely from an explicit `ap_access_grant` (`capability='admin'`, `resolveAuthzLevel`). Owner designation lives in the DB so it is reachable from the password-gated `/setup` console before anyone can log in.

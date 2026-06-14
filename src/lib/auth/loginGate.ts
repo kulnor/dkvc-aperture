@@ -85,8 +85,8 @@ async function isOwnerMember(p: LoginPrincipals): Promise<boolean> {
 
 /**
  * Whether the character (or its corp/alliance) holds an unexpired instance-scoped
- * `login`/`admin`/`manage` grant. `admin`/`manage` imply login — anyone trusted
- * to administer can obviously sign in.
+ * `login`/`admin` grant. `admin` implies login — anyone trusted to administer can
+ * obviously sign in.
  */
 async function hasInstanceGrant(p: LoginPrincipals): Promise<boolean> {
   const principals: Array<{ kind: 'character' | 'corporation' | 'alliance'; id: bigint }> = [
@@ -101,7 +101,7 @@ async function hasInstanceGrant(p: LoginPrincipals): Promise<boolean> {
     .where(
       and(
         eq(apAccessGrant.scope, 'instance'),
-        inArray(apAccessGrant.capability, ['login', 'admin', 'manage']),
+        inArray(apAccessGrant.capability, ['login', 'admin']),
         or(isNull(apAccessGrant.expiresAt), gt(apAccessGrant.expiresAt, sql`now()`)),
         or(
           ...principals.map((p) =>

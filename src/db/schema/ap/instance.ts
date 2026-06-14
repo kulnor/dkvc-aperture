@@ -18,12 +18,12 @@ import { accessMode, accessPrincipal } from './enums';
 // allows any EVE account to log in.
 //
 // `ap_instance_owner` names the corp(s)/alliance(s) that own this deployment.
-// Two semantics ride on ownership: members of an owner entity are implicitly
-// allowed to log in (you can never lock yourself out), and a character with the
-// in-game Director role in an owner entity resolves to global `admin` (see
-// `resolveAuthzLevel`). Owner designation is a DB setting
-// so it is reachable from the password-gated `/setup` console before anyone can
-// log in.
+// Ownership is a login-gating concern only: members of an owner entity are
+// implicitly allowed to log in (you can never lock yourself out). Ownership does
+// NOT confer authz — global `admin` comes solely from an explicit
+// `ap_access_grant` (`capability='admin'`); see `resolveAuthzLevel`. Owner
+// designation is a DB setting so it is reachable from the password-gated
+// `/setup` console before anyone can log in.
 export const apInstance = pgTable(
   'ap_instance',
   {

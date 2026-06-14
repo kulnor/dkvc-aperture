@@ -1,6 +1,6 @@
 import 'server-only';
 import { and, eq, type InferInsertModel } from 'drizzle-orm';
-import { apMapSignature, apMapSystem, universeWormhole } from '@/db/schema';
+import { apMapConnection, apMapSignature, apMapSystem, universeWormhole } from '@/db/schema';
 import { commitMapEvent, type ActionResult, type Tx } from './core';
 import type { MapEventPatch, MapEventPayload } from '@/lib/realtime/protocol';
 import type { SignatureGroupKey } from '@/types';
@@ -94,6 +94,10 @@ export function createSignature(
           updatedAt: apMapSignature.updatedAt,
         });
       const wormholeCode = row!.typeId !== null ? await resolveWormholeCode(tx, row!.typeId) : null;
+      const leadsToMapSystemId =
+        row!.mapConnectionId !== null
+          ? await resolveLeadsTo(tx, row!.mapConnectionId, row!.mapSystemId)
+          : null;
       return {
         id: row!.id.toString(),
         mapSystemId: row!.mapSystemId.toString(),
@@ -107,6 +111,7 @@ export function createSignature(
         expiresAt: row!.expiresAt.toISOString(),
         createdAt: row!.createdAt.toISOString(),
         updatedAt: row!.updatedAt.toISOString(),
+        leadsToMapSystemId,
       };
     },
   });
@@ -119,6 +124,28 @@ async function resolveWormholeCode(tx: Tx, typeId: number): Promise<string | nul
     .from(universeWormhole)
     .where(eq(universeWormhole.typeId, typeId));
   return row?.name ?? null;
+}
+
+/**
+ * Far endpoint (`ap_map_system` id, stringified) of a sig's linked connection,
+ * relative to the sig's own system — i.e. what the sig "leads to". Embedded as an
+ * audit descriptor so the trail can name the destination of a link/unlink even
+ * after the connection collapses. Null when the connection is gone.
+ */
+async function resolveLeadsTo(
+  tx: Tx,
+  connectionId: bigint,
+  sigMapSystemId: bigint,
+): Promise<string | null> {
+  const [row] = await tx
+    .select({
+      source: apMapConnection.sourceMapSystemId,
+      target: apMapConnection.targetMapSystemId,
+    })
+    .from(apMapConnection)
+    .where(eq(apMapConnection.id, connectionId));
+  if (!row) return null;
+  return (row.source === sigMapSystemId ? row.target : row.source).toString();
 }
 
 /**
@@ -138,7 +165,11 @@ export function updateSignature(
       const { patch } = input;
 
       const [existing] = await tx
-        .select({ mapSystemId: apMapSignature.mapSystemId })
+        .select({
+          mapSystemId: apMapSignature.mapSystemId,
+          sigId: apMapSignature.sigId,
+          mapConnectionId: apMapSignature.mapConnectionId,
+        })
         .from(apMapSignature)
         .where(eq(apMapSignature.id, input.signatureId));
       if (!existing) throw new Error('Signature not found.');
@@ -168,10 +199,21 @@ export function updateSignature(
       const out: MapEventPatch<'signature.update'> = {
         id: row.id.toString(),
         updatedAt: row.updatedAt.toISOString(),
+        // Self-describing audit context: owning system, and the resulting code
+        // (the edited value when sigId changed, else the unchanged current one).
+        mapSystemId: existing.mapSystemId.toString(),
+        sigId: patch.sigId ?? existing.sigId,
       };
-      if ('mapConnectionId' in patch)
+      if ('mapConnectionId' in patch) {
         out.mapConnectionId = patch.mapConnectionId?.toString() ?? null;
-      if ('sigId' in patch) out.sigId = patch.sigId;
+        // Capture what the sig links/unlinks: the new connection's far endpoint when
+        // linking, the prior connection's when unlinking (the row's still alive here).
+        const refConnectionId = patch.mapConnectionId ?? existing.mapConnectionId;
+        out.leadsToMapSystemId =
+          refConnectionId !== null
+            ? await resolveLeadsTo(tx, refConnectionId, existing.mapSystemId)
+            : null;
+      }
       if ('groupKey' in patch) out.groupKey = patch.groupKey;
       if ('typeId' in patch) {
         out.typeId = patch.typeId;
@@ -202,7 +244,7 @@ export function deleteSignature(
     tx: input.tx,
     mutate: async (tx) => {
       const [existing] = await tx
-        .select({ mapSystemId: apMapSignature.mapSystemId })
+        .select({ mapSystemId: apMapSignature.mapSystemId, sigId: apMapSignature.sigId })
         .from(apMapSignature)
         .where(eq(apMapSignature.id, input.signatureId));
       if (!existing) throw new Error('Signature not found.');
@@ -218,7 +260,13 @@ export function deleteSignature(
         .where(eq(apMapSignature.id, input.signatureId))
         .returning({ id: apMapSignature.id });
       if (!row) throw new Error('Signature not found.');
-      return { id: row.id.toString() };
+      // System + code ride the payload so the audit names the removed sig — the
+      // signature row is gone after this delete.
+      return {
+        id: row.id.toString(),
+        mapSystemId: existing.mapSystemId.toString(),
+        sigId: existing.sigId,
+      };
     },
   });
 }

@@ -7,47 +7,34 @@ import { apAccessGrant, apInstanceOwner } from '@/db/schema';
 import { resolveAuthzLevel } from '@/lib/auth/resolveAuthz';
 
 /**
- * Authz-resolution acceptance gate.
+ * Authz-resolution acceptance gate (post Stage-4 teardown).
  *
- * Drives `resolveAuthzLevel` directly against real Postgres (the derivation is
- * the load-bearing part; this avoids mocking ESI). The headline guarantee:
- *   - ANY Director ⇒ corp-scoped `manager`, even when their corp is an
- *     `ap_instance_owner` — ownership never elevates to global admin.
- *   - Global `admin` is reachable ONLY via an explicit `capability='admin'`
- *     instance grant.
+ * Drives `resolveAuthzLevel` directly against real Postgres. `authz_level` is
+ * now `member | admin` only. The headline guarantee:
+ *   - Global `admin` is reachable ONLY via an explicit, unexpired
+ *     `capability='admin'` instance grant.
+ *   - Nothing else derives admin — not the Director role, not instance
+ *     ownership. (Corp/alliance map authority is the separate `is_director` bit,
+ *     not resolved here.)
  *
  *   docker compose up -d && pnpm db:migrate && RUN_DB_TESTS=1 pnpm test authz-resolution
  */
 const run = process.env.RUN_DB_TESTS === '1';
 
-// No-Director / no-grant character.
+// No grant — plain member.
 const PLAIN_ID = 99010001n;
-// Director, no grant.
-const DIRECTOR_ID = 99010002n;
-// Director whose corp is also an instance owner.
-const OWNER_DIRECTOR_ID = 99010003n;
-// Non-director with an explicit `manage` grant.
-const MANAGE_GRANT_ID = 99010004n;
-// Non-director with an explicit `admin` grant.
+// Non-grant character whose corp is an instance owner (ownership must NOT elevate).
+const OWNER_MEMBER_ID = 99010003n;
+// Explicit `admin` grant.
 const ADMIN_GRANT_ID = 99010005n;
-// Director who ALSO holds an `admin` grant (max wins → admin).
-const DIRECTOR_ADMIN_GRANT_ID = 99010006n;
-// Non-director with an EXPIRED `manage` grant (ignored → member).
+// EXPIRED `admin` grant (ignored → member).
 const EXPIRED_GRANT_ID = 99010007n;
 
 const OWNER_CORP_ID = 99019001n;
 
-const principalIds = [
-  PLAIN_ID,
-  DIRECTOR_ID,
-  OWNER_DIRECTOR_ID,
-  MANAGE_GRANT_ID,
-  ADMIN_GRANT_ID,
-  DIRECTOR_ADMIN_GRANT_ID,
-  EXPIRED_GRANT_ID,
-];
+const principalIds = [PLAIN_ID, OWNER_MEMBER_ID, ADMIN_GRANT_ID, EXPIRED_GRANT_ID];
 
-describe.skipIf(!run)('Stage 2 — authz resolution (real Postgres)', () => {
+describe.skipIf(!run)('authz resolution (real Postgres)', () => {
   beforeAll(async () => {
     await migrate(db, { migrationsFolder: 'src/db/migrations' });
     await cleanup();
@@ -59,11 +46,9 @@ describe.skipIf(!run)('Stage 2 — authz resolution (real Postgres)', () => {
     });
 
     await db.insert(apAccessGrant).values([
-      instanceGrant(MANAGE_GRANT_ID, 'manage'),
-      instanceGrant(ADMIN_GRANT_ID, 'admin'),
-      instanceGrant(DIRECTOR_ADMIN_GRANT_ID, 'admin'),
+      instanceAdminGrant(ADMIN_GRANT_ID),
       // Expired an hour ago → must be ignored.
-      instanceGrant(EXPIRED_GRANT_ID, 'manage', new Date(Date.now() - 60 * 60 * 1000)),
+      instanceAdminGrant(EXPIRED_GRANT_ID, new Date(Date.now() - 60 * 60 * 1000)),
     ]);
   });
 
@@ -72,68 +57,38 @@ describe.skipIf(!run)('Stage 2 — authz resolution (real Postgres)', () => {
     await pool.end();
   });
 
-  it('a non-director with no grant resolves to member', async () => {
-    expect(await resolveAuthzLevel({ characterId: PLAIN_ID, isDirector: false })).toBe('member');
+  it('a character with no grant resolves to member', async () => {
+    expect(await resolveAuthzLevel(PLAIN_ID)).toBe('member');
   });
 
-  it('any Director resolves to manager (the headline-bug fix — NOT admin)', async () => {
-    expect(await resolveAuthzLevel({ characterId: DIRECTOR_ID, isDirector: true })).toBe('manager');
-  });
-
-  it('a Director whose corp owns the instance is STILL only manager', async () => {
-    // OWNER_DIRECTOR_ID has no character/corp row; the resolver does not read
-    // ap_instance_owner at all, so the owner row above must not change the level.
-    expect(
-      await resolveAuthzLevel({ characterId: OWNER_DIRECTOR_ID, isDirector: true }),
-    ).toBe('manager');
-  });
-
-  it('an explicit manage grant resolves to manager', async () => {
-    expect(
-      await resolveAuthzLevel({ characterId: MANAGE_GRANT_ID, isDirector: false }),
-    ).toBe('manager');
+  it('instance ownership does not elevate (still member without an admin grant)', async () => {
+    // The resolver does not read ap_instance_owner at all, so the owner row
+    // above must not change the level.
+    expect(await resolveAuthzLevel(OWNER_MEMBER_ID)).toBe('member');
   });
 
   it('an explicit admin grant is the only path to global admin', async () => {
-    expect(
-      await resolveAuthzLevel({ characterId: ADMIN_GRANT_ID, isDirector: false }),
-    ).toBe('admin');
+    expect(await resolveAuthzLevel(ADMIN_GRANT_ID)).toBe('admin');
   });
 
-  it('takes the max of derived and explicit (director + admin grant ⇒ admin)', async () => {
-    expect(
-      await resolveAuthzLevel({ characterId: DIRECTOR_ADMIN_GRANT_ID, isDirector: true }),
-    ).toBe('admin');
+  it('an expired admin grant is ignored (falls back to member)', async () => {
+    expect(await resolveAuthzLevel(EXPIRED_GRANT_ID)).toBe('member');
   });
 
-  it('an expired grant is ignored (falls back to derived member)', async () => {
-    expect(
-      await resolveAuthzLevel({ characterId: EXPIRED_GRANT_ID, isDirector: false }),
-    ).toBe('member');
-  });
-
-  it('an explicit grant survives a resync (resolver, not a CASE, preserves it)', async () => {
-    // Same input a periodic non-director resync would pass: the manage grant
-    // still wins, so the cached level stays manager across passes.
-    expect(
-      await resolveAuthzLevel({ characterId: MANAGE_GRANT_ID, isDirector: false }),
-    ).toBe('manager');
+  it('an explicit grant survives a resync (resolver re-reads it each pass)', async () => {
+    expect(await resolveAuthzLevel(ADMIN_GRANT_ID)).toBe('admin');
   });
 });
 
 // ─── helpers ───────────────────────────────────────────────────────────────
 
-function instanceGrant(
-  principalId: bigint,
-  capability: 'manage' | 'admin',
-  expiresAt: Date | null = null,
-) {
+function instanceAdminGrant(principalId: bigint, expiresAt: Date | null = null) {
   return {
     principalKind: 'character' as const,
     principalId,
     scope: 'instance' as const,
     mapId: null,
-    capability,
+    capability: 'admin' as const,
     expiresAt,
   };
 }

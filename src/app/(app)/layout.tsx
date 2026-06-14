@@ -13,6 +13,7 @@ import { AppHeader } from '@/components/chrome/AppHeader';
 import { AppFooter } from '@/components/chrome/AppFooter';
 import { RealtimeProvider } from '@/lib/realtime/useRealtime';
 import { RealtimeStatusBanner } from '@/components/RealtimeStatusBanner';
+import { LowContrastController } from '@/components/LowContrastController';
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const session = await requireSession();
@@ -25,6 +26,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <RealtimeProvider>
+      <LowContrastController />
       <div className="flex min-h-screen flex-col">
         <RealtimeStatusBanner />
         <AppHeader

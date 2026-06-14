@@ -1,15 +1,15 @@
 /**
- * Canonical opKey → swagger operationId map for the ESI client.
+ * Canonical opKey → OpenAPI operationId map for the ESI client.
  *
  * "opKey" is our short internal name for an ESI operation (e.g.
- * `getCharacterLocation`). Each opKey resolves to a swagger `operationId`
- * (e.g. `get_characters_character_id_location`), and `src/lib/esi/swagger.json`
+ * `getCharacterLocation`). Each opKey resolves to an OpenAPI `operationId`
+ * (e.g. `GetCharactersCharacterIdLocation`), and `src/lib/esi/openapi.json`
  * is authoritative for the HTTP method + path + params that operationId names.
  *
  * A few pairings could not be confirmed against an authoritative dispatcher and
  * were inferred from call-site signatures — those carry `inferred: true`. The
  * companion test (`tests/esi/opkeys.test.ts`) asserts every operationId below
- * exists in the checked-in swagger so a typo or drift fails loudly.
+ * exists in the checked-in OpenAPI spec so a typo or drift fails loudly.
  *
  * This module is data only — no request logic.
  */
@@ -28,67 +28,67 @@ export interface OpDef {
 
 export const OP_KEYS = {
   // Status
-  getStatus: { operationId: 'get_status', auth: 'none' },
+  getStatus: { operationId: 'GetStatus', auth: 'none' },
 
   // Character
-  getCharacter: { operationId: 'get_characters_character_id', auth: 'none' },
-  getCharacterAffiliation: { operationId: 'post_characters_affiliation', auth: 'none' },
-  getCharacterRoles: { operationId: 'get_characters_character_id_roles', auth: 'character' },
-  getCharacterTitles: { operationId: 'get_characters_character_id_titles', auth: 'character' },
-  getCharacterClones: { operationId: 'get_characters_character_id_clones', auth: 'character' },
-  getCharacterOnline: { operationId: 'get_characters_character_id_online', auth: 'character' },
-  getCharacterLocation: { operationId: 'get_characters_character_id_location', auth: 'character' },
-  getCharacterShip: { operationId: 'get_characters_character_id_ship', auth: 'character' },
+  getCharacter: { operationId: 'GetCharactersDetail', auth: 'none' },
+  getCharacterAffiliation: { operationId: 'PostCharactersAffiliation', auth: 'none' },
+  getCharacterRoles: { operationId: 'GetCharactersCharacterIdRoles', auth: 'character' },
+  getCharacterTitles: { operationId: 'GetCharactersCharacterIdTitles', auth: 'character' },
+  getCharacterClones: { operationId: 'GetCharactersCharacterIdClones', auth: 'character' },
+  getCharacterOnline: { operationId: 'GetCharactersCharacterIdOnline', auth: 'character' },
+  getCharacterLocation: { operationId: 'GetCharactersCharacterIdLocation', auth: 'character' },
+  getCharacterShip: { operationId: 'GetCharactersCharacterIdShip', auth: 'character' },
 
   // Corporation / Alliance
-  getCorporation: { operationId: 'get_corporations_corporation_id', auth: 'none' },
-  getCorporationRoles: { operationId: 'get_characters_character_id_roles', auth: 'character' },
-  getNpcCorporations: { operationId: 'get_corporations_npccorps', auth: 'none' },
-  getAlliance: { operationId: 'get_alliances_alliance_id', auth: 'none' },
+  getCorporation: { operationId: 'GetCorporationsCorporationId', auth: 'none' },
+  getCorporationRoles: { operationId: 'GetCharactersCharacterIdRoles', auth: 'character' },
+  getNpcCorporations: { operationId: 'GetCorporationsNpccorps', auth: 'none' },
+  getAlliance: { operationId: 'GetAlliancesAllianceId', auth: 'none' },
 
   // UI mutations (option-bag arguments — inferred)
-  setWaypoint: { operationId: 'post_ui_autopilot_waypoint', auth: 'character', inferred: true },
-  openWindow: { operationId: 'post_ui_openwindow_information', auth: 'character', inferred: true },
+  setWaypoint: { operationId: 'PostUiAutopilotWaypoint', auth: 'character', inferred: true },
+  openWindow: { operationId: 'PostUiOpenwindowInformation', auth: 'character', inferred: true },
 
   // Routing / search
-  getRoute: { operationId: 'get_route_origin_destination', auth: 'none', inferred: true },
-  search: { operationId: 'get_characters_character_id_search', auth: 'character' },
-  getUniverseNames: { operationId: 'post_universe_names', auth: 'none' },
+  getRoute: { operationId: 'PostRoute', auth: 'none', inferred: true },
+  search: { operationId: 'GetCharactersCharacterIdSearch', auth: 'character' },
+  getUniverseNames: { operationId: 'PostUniverseNames', auth: 'none' },
 
   // Universe — geography
-  getUniverseSystems: { operationId: 'get_universe_systems', auth: 'none' },
-  getUniverseSystem: { operationId: 'get_universe_systems_system_id', auth: 'none' },
-  getUniverseConstellations: { operationId: 'get_universe_constellations', auth: 'none' },
-  getUniverseConstellation: { operationId: 'get_universe_constellations_constellation_id', auth: 'none' },
-  getUniverseRegions: { operationId: 'get_universe_regions', auth: 'none' },
-  getUniverseRegion: { operationId: 'get_universe_regions_region_id', auth: 'none' },
-  getUniverseStargate: { operationId: 'get_universe_stargates_stargate_id', auth: 'none' },
-  getUniverseStation: { operationId: 'get_universe_stations_station_id', auth: 'none' },
-  getUniverseStar: { operationId: 'get_universe_stars_star_id', auth: 'none' },
-  getUniversePlanet: { operationId: 'get_universe_planets_planet_id', auth: 'none' },
+  getUniverseSystems: { operationId: 'GetUniverseSystems', auth: 'none' },
+  getUniverseSystem: { operationId: 'GetUniverseSystemsSystemId', auth: 'none' },
+  getUniverseConstellations: { operationId: 'GetUniverseConstellations', auth: 'none' },
+  getUniverseConstellation: { operationId: 'GetUniverseConstellationsConstellationId', auth: 'none' },
+  getUniverseRegions: { operationId: 'GetUniverseRegions', auth: 'none' },
+  getUniverseRegion: { operationId: 'GetUniverseRegionsRegionId', auth: 'none' },
+  getUniverseStargate: { operationId: 'GetUniverseStargatesStargateId', auth: 'none' },
+  getUniverseStation: { operationId: 'GetUniverseStationsStationId', auth: 'none' },
+  getUniverseStar: { operationId: 'GetUniverseStarsStarId', auth: 'none' },
+  getUniversePlanet: { operationId: 'GetUniversePlanetsPlanetId', auth: 'none' },
 
   // Universe — items / dogma
-  getUniverseCategories: { operationId: 'get_universe_categories', auth: 'none' },
-  getUniverseCategory: { operationId: 'get_universe_categories_category_id', auth: 'none' },
-  getUniverseGroups: { operationId: 'get_universe_groups', auth: 'none' },
-  getUniverseGroup: { operationId: 'get_universe_groups_group_id', auth: 'none' },
-  getUniverseType: { operationId: 'get_universe_types_type_id', auth: 'none' },
-  getDogmaAttribute: { operationId: 'get_dogma_attributes_attribute_id', auth: 'none' },
-  getUniverseRace: { operationId: 'get_universe_races', auth: 'none' },
-  getUniverseFaction: { operationId: 'get_universe_factions', auth: 'none' },
+  getUniverseCategories: { operationId: 'GetUniverseCategories', auth: 'none' },
+  getUniverseCategory: { operationId: 'GetUniverseCategoriesCategoryId', auth: 'none' },
+  getUniverseGroups: { operationId: 'GetUniverseGroups', auth: 'none' },
+  getUniverseGroup: { operationId: 'GetUniverseGroupsGroupId', auth: 'none' },
+  getUniverseType: { operationId: 'GetUniverseTypesTypeId', auth: 'none' },
+  getDogmaAttribute: { operationId: 'GetDogmaAttributesAttributeId', auth: 'none' },
+  getUniverseRace: { operationId: 'GetUniverseRaces', auth: 'none' },
+  getUniverseFaction: { operationId: 'GetUniverseFactions', auth: 'none' },
 
   // Structures (player citadels)
-  getUniverseStructure: { operationId: 'get_universe_structures_structure_id', auth: 'character' },
+  getUniverseStructure: { operationId: 'GetUniverseStructuresStructureId', auth: 'character' },
 
   // Killmails (zKillboard list entries carry only id + hash; the body is here)
-  getKillmail: { operationId: 'get_killmails_killmail_id_killmail_hash', auth: 'none' },
+  getKillmail: { operationId: 'GetKillmailsKillmailIdKillmailHash', auth: 'none' },
 
   // Stats / sovereignty (cron-driven)
-  getUniverseJumps: { operationId: 'get_universe_system_jumps', auth: 'none' },
-  getUniverseKills: { operationId: 'get_universe_system_kills', auth: 'none' },
-  getSovereigntyMap: { operationId: 'get_sovereignty_map', auth: 'none' },
-  getFactionWarSystems: { operationId: 'get_fw_systems', auth: 'none' },
-  getIncursions: { operationId: 'get_incursions', auth: 'none' },
+  getUniverseJumps: { operationId: 'GetUniverseSystemJumps', auth: 'none' },
+  getUniverseKills: { operationId: 'GetUniverseSystemKills', auth: 'none' },
+  getSovereigntyMap: { operationId: 'GetSovereigntySystems', auth: 'none' },
+  getFactionWarSystems: { operationId: 'GetFwSystems', auth: 'none' },
+  getIncursions: { operationId: 'GetIncursions', auth: 'none' },
 } as const satisfies Record<string, OpDef>;
 
 export type OpKey = keyof typeof OP_KEYS;

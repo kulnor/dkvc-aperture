@@ -130,9 +130,15 @@ export function deleteConnection(
         .where(
           and(eq(apMapConnection.id, input.connectionId), eq(apMapConnection.mapId, input.mapId)),
         )
-        .returning({ id: apMapConnection.id });
+        .returning({
+          id: apMapConnection.id,
+          source: apMapConnection.sourceMapSystemId,
+          target: apMapConnection.targetMapSystemId,
+        });
       if (!row) throw new Error('Connection not found on map.');
-      return { id: row.id.toString() };
+      // Endpoints ride the payload so the audit/Discord can name the collapsed
+      // hole — the connection row is gone after this delete.
+      return { id: row.id.toString(), source: row.source.toString(), target: row.target.toString() };
     },
   });
 }
@@ -191,10 +197,20 @@ export function updateConnection(
         .where(
           and(eq(apMapConnection.id, input.connectionId), eq(apMapConnection.mapId, input.mapId)),
         )
-        .returning({ id: apMapConnection.id });
+        .returning({
+          id: apMapConnection.id,
+          source: apMapConnection.sourceMapSystemId,
+          target: apMapConnection.targetMapSystemId,
+        });
       if (!row) throw new Error('Connection not found on map.');
 
-      const out: MapEventPatch<'connection.update'> = { id: row.id.toString() };
+      // Endpoints ride every update so its audit entry self-describes even after
+      // the connection is later hard-deleted.
+      const out: MapEventPatch<'connection.update'> = {
+        id: row.id.toString(),
+        source: row.source.toString(),
+        target: row.target.toString(),
+      };
       if ('scope' in patch) out.scope = patch.scope;
       if ('massStatus' in patch) out.massStatus = patch.massStatus;
       if ('jumpMassClass' in patch) out.jumpMassClass = patch.jumpMassClass;

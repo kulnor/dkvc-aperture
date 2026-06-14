@@ -1,6 +1,6 @@
 ## corporation.ts
 
-**Purpose:** The `ap_corporation` table — minimal corp registry created on demand to back FK targets for `ap_corporation_right` and `ap_role.corporation_id`.
+**Purpose:** The `ap_corporation` table — minimal corp registry created on demand to back the FK target for `ap_role.corporation_id`.
 **File:** `src/db/schema/ap/corporation.ts`
 
 ---
@@ -12,4 +12,4 @@
 - `alliance_id` — `bigint`, nullable. NPC and unaffiliated player corps have no alliance.
 - `last_synced_at` — `timestamptz`, default `now()`. When the row was last refreshed from ESI.
 
-No `active` / `deleted_at` flag — defunct corps stay as historical record so that `ap_corporation_right` and orphaned `ap_role` rows remain referentially valid. Rows are upserted by `syncCharacterAuthz`; nothing else writes to this table.
+No `active` / `deleted_at` flag — defunct corps stay as historical record so that orphaned `ap_role` rows remain referentially valid. Rows are upserted by `syncCharacterAuthz`; nothing else writes to this table.

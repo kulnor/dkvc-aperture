@@ -11,7 +11,7 @@
 - `MenuContent` — Portal + Positioner (`sideOffset={4}`, `align="end"`) + styled Popup.
 - `MenuItem` — styled `MenuPrimitive.Item`; highlight + disabled states wired via `data-*` attributes. Extra props: `inset?: boolean` reserves the same left gutter (`pl-7`) as checkbox/radio items so plain-row text aligns with toggle text; `icon?: ReactNode` renders a leading icon absolutely positioned in that gutter (implies the gutter, so the icon's text still aligns) instead of inline.
 - `MenuSubmenu` — `MenuPrimitive.SubmenuRoot`; wraps a submenu trigger + content pair.
-- `MenuSubmenuTrigger` — styled `MenuPrimitive.SubmenuTrigger` (looks like `MenuItem`) with a trailing `ChevronRightIcon` pushed right via `ml-auto`; also highlights on `data-[popup-open]`. Extra prop: `inset?: boolean` reserves the same `pl-7` left gutter as checkbox/radio items so the label aligns with toggle text.
+- `MenuSubmenuTrigger` — styled `MenuPrimitive.SubmenuTrigger` (looks like `MenuItem`) with a trailing `ChevronRightIcon` pushed right via `ml-auto`; also highlights on `data-[popup-open]`. Extra props: `inset?: boolean` reserves the `pl-7` left gutter so the label aligns with toggle text; `icon?: ReactNode` renders a leading icon absolutely positioned in that gutter (implies the gutter).
 - `MenuSubmenuContent` — Portal + Positioner (`side="right"`, `align="start"`, `sideOffset={4}`) + styled Popup (same className as `MenuContent`).
 - `MenuRadioGroup` — `MenuPrimitive.RadioGroup`; holds the controlled `value` / `onValueChange` for single-select enum submenus.
 - `MenuRadioItem` — styled `MenuPrimitive.RadioItem` with a left-anchored `RadioItemIndicator` (`CheckIcon`) so the active value shows a checkmark (`pl-7` to clear the indicator).

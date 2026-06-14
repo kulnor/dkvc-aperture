@@ -2,7 +2,6 @@ import 'server-only';
 import { asc } from 'drizzle-orm';
 import { db } from '@/db/client';
 import { apCharacter } from '@/db/schema';
-import { characterScopeFilterFor, type AdminVisibilityScope } from '@/lib/auth/rights';
 
 /**
  * Row shape returned by `listAdminMembers`. Mirrors the `ap_character` columns
@@ -18,23 +17,20 @@ export type AdminMemberRow = {
   statusExpiresAt: string | null;
   statusReason: string | null;
   statusChangedAt: string | null;
-  authzLevel: 'member' | 'manager' | 'admin';
+  authzLevel: 'member' | 'admin';
   lastOnline: boolean | null;
   lastLocationAt: string | null;
 };
 
 /**
- * Characters an admin / manager can act on. Scoped via
- * `characterScopeFilterFor` so a `global` scope returns every `ap_character`
- * and a `corp` scope returns only the manager's own corp.
+ * Every `ap_character` the `/admin` operator console can act on. `/admin` is
+ * global-admin-only, so this is unscoped — it returns all characters.
  *
  * Ordering puts non-active rows first (banned, then kicked, then active) so
  * the admin sees actionable moderation state at the top of the table, then
  * alphabetises within each band.
  */
-export async function listAdminMembers(
-  scope: AdminVisibilityScope,
-): Promise<AdminMemberRow[]> {
+export async function listAdminMembers(): Promise<AdminMemberRow[]> {
   const rows = await db
     .select({
       id: apCharacter.id,
@@ -50,7 +46,6 @@ export async function listAdminMembers(
       lastLocationAt: apCharacter.lastLocationAt,
     })
     .from(apCharacter)
-    .where(characterScopeFilterFor(scope))
     .orderBy(asc(apCharacter.status), asc(apCharacter.name));
 
   return rows.map((r) => ({

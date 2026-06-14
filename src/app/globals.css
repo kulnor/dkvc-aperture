@@ -49,6 +49,10 @@
 }
 
 :root {
+    /* Drive native UI (scrollbars, <select> popups, form controls) from the
+       active theme. Without this the browser paints them in its default light
+       scheme even though the app is always-dark. */
+    color-scheme: light;
     --background: oklch(1 0 0);
     --foreground: oklch(0.145 0 0);
     --card: oklch(1 0 0);
@@ -86,6 +90,7 @@
 }
 
 .dark {
+    color-scheme: dark;
     --background: oklch(0.145 0 0);
     --foreground: oklch(0.985 0 0);
     --card: oklch(0.205 0 0);
@@ -120,6 +125,35 @@
     --sidebar-accent-foreground: oklch(0.985 0 0);
     --sidebar-border: oklch(1 0 0 / 10%);
     --sidebar-ring: oklch(0.556 0 0);
+}
+
+/* Low-contrast mode. Opt-in (off by default), toggled in the map Settings tab
+   and persisted to localStorage; the `low-contrast` class rides alongside the
+   always-on `.dark` class on <html>. Aperture's default theme deliberately runs
+   higher contrast than Pathfinder (WCAG-validated); these overrides soften it
+   for users who find it straining — backgrounds lift, foregrounds drop toward
+   mid-grey. See src/lib/lowContrast.ts. */
+.dark.low-contrast {
+  /* Lift the near-black surfaces and pull the near-white text/foregrounds down
+     toward mid-grey — the two ends are what drive the contrast. */
+  --background: oklch(0.225 0 0);
+  --foreground: oklch(0.8 0 0);
+  --card: oklch(0.275 0 0);
+  --card-foreground: oklch(0.8 0 0);
+  --map-node: oklch(0.345 0 0);
+  --popover: oklch(0.275 0 0);
+  --popover-foreground: oklch(0.8 0 0);
+  --primary: oklch(0.8 0 0);
+  --secondary-foreground: oklch(0.8 0 0);
+  --muted-foreground: oklch(0.6 0 0);
+  --accent-foreground: oklch(0.8 0 0);
+  --sidebar: oklch(0.275 0 0);
+  --sidebar-foreground: oklch(0.8 0 0);
+  --sidebar-accent-foreground: oklch(0.8 0 0);
+}
+
+.dark.low-contrast .react-flow {
+  --xy-background-color: oklch(0.275 0 0);
 }
 
 @layer base {
@@ -184,4 +218,16 @@
   background: var(--primary);
   border-radius: var(--radius);
   opacity: 0.15;
+}
+
+@layer utilities {
+  @keyframes ap-sig-flash {
+    0%   { background-color: transparent; }
+    20%  { background-color: rgb(234 179 8 / 0.25); }
+    80%  { background-color: rgb(234 179 8 / 0.25); }
+    100% { background-color: transparent; }
+  }
+  .ap-sig-flash {
+    animation: ap-sig-flash 3s ease-in-out forwards;
+  }
 }

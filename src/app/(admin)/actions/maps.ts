@@ -7,31 +7,24 @@ import { z } from 'zod';
 import { db } from '@/db/client';
 import { apMap, apMapSystem, tagScheme } from '@/db/schema';
 import { auth } from '@/lib/auth';
-import {
-  adminVisibilityScope,
-  isAdmin,
-  isManagerOrAdmin,
-  mapScopeFilterFor,
-  type AdminVisibilityScope,
-} from '@/lib/auth/rights';
+import { isAdmin } from '@/lib/auth/rights';
 import { commitMapEvent, type ActionResult } from '@/lib/map/mutations/core';
 import type { MapEventPatch, MapEventPayload } from '@/lib/realtime/protocol';
 import { applyHomeStaticExemption } from '@/lib/tagging/exemption';
 
 /**
- * Admin map actions. Gated independently of the corp-right matrix:
+ * Admin map actions — the `/admin` operator's cross-tenant oversight surface,
+ * gated `isAdmin` (global operator only). Corp Directors / owners manage their
+ * own maps in-place via `canManageMap`, not here.
  *
- *   - `adminSoftDeleteMap`      manager or admin, map within scope → sets `deleted_at`.
- *   - `adminRestoreMap`         manager or admin, map within scope → clears `deleted_at`.
- *   - `adminPurgeMap`           admin only,       map within scope → hard-deletes
- *                               (skips the 30-day `map-purge` cron grace).
- *   - `adminUpdateMapSettings`  manager or admin, map within scope → updates behavior
- *                               toggles and auto-tagging config (map.update event).
+ *   - `adminSoftDeleteMap`      admin → sets `deleted_at`.
+ *   - `adminRestoreMap`         admin → clears `deleted_at`.
+ *   - `adminPurgeMap`           admin → hard-deletes (skips the 30-day
+ *                               `map-purge` cron grace).
+ *   - `adminUpdateMapSettings`  admin → updates behavior toggles and
+ *                               auto-tagging config (map.update event).
  *
- * Scope rules (see `mapScopeFilterFor`): admin → any map; manager → maps where
- * `owner_corporation_id = actor.corporation_id` OR `owner_alliance_id = actor.alliance_id`
- * OR `owner_character_id` belongs to a corp member. The check runs in SQL via
- * `selectScopedMap` to keep the rule consistent with the admin maps listing.
+ * No per-map scoping — admin reaches every map.
  */
 
 const mapIdSchema = z.string().regex(/^\d+$/, 'Invalid map id.');
@@ -41,22 +34,19 @@ type MapRow = {
   deletedAt: Date | null;
 };
 
-async function selectScopedMap(
-  id: bigint,
-  scope: AdminVisibilityScope,
-): Promise<MapRow | null> {
+async function selectMap(id: bigint): Promise<MapRow | null> {
   const [row] = await db
     .select({ id: apMap.id, deletedAt: apMap.deletedAt })
     .from(apMap)
-    .where(and(eq(apMap.id, id), mapScopeFilterFor(scope)));
+    .where(eq(apMap.id, id));
   return row ?? null;
 }
 
 /**
  * Soft-delete a map: set `deleted_at = now()`. Mirrors the user
- * `deleteMapAction` outcome (same event kind, same payload shape) but bypasses
- * the corp-right matrix in favour of an admin/manager gate. The 30-day
- * `map-purge` cron remains the eventual hard-delete path.
+ * `deleteMapAction` outcome (same event kind, same payload shape) under the
+ * operator's `isAdmin` gate. The 30-day `map-purge` cron remains the eventual
+ * hard-delete path.
  */
 export async function adminSoftDeleteMap(
   mapId: string,
@@ -64,13 +54,11 @@ export async function adminSoftDeleteMap(
   const parsed = mapIdSchema.safeParse(mapId);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]!.message };
   const session = await auth();
-  if (!(await isManagerOrAdmin(session))) {
+  if (!(await isAdmin(session))) {
     return { ok: false, error: 'Forbidden.' };
   }
-  const scope = await adminVisibilityScope(session);
-  if (scope === null) return { ok: false, error: 'Forbidden.' };
   const id = BigInt(parsed.data);
-  const target = await selectScopedMap(id, scope);
+  const target = await selectMap(id);
   if (target === null) return { ok: false, error: 'Map not found.' };
   if (target.deletedAt !== null) return { ok: false, error: 'Map is already soft-deleted.' };
 
@@ -100,7 +88,7 @@ export async function adminSoftDeleteMap(
 
 /**
  * Restore a soft-deleted map by clearing `deleted_at`. Emits
- * `map.restore` so the audit chain records the action. Manager or admin.
+ * `map.restore` so the audit chain records the action. Admin only.
  */
 export async function adminRestoreMap(
   mapId: string,
@@ -108,13 +96,11 @@ export async function adminRestoreMap(
   const parsed = mapIdSchema.safeParse(mapId);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]!.message };
   const session = await auth();
-  if (!(await isManagerOrAdmin(session))) {
+  if (!(await isAdmin(session))) {
     return { ok: false, error: 'Forbidden.' };
   }
-  const scope = await adminVisibilityScope(session);
-  if (scope === null) return { ok: false, error: 'Forbidden.' };
   const id = BigInt(parsed.data);
-  const target = await selectScopedMap(id, scope);
+  const target = await selectMap(id);
   if (target === null) return { ok: false, error: 'Map not found.' };
   if (target.deletedAt === null) return { ok: false, error: 'Map is not soft-deleted.' };
 
@@ -156,10 +142,9 @@ export type AdminUpdateMapSettingsInput = z.input<typeof adminMapSettingsSchema>
 
 /**
  * Update a map's behavior toggles and/or auto-tagging config from the admin
- * panel. Gated by `isManagerOrAdmin` + map within scope; bypasses the
- * corp-right matrix. Emits `map.update` (same event kind as the user-facing
- * `updateMapSettingsAction`). Reconciles the ABC home-static exemption after
- * any tagging-config change.
+ * panel. Gated by `isAdmin`. Emits `map.update` (same event kind as the
+ * user-facing `updateMapSettingsAction`). Reconciles the ABC home-static
+ * exemption after any tagging-config change.
  */
 export async function adminUpdateMapSettings(
   input: AdminUpdateMapSettingsInput,
@@ -172,13 +157,11 @@ export async function adminUpdateMapSettings(
   const id = BigInt(rawId);
 
   const session = await auth();
-  if (!(await isManagerOrAdmin(session))) {
+  if (!(await isAdmin(session))) {
     return { ok: false, error: 'Forbidden.' };
   }
-  const scope = await adminVisibilityScope(session);
-  if (scope === null) return { ok: false, error: 'Forbidden.' };
 
-  const target = await selectScopedMap(id, scope);
+  const target = await selectMap(id);
   if (target === null) return { ok: false, error: 'Map not found.' };
   if (target.deletedAt !== null) return { ok: false, error: 'Map is soft-deleted.' };
 
@@ -251,8 +234,7 @@ export async function adminUpdateMapSettings(
 
 /**
  * Admin-only: hard-delete a soft-deleted map immediately, skipping
- * the 30-day `map-purge` cron grace. Managers cannot invoke (they may
- * soft-delete but not purge).
+ * the 30-day `map-purge` cron grace.
  *
  * Transaction ordering matters: the `map.purge` event INSERTs first so the
  * `tg_map_event_notify` trigger queues the `pg_notify('map:<id>', payload)`.
@@ -272,10 +254,8 @@ export async function adminPurgeMap(
   if (!(await isAdmin(session))) {
     return { ok: false, error: 'Admin required.' };
   }
-  const scope = await adminVisibilityScope(session);
-  if (scope === null) return { ok: false, error: 'Forbidden.' };
   const id = BigInt(parsed.data);
-  const target = await selectScopedMap(id, scope);
+  const target = await selectMap(id);
   if (target === null) return { ok: false, error: 'Map not found.' };
   if (target.deletedAt === null) {
     return { ok: false, error: 'Map must be soft-deleted before purging.' };

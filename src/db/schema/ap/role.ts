@@ -17,9 +17,9 @@ import { apMap } from './map';
 // respective sync paths.
 //
 // `ap_map_role_access` is the per-map grant — any character holding any of
-// the roles linked here has view access on the map. Mutation rights still go
-// through `ap_corporation_right` + `authz_level`; roles do not grant arbitrary
-// mutation by themselves (see `src/lib/auth/rights.ts`).
+// the roles linked here has view access on the map. Mutation authority is the
+// derived `canManageMap` (owner / corp Director / executor-corp Director /
+// admin); roles do not grant mutation by themselves (see `src/lib/auth/rights.ts`).
 export const apRole = pgTable(
   'ap_role',
   {

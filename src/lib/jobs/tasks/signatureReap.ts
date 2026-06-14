@@ -42,9 +42,17 @@ async function reap(): Promise<{ scanned: number; deleted: number; failed: numbe
         const [del] = await tx
           .delete(apMapSignature)
           .where(eq(apMapSignature.id, row.signatureId))
-          .returning({ id: apMapSignature.id });
+          .returning({
+            id: apMapSignature.id,
+            mapSystemId: apMapSignature.mapSystemId,
+            sigId: apMapSignature.sigId,
+          });
         if (!del) throw new Error('Signature already gone.');
-        return { id: del.id.toString() };
+        return {
+          id: del.id.toString(),
+          mapSystemId: del.mapSystemId.toString(),
+          sigId: del.sigId,
+        };
       },
     });
     if (result.ok) deleted += 1;

@@ -6,8 +6,8 @@ import type {
   apAccessGrant,
   apCharacter,
   apCharacterRole,
+  apAlliance,
   apCorporation,
-  apCorporationRight,
   apEventKind,
   apInstance,
   apInstanceOwner,
@@ -153,6 +153,9 @@ export type NewApSystemStats = InferInsertModel<typeof apSystemStats>;
 export type ApCorporation = InferSelectModel<typeof apCorporation>;
 export type NewApCorporation = InferInsertModel<typeof apCorporation>;
 
+export type ApAlliance = InferSelectModel<typeof apAlliance>;
+export type NewApAlliance = InferInsertModel<typeof apAlliance>;
+
 export type ApRole = InferSelectModel<typeof apRole>;
 export type NewApRole = InferInsertModel<typeof apRole>;
 
@@ -161,9 +164,6 @@ export type NewApCharacterRole = InferInsertModel<typeof apCharacterRole>;
 
 export type ApMapRoleAccess = InferSelectModel<typeof apMapRoleAccess>;
 export type NewApMapRoleAccess = InferInsertModel<typeof apMapRoleAccess>;
-
-export type ApCorporationRight = InferSelectModel<typeof apCorporationRight>;
-export type NewApCorporationRight = InferInsertModel<typeof apCorporationRight>;
 
 export type ApInstance = InferSelectModel<typeof apInstance>;
 export type NewApInstance = InferInsertModel<typeof apInstance>;
@@ -393,6 +393,9 @@ export type { SystemSearchResult } from '@/lib/map/systemSearch';
 // Read-side structure-intel view-models (computed in src/lib/structures/read.ts).
 export type { StructureIntel, UpwellStructureType } from '@/lib/structures/read';
 
+// Rolling 24h activity totals per system (computed in src/lib/map/stats.ts).
+export type { SystemStatsSummary } from '@/lib/map/stats';
+
 // Corporation name-search result for the structure owner picker (src/lib/structures/corpSearch.ts).
 export type { CorpSearchResult } from '@/lib/structures/corpSearch';
 
@@ -435,6 +438,16 @@ export type {
   ActivityStatRow,
   ActivityStatsResponse,
 } from '@/lib/stats/activity';
+
+// Manager audit-console view-models + query contract (src/lib/map/audit.ts).
+export type {
+  AuditEventCategory,
+  AuditEventRow,
+  AuditActor,
+  ActorSummary,
+  AuditQueryParams,
+  AuditPage,
+} from '@/lib/map/audit';
 
 // ESI client decoded-response types.
 export type {
@@ -505,3 +518,12 @@ export type MapContextMenuTarget =
   | { kind: 'system'; id: string; x: number; y: number }
   | { kind: 'connection'; id: string; x: number; y: number }
   | { kind: 'pane'; x: number; y: number };
+
+/** Filter state for `SignatureSearchDialog`. Owned by `MapCanvas` so it persists between opens. */
+export type SigSearchFilters = {
+  name: string;
+  groupKey: SignatureGroupKey | null;
+  maxAgeHours: number | null;
+  /** `MapSystemNode.security` labels to include; empty = all. */
+  securityClasses: string[];
+};

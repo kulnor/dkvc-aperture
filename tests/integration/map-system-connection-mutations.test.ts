@@ -226,7 +226,13 @@ describe.skipIf(!run)('system & connection mutations (real Postgres)', () => {
     const deleted = await deleteConnection({ mapId, connectionId: connId, characterId: null });
     expect(deleted.ok).toBe(true);
     if (!deleted.ok) return;
-    expect(deleted.data).toEqual({ kind: 'connection.delete', eventId: deleted.eventId, id: connId.toString() });
+    expect(deleted.data).toEqual({
+      kind: 'connection.delete',
+      eventId: deleted.eventId,
+      id: connId.toString(),
+      source: sourceId.toString(),
+      target: targetId.toString(),
+    });
     const remaining = await db
       .select({ id: apMapConnection.id })
       .from(apMapConnection)

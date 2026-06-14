@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import { auth } from '@/lib/auth';
-import { adminVisibilityScope, isAdmin } from '@/lib/auth/rights';
+import { isAdmin } from '@/lib/auth/rights';
 import { listAdminMembers } from '@/lib/auth/members';
 import { MemberActionsMenu } from '@/components/admin/MemberActionsMenu';
 
@@ -52,18 +52,11 @@ function StatusBadge({
   );
 }
 
-function AuthzBadge({ level }: { level: 'member' | 'manager' | 'admin' }) {
+function AuthzBadge({ level }: { level: 'member' | 'admin' }) {
   if (level === 'admin') {
     return (
       <span className="inline-flex items-center rounded-md bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
         Admin
-      </span>
-    );
-  }
-  if (level === 'manager') {
-    return (
-      <span className="inline-flex items-center rounded-md bg-blue-500/10 px-2 py-0.5 text-xs font-medium text-blue-600 dark:text-blue-400">
-        Manager
       </span>
     );
   }
@@ -72,25 +65,18 @@ function AuthzBadge({ level }: { level: 'member' | 'manager' | 'admin' }) {
 
 export default async function AdminMembersPage() {
   const session = await auth();
-  const scope = await adminVisibilityScope(session);
-  if (scope === null) redirect('/maps');
-  const [members, canManageAuthz] = await Promise.all([
-    listAdminMembers(scope),
-    isAdmin(session),
-  ]);
+  if (!(await isAdmin(session))) redirect('/maps');
+  const members = await listAdminMembers();
 
   return (
     <section className="flex flex-col gap-4">
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Members</h1>
-        <span className="text-xs text-muted-foreground">
-          Scope: {scope.kind === 'global' ? 'global' : `corp ${scope.corporationId.toString()}`}
-        </span>
       </header>
 
       {members.length === 0 ? (
         <div className="rounded-lg border border-border bg-card p-6 text-sm text-muted-foreground">
-          No members in scope.
+          No members.
         </div>
       ) : (
         <div className="overflow-hidden rounded-lg border border-border">
@@ -128,7 +114,7 @@ export default async function AdminMembersPage() {
                       : '—'}
                   </td>
                   <td className="px-3 py-2 align-middle">
-                    <MemberActionsMenu member={m} canManageAuthz={canManageAuthz} />
+                    <MemberActionsMenu member={m} />
                   </td>
                 </tr>
               ))}

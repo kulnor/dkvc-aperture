@@ -6,7 +6,7 @@
 ---
 
 ### createSignature(input: CreateSignatureInput): Promise<ActionResult<MapEventPayload>>
-Inserts an `ap_map_signature` row and emits `signature.create` with the full body (all columns the canvas needs, including `createdAt`/`updatedAt`). Does not validate that `mapSystemId` belongs to `mapId` at this layer — the calling route handler is expected to have already confirmed map ownership.
+Inserts an `ap_map_signature` row and emits `signature.create` with the full body (all columns the canvas needs, including `createdAt`/`updatedAt`, plus the `leadsToMapSystemId` audit descriptor — the far endpoint of the linked connection when the sig is created already linked, else null). Does not validate that `mapSystemId` belongs to `mapId` at this layer — the calling route handler is expected to have already confirmed map ownership.
 
 **Parameters:**
 - `input.mapId` — the owning map (for the event row).
@@ -20,12 +20,14 @@ Inserts an `ap_map_signature` row and emits `signature.create` with the full bod
 ---
 
 ### updateSignature(input: UpdateSignatureInput): Promise<ActionResult<MapEventPayload>>
-Patches only the keys present in `input.patch`. Validates ownership by joining through `apMapSystem.mapId` before the update — throws `"Signature does not belong to this map."` if mismatched. Emits `signature.update` with only the changed fields (plus `id` and `updatedAt`). Accepts optional `input.tx` for joined-batch commits.
+Patches only the keys present in `input.patch`. Validates ownership by joining through `apMapSystem.mapId` before the update — throws `"Signature does not belong to this map."` if mismatched. Emits `signature.update` with the changed fields plus `id`, `updatedAt`, and the audit descriptors `mapSystemId` (owning system) and `sigId` (the resulting in-game code — the edited value when the code changed, else the unchanged current one, so the history entry always names *which* signature). When the `mapConnectionId` link changes it also emits `leadsToMapSystemId` — the far endpoint of the new connection when linking, or of the prior connection (still alive at update time) when unlinking — so the trail can name what the sig leads to / was unlinked from. Accepts optional `input.tx` for joined-batch commits.
+
+Internal helper `resolveLeadsTo(tx, connectionId, sigMapSystemId)` returns the connection's far endpoint (`ap_map_system` id, stringified) relative to the sig's own system, or null when the connection is gone.
 
 ---
 
 ### deleteSignature(input: DeleteSignatureInput): Promise<ActionResult<MapEventPayload>>
-Hard-deletes the signature row. Validates ownership through `apMapSystem.mapId` (same check as `updateSignature`). Emits `signature.delete` → `{ id }`. Accepts optional `input.tx`.
+Hard-deletes the signature row. Validates ownership through `apMapSystem.mapId` (same check as `updateSignature`). Emits `signature.delete` → `{ id, mapSystemId, sigId }` — the owning system id and in-game code are captured before the delete so the audit/Discord name the removed sig (the row is gone afterwards). Accepts optional `input.tx`.
 
 ---
 
