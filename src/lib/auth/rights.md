@@ -36,6 +36,21 @@ Pure corp-right check; no target. Admin always passes.
 ### isMapOwnerOrAdmin(characterId, mapId): Promise<boolean>
 Owner-or-admin gate that **bypasses the corp-right matrix** — true only for a global admin or the map's owner (per the `ap_map.type` owner rule). Used to restrict auto-tagging config (scheme + Home) tighter than `map_update`, which a corp can grant to ordinary members. False for missing / soft-deleted / unowned maps.
 
+---
+
+### Derived-authority model (permissions multi-tenant, stage 1 — additive)
+
+The functions below express map-management authority as a pure function of EVE state + ownership. They are **added alongside** the legacy `canMutateMap` / `canCreateMap` / `ap_corporation_right` gates and are **not yet wired into any controller** — stage 2 swaps them in. Build stays green; live behaviour unchanged.
+
+#### executorCorpOf(allianceId): Promise<bigint | null>
+The alliance's executor corporation from the `ap_alliance` cache (`syncCharacterAuthz` keeps it fresh). `null` when the alliance is unknown or has no executor.
+
+#### canManageMap(characterId, mapId): Promise<boolean>
+Binary "can the actor manage this map" (full mutation surface + settings/webhooks/audit; no per-right granularity at baseline). Admin → true. `private` → `owner_character_id == actor`. `corp` → `actor.is_director && owner_corporation_id == actor.corporation_id`. `alliance` → `actor.is_director && owner_alliance_id == actor.alliance_id && actor.corporation_id == executorCorpOf(owner_alliance_id)`. All-NULL owner / missing / inactive → false.
+
+#### canCreateMapOfType(characterId, type): Promise<boolean>
+Typed create gate. Admin → true. `private` → any active character. `corp` → `actor.is_director`. `alliance` → `actor.is_director && actor.corporation_id == executorCorpOf(actor.alliance_id)`. Named distinctly from the legacy `canCreateMap(characterId)` to avoid a collision; stage 2 collapses them.
+
 ### isAdmin(session): Promise<boolean>
 Cheap session-level admin probe — does not touch any map table.
 
@@ -73,8 +88,8 @@ Carries `.status` (401/403/404) for the call site to map to an HTTP response.
 
 ### Depends On
 - Session: `next-auth` session type via `@/lib/session`.
-- Schema: `ap_character`, `ap_map`, `ap_map_role_access`, `ap_character_role`, `ap_corporation_right`.
-- Types: `MapRight` from `@/types`.
+- Schema: `ap_character`, `ap_map`, `ap_map_role_access`, `ap_character_role`, `ap_corporation_right`, `ap_alliance`.
+- Types: `MapRight`, `MapType` from `@/types`.
 
 ### Invariants
 - A `kicked` or `banned` character fails every check, regardless of the rest of their state. (Ban/kick is also gated at login; this is defense-in-depth for any session that was issued before the kick landed.)

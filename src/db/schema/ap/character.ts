@@ -33,6 +33,11 @@ export const apCharacter = pgTable('ap_character', {
   // (bans are permanent).
   statusExpiresAt: timestamp('status_expires_at', { withTimezone: true }),
   authzLevel: authzLevel('authz_level').notNull().default('member'),
+  // The EVE corporation "Director" role, refreshed from ESI every
+  // `syncCharacterAuthz` pass. Carries corp/alliance map-management authority in
+  // the derived-authority model (`canManageMap`); distinct from `authz_level`,
+  // which is the instance-operator tier.
+  isDirector: boolean('is_director').notNull().default(false),
   // When `syncCharacterAuthz` last reconciled this row's
   // `authz_level`, `corporation_id`, `alliance_id`, and `ap_character_role`
   // membership against ESI. Used by the `character-cleanup` job to throttle

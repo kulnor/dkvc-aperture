@@ -9,13 +9,14 @@ import type { SQL } from 'drizzle-orm';
 import type { Session } from 'next-auth';
 import { db } from '@/db/client';
 import {
+  apAlliance,
   apCharacter,
   apCharacterRole,
   apCorporationRight,
   apMap,
   apMapRoleAccess,
 } from '@/db/schema';
-import type { MapRight } from '@/types';
+import type { MapRight, MapType } from '@/types';
 
 /**
  * The single rights module every controller imports. `requireSession`
@@ -52,6 +53,7 @@ interface ActorRow {
   status: 'active' | 'kicked' | 'banned';
   corporationId: bigint | null;
   allianceId: bigint | null;
+  isDirector: boolean;
 }
 
 async function loadActor(characterId: bigint): Promise<ActorRow | null> {
@@ -61,6 +63,7 @@ async function loadActor(characterId: bigint): Promise<ActorRow | null> {
       status: apCharacter.status,
       corporationId: apCharacter.corporationId,
       allianceId: apCharacter.allianceId,
+      isDirector: apCharacter.isDirector,
     })
     .from(apCharacter)
     .where(eq(apCharacter.id, characterId));
@@ -258,6 +261,110 @@ export async function isMapOwnerOrAdmin(characterId: bigint, mapId: bigint): Pro
     return false;
   }
   return isOwner(actor, map, characterId);
+}
+
+// ---------------------------------------------------------------------------
+// Derived-authority model (permissions multi-tenant, stage 1).
+//
+// These functions express map-management authority as a pure function of EVE
+// state + ownership: members own their private maps, corp Directors manage
+// their corp's maps, and the alliance executor corp's Directors manage alliance
+// maps. They are ADDITIVE — added alongside the legacy `canMutateMap` /
+// `canCreateMap` / `ap_corporation_right` gates, which remain the live path
+// until stage 2 swaps them in. Nothing below is wired into a controller yet.
+// ---------------------------------------------------------------------------
+
+/**
+ * The executor corporation of an alliance, read from the `ap_alliance` cache
+ * (`syncCharacterAuthz` keeps it fresh from ESI). Returns `null` when the
+ * alliance is unknown or has no executor (closed/dissolving).
+ */
+export async function executorCorpOf(allianceId: bigint): Promise<bigint | null> {
+  const [row] = await db
+    .select({ executorCorporationId: apAlliance.executorCorporationId })
+    .from(apAlliance)
+    .where(eq(apAlliance.id, allianceId));
+  return row?.executorCorporationId ?? null;
+}
+
+/**
+ * Can the actor *manage* this map (settings, webhooks, audit, the full mutation
+ * surface) under the derived-authority model? Binary — no per-right granularity
+ * at the baseline (title-delegation is the future R4 overlay).
+ *
+ *   admin                                   → true (deployment operator)
+ *   private  → owner_character_id == actor
+ *   corp     → actor.is_director && actor.corporation_id == owner_corporation_id
+ *   alliance → actor.is_director && actor.alliance_id == owner_alliance_id
+ *              && actor.corporation_id == executorCorpOf(owner_alliance_id)
+ *   all-NULL owner                          → admin only (defensive default)
+ */
+export async function canManageMap(characterId: bigint, mapId: bigint): Promise<boolean> {
+  const actor = await loadActor(characterId);
+  if (!actor || actor.status !== 'active') return false;
+  if (actor.authzLevel === 'admin') return true;
+
+  const map = await loadMap(mapId);
+  if (!map) return false;
+
+  switch (map.type) {
+    case 'private':
+      return map.ownerCharacterId !== null && map.ownerCharacterId === characterId;
+    case 'corp':
+      return (
+        actor.isDirector &&
+        map.ownerCorporationId !== null &&
+        actor.corporationId !== null &&
+        map.ownerCorporationId === actor.corporationId
+      );
+    case 'alliance': {
+      if (
+        !actor.isDirector ||
+        map.ownerAllianceId === null ||
+        actor.allianceId === null ||
+        actor.corporationId === null ||
+        map.ownerAllianceId !== actor.allianceId
+      ) {
+        return false;
+      }
+      const executor = await executorCorpOf(map.ownerAllianceId);
+      return executor !== null && executor === actor.corporationId;
+    }
+  }
+}
+
+/**
+ * Can the actor create a map of the given type under the derived-authority
+ * model?
+ *
+ *   private  → any active character
+ *   corp     → actor.is_director (owned to actor.corporation_id)
+ *   alliance → actor.is_director && actor.corporation_id == executorCorpOf(actor.alliance_id)
+ *
+ * Admin may create anything. Named to avoid colliding with the legacy
+ * `canCreateMap(characterId)`; stage 2 collapses the two.
+ */
+export async function canCreateMapOfType(
+  characterId: bigint,
+  type: MapType,
+): Promise<boolean> {
+  const actor = await loadActor(characterId);
+  if (!actor || actor.status !== 'active') return false;
+  if (actor.authzLevel === 'admin') return true;
+
+  switch (type) {
+    case 'private':
+      return true;
+    case 'corp':
+      return actor.isDirector && actor.corporationId !== null;
+    case 'alliance': {
+      if (!actor.isDirector || actor.allianceId === null || actor.corporationId === null) {
+        return false;
+      }
+      const executor = await executorCorpOf(actor.allianceId);
+      return executor !== null && executor === actor.corporationId;
+    }
+  }
 }
 
 /** True iff the active character has `authz_level='admin'` and is `active`. */

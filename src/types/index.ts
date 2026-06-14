@@ -6,6 +6,7 @@ import type {
   apAccessGrant,
   apCharacter,
   apCharacterRole,
+  apAlliance,
   apCorporation,
   apCorporationRight,
   apEventKind,
@@ -152,6 +153,9 @@ export type NewApSystemStats = InferInsertModel<typeof apSystemStats>;
 
 export type ApCorporation = InferSelectModel<typeof apCorporation>;
 export type NewApCorporation = InferInsertModel<typeof apCorporation>;
+
+export type ApAlliance = InferSelectModel<typeof apAlliance>;
+export type NewApAlliance = InferInsertModel<typeof apAlliance>;
 
 export type ApRole = InferSelectModel<typeof apRole>;
 export type NewApRole = InferInsertModel<typeof apRole>;
