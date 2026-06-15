@@ -216,7 +216,7 @@ function PilotRow({
   return (
     <tr className="border-t border-foreground/10">
       <Td>
-        <span className={cn('flex items-center gap-1.5', indent && 'pl-4')}>
+        <span className={cn('flex items-center gap-1.5')}>
           {indent && (
             <CornerDownRight className="size-3 shrink-0 text-muted-foreground/50" aria-hidden />
           )}
