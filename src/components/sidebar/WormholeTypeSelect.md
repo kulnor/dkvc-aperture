@@ -31,6 +31,9 @@ Option rows and the popup are vertically compacted (`py-1` items, `p-0.5` conten
 - Disables itself during the initial load.
 - Treats the sentinel value `__none__` as null in both directions.
 
+### Module-level helpers
+- `OptionDivider` — thin `<div>` that renders the horizontal separator between groups; declared at module scope (not inside the component) to satisfy the `react-hooks/static-components` rule.
+
 ### Depends On
 - `Select*` from `@/components/ui/select`
 - `fetchWormholeTypes` from `@/lib/map/client`

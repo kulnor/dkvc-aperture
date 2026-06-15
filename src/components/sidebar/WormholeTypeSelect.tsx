@@ -14,6 +14,10 @@ import type { WormholeTypeOption } from '@/types';
 
 const NONE_VALUE = '__none__';
 
+function OptionDivider() {
+  return <div className="my-0.5 h-px bg-border" />;
+}
+
 /**
  * Class-filtered wormhole-type dropdown for the signature inspector.
  * Lazy-loads options from `/api/map/[mapId]/wormhole-types?systemId=`
@@ -104,11 +108,6 @@ export function WormholeTypeSelect({
       </span>
     </SelectItem>
   );
-
-  function OptionDivider()
-  {
-    return <div className="my-0.5 h-px bg-border" />
-  }
 
   return (
     <Select<string>
