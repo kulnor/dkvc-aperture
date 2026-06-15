@@ -105,6 +105,11 @@ export function WormholeTypeSelect({
     </SelectItem>
   );
 
+  function OptionDivider()
+  {
+    return <div className="my-0.5 h-px bg-border" />
+  }
+
   return (
     <Select<string>
       value={stringValue}
@@ -146,17 +151,20 @@ export function WormholeTypeSelect({
               Statics
             </div>
             {statics.map(renderOption)}
-            {classMatched.length > 0 && <div className="my-0.5 h-px bg-border" />}
           </>
         )}
+        
         {exitHole && <>
+          <OptionDivider />
           {renderOption(exitHole)}
-          <div className="my-0.5 h-px bg-border" />
         </>}
+        
+        {classMatched.length > 0 && <OptionDivider />}
         {classMatched.map(renderOption)}
+
         {others.length > 0 && (
           <>
-            <div className="my-0.5 h-px bg-border" />
+            <OptionDivider />
             <button
               type="button"
               // Toggle the "other classes" group without selecting an item or
