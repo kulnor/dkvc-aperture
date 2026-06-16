@@ -68,14 +68,24 @@ function Header({
     setPinging(false);
   }
 
-  async function handleRally() {
+  async function handleRally(e: React.MouseEvent) {
     if (!node || togglingRally) return;
+
+    const isStartingRallyPoint = !node.rallyAt;
+    const triggerEasterEgg = isStartingRallyPoint && e.shiftKey;
+    if (triggerEasterEgg) {
+      // Alaaaaarm! Alaaaarm...
+      new Audio('/sounds/rally.mp3').play();
+    }
+
     setTogglingRally(true);
+    
     await updateSystemOnServer({
       mapId,
       mapSystemId: node.id,
-      patch: { rallyAt: node.rallyAt ? null : new Date().toISOString() },
+      patch: { rallyAt: isStartingRallyPoint ? new Date().toISOString() : null },
     });
+    
     setTogglingRally(false);
   }
 
@@ -107,7 +117,7 @@ function Header({
           size="sm"
           disabled={!node || togglingRally}
           style={{ borderColor: RALLY_UNDERGLOW.color }}
-          onClick={() => void handleRally()}
+          onClick={(e) => void handleRally(e)}
         >
           <Flag className="size-3" /> Rally
         </Button>
