@@ -10,6 +10,7 @@ import type { EveProfile } from '@/lib/auth/eve-provider';
 import { clearLinkCookie, readLinkUserId } from '@/lib/auth/link-cookie';
 import { isLoginAllowed } from '@/lib/auth/loginGate';
 import { syncCharacterAuthz } from '@/lib/auth/syncCharacterAuthz';
+import { seedTrackingForGainedAccess } from '@/lib/jobs/tracking';
 import { AUTH_COOKIE_OPTIONS } from '@/lib/cookies';
 import { fetchAffiliations } from '@/lib/esi/affiliation';
 
@@ -209,6 +210,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         // login — the user can still see the maps they already had access to.
         try {
           await syncCharacterAuthz(eve.characterId);
+          // With fresh affiliation/authz cached, auto-track this character on
+          // every already-seeded map it can now view — so a re-joining pilot or
+          // a freshly-added alt lands tracked without waiting for the cron.
+          await seedTrackingForGainedAccess(eve.characterId);
         } catch (err) {
           console.warn(
             `[auth] syncCharacterAuthz failed for character ${eve.characterId}:`,

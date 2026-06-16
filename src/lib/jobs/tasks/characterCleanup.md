@@ -16,7 +16,7 @@
 
 **2. Periodic authz resync.** Pulls up to `CHARACTER_AUTHZ_RESYNC_BATCH_SIZE` (25) characters where `status='active'`, `esi_refresh_token IS NOT NULL`, and `authz_synced_at IS NULL OR <= now() - CHARACTER_AUTHZ_RESYNC_STALE_AFTER_MS` (6h). Calls `syncCharacterAuthz(id)` for each. ESI failures are absorbed row-by-row (the helper returns `{ applied: false, skipped }` without touching the DB) so a noisy CCP outage doesn't poison the batch. Rows ordered by `authz_synced_at ASC NULLS FIRST` so the stalest data drains first.
 
-**3. Affiliation sweep + access revocation.** Selects every `status='active'` character with a refresh token and resolves corp/alliance in one bulk `fetchAffiliations` POST (`getCharacterAffiliation`, ~1h cache, chunked to 1000). A whole-batch ESI failure (`EsiBreakerOpenError`/`EsiDowntimeError`/`EsiHttpError`) skips the phase for this tick. For each character whose corp or alliance differs from the cached `ap_character` value, it runs a full `syncCharacterAuthz(id)` (refreshes corp/alliance + director/titles/executor/`authz_level`) and then `pruneTrackingForLostAccess(id)` (`src/lib/jobs/tracking.ts`) — deleting tracking rows on maps the pilot can no longer view and broadcasting `characterLogout` so live rosters drop them. Ids ESI omits leave the cached value untouched. This is the mechanism that revokes corp/alliance map access on departure, bounded by ESI's ~1h cache + the 5-min tick.
+**3. Affiliation sweep + access revocation/grant.** Selects every `status='active'` character with a refresh token and resolves corp/alliance in one bulk `fetchAffiliations` POST (`getCharacterAffiliation`, ~1h cache, chunked to 1000). A whole-batch ESI failure (`EsiBreakerOpenError`/`EsiDowntimeError`/`EsiHttpError`) skips the phase for this tick. For each character whose corp or alliance differs from the cached `ap_character` value, it runs a full `syncCharacterAuthz(id)` (refreshes corp/alliance + director/titles/executor/`authz_level`), then `pruneTrackingForLostAccess(id)` (deleting tracking rows on maps the pilot can no longer view + `characterLogout` so rosters drop them), then `seedTrackingForGainedAccess(id)` (`src/lib/jobs/tracking.ts`) — the mirror: re-adding tracking on already-seeded maps the pilot can now view (corp re-join / move into a corp/alliance with map access). Ids ESI omits leave the cached value untouched. This revokes/grants corp/alliance map access on departure/arrival, bounded by ESI's ~1h cache + the 5-min tick. (Note: a re-join immediately followed by a fresh login is handled at login — `syncCharacterAuthz` there freshens the cache, so this sweep sees no diff; `src/lib/auth.ts` calls `seedTrackingForGainedAccess` in the sign-in callback to cover it.)
 
 > **Execution order:** kick-expiry → **affiliation sweep** → authz resync. The sweep runs *before* the resync deliberately: the resync's `syncCharacterAuthz` updates `corporation_id` without pruning tracking, so if it ran first the sweep would see no diff and never revoke. Running the sweep first detects the change against the still-stale stored value and stamps `authz_synced_at`, so the resync skips that character this tick.
 
@@ -30,6 +30,7 @@
   affiliationScanned: number,
   affiliationChanged: number,
   trackingPruned: number,
+  trackingSeeded: number,
 }
 ```
 
@@ -37,7 +38,7 @@
 - `@/db/client` (`db`), `@/db/schema` (`apCharacter`).
 - `@/lib/auth/syncCharacterAuthz` — the per-character reconciliation helper.
 - `@/lib/esi/affiliation` (`fetchAffiliations`), `@/lib/esi/client` (ESI error types).
-- `../tracking` (`pruneTrackingForLostAccess`) — the revocation step.
+- `../tracking` (`pruneTrackingForLostAccess`, `seedTrackingForGainedAccess`) — the revocation + grant steps.
 - `aperture.config` — `CHARACTER_CLEANUP_CRON`, `CHARACTER_AUTHZ_RESYNC_STALE_AFTER_MS`, `CHARACTER_AUTHZ_RESYNC_BATCH_SIZE`.
 
 ### Invariants

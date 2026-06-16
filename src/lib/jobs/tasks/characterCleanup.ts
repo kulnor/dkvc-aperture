@@ -9,7 +9,7 @@ import {
   EsiDowntimeError,
   EsiHttpError,
 } from '@/lib/esi/client';
-import { pruneTrackingForLostAccess } from '../tracking';
+import { pruneTrackingForLostAccess, seedTrackingForGainedAccess } from '../tracking';
 import { withInstrumentation } from '../withInstrumentation';
 import type { JobModule } from '../registry';
 
@@ -37,10 +37,16 @@ import type { JobModule } from '../registry';
  *      `getCharacterAffiliation` POST (~1h cache, chunked). For each character
  *      whose corp/alliance changed vs. the cached `ap_character` value, run a
  *      full `syncCharacterAuthz` (corp/alliance + director/titles/executor/
- *      authz) and then `pruneTrackingForLostAccess` — dropping their tracking
- *      on maps they can no longer view and broadcasting `characterLogout`. This
- *      is what makes a pilot who left the owning corp lose corp/alliance maps
- *      and disappear from the roster, bounded by ESI's ~1h cache + the cron tick.
+ *      authz), then `pruneTrackingForLostAccess` — dropping their tracking
+ *      on maps they can no longer view and broadcasting `characterLogout` — then
+ *      `seedTrackingForGainedAccess`, the mirror that re-tracks them on already-
+ *      seeded maps they can now view (corp re-join / move into a corp with map
+ *      access). This is what makes a pilot who left the owning corp lose
+ *      corp/alliance maps and disappear from the roster (and a re-joining one
+ *      come back tracked), bounded by ESI's ~1h cache + the cron tick. A re-join
+ *      immediately followed by a fresh login is instead covered at login —
+ *      `auth.ts` calls `seedTrackingForGainedAccess` there, because the login's
+ *      own `syncCharacterAuthz` freshens the cache so this sweep sees no diff.
  *
  * Phases 1–2 fan out no `pg_notify` (only `ap_character` is mutated; tabs see
  * the demotion at next session refresh). Phase 3 *does* broadcast
@@ -57,6 +63,7 @@ interface CleanupNotes {
   affiliationScanned: number;
   affiliationChanged: number;
   trackingPruned: number;
+  trackingSeeded: number;
 }
 
 async function clearKickExpiries(): Promise<number> {
@@ -130,6 +137,7 @@ async function syncAffiliationsAndRevoke(): Promise<{
   scanned: number;
   changed: number;
   pruned: number;
+  seeded: number;
 }> {
   const characters = await db
     .select({
@@ -139,7 +147,7 @@ async function syncAffiliationsAndRevoke(): Promise<{
     })
     .from(apCharacter)
     .where(and(eq(apCharacter.status, 'active'), isNotNull(apCharacter.esiRefreshToken)));
-  if (characters.length === 0) return { scanned: 0, changed: 0, pruned: 0 };
+  if (characters.length === 0) return { scanned: 0, changed: 0, pruned: 0, seeded: 0 };
 
   let affiliations;
   try {
@@ -150,13 +158,14 @@ async function syncAffiliationsAndRevoke(): Promise<{
       err instanceof EsiDowntimeError ||
       err instanceof EsiHttpError
     ) {
-      return { scanned: characters.length, changed: 0, pruned: 0 };
+      return { scanned: characters.length, changed: 0, pruned: 0, seeded: 0 };
     }
     throw err;
   }
 
   let changed = 0;
   let pruned = 0;
+  let seeded = 0;
   for (const c of characters) {
     const current = affiliations.get(c.id);
     if (!current) continue; // ESI omitted this id — leave the cached value as-is.
@@ -171,8 +180,13 @@ async function syncAffiliationsAndRevoke(): Promise<{
     await syncCharacterAuthz(c.id);
     const { prunedMapIds } = await pruneTrackingForLostAccess(c.id);
     pruned += prunedMapIds.length;
+    // Mirror of the prune: a corp re-join (or move into a new corp/alliance
+    // with map access) re-tracks the pilot on already-seeded maps without
+    // needing a fresh login.
+    const { seededMapIds } = await seedTrackingForGainedAccess(c.id);
+    seeded += seededMapIds.length;
   }
-  return { scanned: characters.length, changed, pruned };
+  return { scanned: characters.length, changed, pruned, seeded };
 }
 
 async function cleanup(): Promise<CleanupNotes> {
@@ -193,6 +207,7 @@ async function cleanup(): Promise<CleanupNotes> {
     affiliationScanned: affiliation.scanned,
     affiliationChanged: affiliation.changed,
     trackingPruned: affiliation.pruned,
+    trackingSeeded: affiliation.seeded,
   };
 }
 

@@ -144,6 +144,86 @@ export async function pruneTrackingForLostAccess(
   return { prunedMapIds };
 }
 
+/**
+ * Mirror of {@link pruneTrackingForLostAccess}. When a character **gains** map
+ * access — joins/re-joins a corp, or is freshly registered as an alt onto an
+ * account that has already auto-seeded maps — add a tracking row on every live
+ * map where all of:
+ *
+ *   - the character's account has already auto-seeded the map (an
+ *     `ap_map_tracking_seed` marker exists — i.e. the account opted this map
+ *     into auto-tracking when it first opened it), and
+ *   - no tracking row exists yet for `(map, character)`, and
+ *   - the character can currently view the map (`canViewMap`).
+ *
+ * Each newly-tracked map enqueues the character's poll (`preserve_run_at`, so an
+ * already-running loop keeps its cadence; the location-poll's next tick is what
+ * re-adds the pilot to live rosters — no explicit broadcast here, symmetric with
+ * `seedTrackingForMap`/`startTrackingCharacter`).
+ *
+ * Gating on the seed marker keeps this account-centric: a re-joining or new
+ * character is auto-tracked only on maps the account already auto-tracks, never
+ * on maps the account has never opened (those get seeded when the account next
+ * opens them). A non-`active` character (kicked/banned) is skipped — consistent
+ * with `seedTrackingForMap`, which only seeds active characters.
+ *
+ * Called from the sign-in JWT callback (immediate re-track on re-login / add-
+ * alt) and the `character-cleanup` affiliation sweep (re-track on corp re-join
+ * without a fresh login, bounded by the cron tick). Idempotent.
+ *
+ * Returns the map ids a tracking row was added on.
+ */
+export async function seedTrackingForGainedAccess(
+  characterId: bigint,
+): Promise<{ seededMapIds: bigint[] }> {
+  const [owner] = await db
+    .select({ userId: apCharacter.userId, status: apCharacter.status })
+    .from(apCharacter)
+    .where(eq(apCharacter.id, characterId));
+  if (!owner || owner.status !== 'active') return { seededMapIds: [] };
+
+  // Candidate maps: live maps this account has already auto-seeded, on which the
+  // character has no tracking row yet (anti-join on the LEFT-joined tracking row).
+  const candidates = await db
+    .select({ mapId: apMapTrackingSeed.mapId })
+    .from(apMapTrackingSeed)
+    .innerJoin(apMap, eq(apMap.id, apMapTrackingSeed.mapId))
+    .leftJoin(
+      apMapCharacterTracking,
+      and(
+        eq(apMapCharacterTracking.mapId, apMapTrackingSeed.mapId),
+        eq(apMapCharacterTracking.characterId, characterId),
+      ),
+    )
+    .where(
+      and(
+        eq(apMapTrackingSeed.userId, owner.userId),
+        isNull(apMap.deletedAt),
+        isNull(apMapCharacterTracking.mapId),
+      ),
+    );
+
+  const seededMapIds: bigint[] = [];
+  for (const { mapId } of candidates) {
+    if (!(await canViewMap(characterId, mapId))) continue;
+    await db
+      .insert(apMapCharacterTracking)
+      .values({ mapId, characterId })
+      .onConflictDoNothing();
+    await db.execute(
+      sql`SELECT graphile_worker.add_job(
+            'location-poll',
+            json_build_object('characterId', ${characterId.toString()}::text)::json,
+            job_key => ${locationPollJobKey(characterId)},
+            job_key_mode => 'preserve_run_at',
+            run_at => now()
+          )`,
+    );
+    seededMapIds.push(mapId);
+  }
+  return { seededMapIds };
+}
+
 export interface SeedTrackingArgs {
   mapId: bigint;
   userId: number;
