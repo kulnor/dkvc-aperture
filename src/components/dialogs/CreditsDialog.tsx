@@ -39,12 +39,12 @@ export function CreditsDialog({ version }: { version: string }) {
           <dt className="text-muted-foreground">Lineage</dt>
           <dd>A rebuild of Pathfinder on Next.js + Postgres.</dd>
           <dt className="text-muted-foreground">Static data</dt>
-          <dd>EVE Online SDE, courtesy of CCP hf.</dd>
+          <dd>EVE Online SDE, courtesy of Fenris Creations.</dd>
         </dl>
 
         <p className="text-xs text-muted-foreground">
-          EVE Online and all related trademarks are property of CCP hf. Aperture is a
-          third-party tool and is not affiliated with or endorsed by CCP.
+          EVE Online and all related trademarks are property of Fenris Creations. Aperture is a
+          third-party tool and is not affiliated with or endorsed by Fenris Creations.
         </p>
       </DialogContent>
     </Dialog>
