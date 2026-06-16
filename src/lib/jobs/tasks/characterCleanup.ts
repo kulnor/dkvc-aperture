@@ -3,6 +3,13 @@ import { apertureConfig } from '../../../../aperture.config';
 import { db } from '@/db/client';
 import { apCharacter } from '@/db/schema';
 import { syncCharacterAuthz } from '@/lib/auth/syncCharacterAuthz';
+import { fetchAffiliations } from '@/lib/esi/affiliation';
+import {
+  EsiBreakerOpenError,
+  EsiDowntimeError,
+  EsiHttpError,
+} from '@/lib/esi/client';
+import { pruneTrackingForLostAccess } from '../tracking';
 import { withInstrumentation } from '../withInstrumentation';
 import type { JobModule } from '../registry';
 
@@ -25,9 +32,19 @@ import type { JobModule } from '../registry';
  *      — `syncCharacterAuthz` returns `{ applied: false, skipped: ... }`
  *      without touching the DB so the cron keeps going.
  *
- * No `pg_notify` fan-out — the only state mutated is `ap_character`, which
- * the realtime bus doesn't subscribe to. Tabs see the demotion at next session
- * refresh.
+ *   3. **Affiliation sweep + access revocation.** Resolve every active,
+ *      token-holding character's corp/alliance in one bulk
+ *      `getCharacterAffiliation` POST (~1h cache, chunked). For each character
+ *      whose corp/alliance changed vs. the cached `ap_character` value, run a
+ *      full `syncCharacterAuthz` (corp/alliance + director/titles/executor/
+ *      authz) and then `pruneTrackingForLostAccess` — dropping their tracking
+ *      on maps they can no longer view and broadcasting `characterLogout`. This
+ *      is what makes a pilot who left the owning corp lose corp/alliance maps
+ *      and disappear from the roster, bounded by ESI's ~1h cache + the cron tick.
+ *
+ * Phases 1–2 fan out no `pg_notify` (only `ap_character` is mutated; tabs see
+ * the demotion at next session refresh). Phase 3 *does* broadcast
+ * `characterLogout` for revoked pilots so live maps update immediately.
  */
 
 const NAME = 'character-cleanup';
@@ -37,6 +54,9 @@ interface CleanupNotes {
   authzResynced: number;
   authzSkipped: number;
   authzScanned: number;
+  affiliationScanned: number;
+  affiliationChanged: number;
+  trackingPruned: number;
 }
 
 async function clearKickExpiries(): Promise<number> {
@@ -96,14 +116,83 @@ async function resyncStaleAuthz(): Promise<{ scanned: number; applied: number; s
   return { scanned: candidates.length, applied, skipped };
 }
 
+/**
+ * Bulk-resolve active characters' corp/alliance via the affiliation endpoint and
+ * revoke access for any whose membership changed. Detection is near-free (one
+ * cached POST); the heavy per-character recompute (`syncCharacterAuthz` +
+ * tracking prune) only runs for pilots who actually moved corp/alliance.
+ *
+ * A whole-batch ESI failure (breaker open / downtime / HTTP) skips this tick
+ * cleanly — the next tick retries. A per-character id ESI omits from the
+ * response leaves the cached value untouched (no stomp to a wrong corp).
+ */
+async function syncAffiliationsAndRevoke(): Promise<{
+  scanned: number;
+  changed: number;
+  pruned: number;
+}> {
+  const characters = await db
+    .select({
+      id: apCharacter.id,
+      corporationId: apCharacter.corporationId,
+      allianceId: apCharacter.allianceId,
+    })
+    .from(apCharacter)
+    .where(and(eq(apCharacter.status, 'active'), isNotNull(apCharacter.esiRefreshToken)));
+  if (characters.length === 0) return { scanned: 0, changed: 0, pruned: 0 };
+
+  let affiliations;
+  try {
+    affiliations = await fetchAffiliations(characters.map((c) => c.id));
+  } catch (err) {
+    if (
+      err instanceof EsiBreakerOpenError ||
+      err instanceof EsiDowntimeError ||
+      err instanceof EsiHttpError
+    ) {
+      return { scanned: characters.length, changed: 0, pruned: 0 };
+    }
+    throw err;
+  }
+
+  let changed = 0;
+  let pruned = 0;
+  for (const c of characters) {
+    const current = affiliations.get(c.id);
+    if (!current) continue; // ESI omitted this id — leave the cached value as-is.
+    const corpChanged = c.corporationId === null || c.corporationId !== current.corporationId;
+    const allianceChanged = (c.allianceId ?? null) !== (current.allianceId ?? null);
+    if (!corpChanged && !allianceChanged) continue;
+
+    changed += 1;
+    // Recompute the full derived-authority state (corp/alliance + director,
+    // titles, alliance executor, authz_level) before re-checking view access —
+    // a corp change invalidates all of them — then prune now-inaccessible maps.
+    await syncCharacterAuthz(c.id);
+    const { prunedMapIds } = await pruneTrackingForLostAccess(c.id);
+    pruned += prunedMapIds.length;
+  }
+  return { scanned: characters.length, changed, pruned };
+}
+
 async function cleanup(): Promise<CleanupNotes> {
   const kicksCleared = await clearKickExpiries();
+  // The affiliation sweep must run *before* the stale-authz resync: the resync
+  // calls `syncCharacterAuthz`, which updates `corporation_id` without pruning
+  // tracking. If it ran first it would silently overwrite the stored corp, so
+  // the sweep would then see no diff and never revoke. Running the sweep first
+  // detects the change against the still-stale stored value, prunes, and stamps
+  // `authz_synced_at` so the resync skips the same character this tick.
+  const affiliation = await syncAffiliationsAndRevoke();
   const resync = await resyncStaleAuthz();
   return {
     kicksCleared,
     authzResynced: resync.applied,
     authzSkipped: resync.skipped,
     authzScanned: resync.scanned,
+    affiliationScanned: affiliation.scanned,
+    affiliationChanged: affiliation.changed,
+    trackingPruned: affiliation.pruned,
   };
 }
 

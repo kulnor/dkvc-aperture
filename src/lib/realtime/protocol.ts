@@ -91,6 +91,8 @@ export const characterLogoutLoadSchema = z.object({
   characterIds: z.array(z.number().int().positive()),
 });
 
+export type CharacterLogoutLoad = z.infer<typeof characterLogoutLoadSchema>;
+
 export const mapAccessLoadSchema = z.object({
   mapId: z.number().int().positive(),
   characterIds: z.array(z.number().int().positive()),

@@ -144,6 +144,18 @@ export const apertureConfig = {
   SSO_TOKEN_REFRESH_BUFFER_S: 120,
 
   /**
+   * How often the Auth.js `jwt` callback re-evaluates login eligibility for an
+   * already-issued session. On a restricted deployment a pilot who leaves the
+   * owning corp/alliance keeps a valid JWT until this re-gate runs; when it does
+   * (and `isLoginAllowed` now returns false) the session is invalidated and the
+   * next navigation lands on `/access-denied`. The check reads the freshly-synced
+   * corp/alliance from `ap_character` (no ESI on the hot path), so the cost is one
+   * DB read at most once per interval per active session. Bounds revocation
+   * staleness against that per-request read cost.
+   */
+  LOGIN_REGATE_INTERVAL_S: 300,
+
+  /**
    * Default ESI scopes requested at login. Minimal location set plus public
    * data, widened by features that need more:
    *   - `esi-characters.read_corporation_roles.v1` — drives the Director →

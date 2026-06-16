@@ -1,6 +1,8 @@
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, isNull, sql } from 'drizzle-orm';
 import { db } from '@/db/client';
 import { apCharacter, apMap, apMapCharacterTracking, apMapTrackingSeed } from '@/db/schema';
+import { canViewMap } from '@/lib/auth/rights';
+import { broadcastCharacterLogout } from '@/lib/realtime/characterLogout';
 import { locationPollJobKey } from './tasks/locationPoll';
 
 /**
@@ -97,6 +99,49 @@ export async function stopTrackingCharacter(args: StopTrackingArgs): Promise<{ r
     )
     .returning({ mapId: apMapCharacterTracking.mapId });
   return { removed: deleted.length > 0 };
+}
+
+/**
+ * Drop a character's tracking on every map they can no longer view, and tell
+ * live viewers to forget them. Called from the `character-cleanup` affiliation
+ * sweep when a pilot's corp/alliance changed: once `canViewMap` is recomputed
+ * against the fresh affiliation, any corp/alliance map they left falls away.
+ *
+ * For each map the character is tracked on (live maps only), if `canViewMap`
+ * now returns false the `(map, character)` row is deleted and a
+ * `characterLogout` is broadcast on that map so the roster drops the pilot
+ * immediately. Maps they can still view (e.g. their own private maps, or a corp
+ * map they remained in) are left untouched. The location-poll loop self-exits
+ * on its next tick once no tracking rows remain.
+ *
+ * Returns the map ids that were pruned.
+ */
+export async function pruneTrackingForLostAccess(
+  characterId: bigint,
+): Promise<{ prunedMapIds: bigint[] }> {
+  const rows = await db
+    .select({ mapId: apMapCharacterTracking.mapId })
+    .from(apMapCharacterTracking)
+    .innerJoin(apMap, eq(apMap.id, apMapCharacterTracking.mapId))
+    .where(
+      and(eq(apMapCharacterTracking.characterId, characterId), isNull(apMap.deletedAt)),
+    );
+
+  const prunedMapIds: bigint[] = [];
+  for (const { mapId } of rows) {
+    if (await canViewMap(characterId, mapId)) continue;
+    await db
+      .delete(apMapCharacterTracking)
+      .where(
+        and(
+          eq(apMapCharacterTracking.mapId, mapId),
+          eq(apMapCharacterTracking.characterId, characterId),
+        ),
+      );
+    await broadcastCharacterLogout(mapId, [characterId]);
+    prunedMapIds.push(mapId);
+  }
+  return { prunedMapIds };
 }
 
 export interface SeedTrackingArgs {

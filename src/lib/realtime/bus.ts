@@ -2,9 +2,11 @@ import { Client } from 'pg';
 import { env } from '@/lib/env';
 import { apertureConfig } from '../../../aperture.config';
 import {
+  characterLogoutLoadSchema,
   characterUpdateLoadSchema,
   connectionMassLogLoadSchema,
   systemNotificationLoadSchema,
+  type CharacterLogoutLoad,
   type CharacterUpdateLoad,
   type ConnectionMassLogLoad,
   type MapEventPayload,
@@ -162,8 +164,9 @@ class RealtimeBus {
     }
 
     // Discriminator: the location-poll wraps its broadcasts as
-    // `{ task: 'characterUpdate', load: {...} }`; the zKB feed wraps
-    // its as `{ task: 'systemNotification', load: {...} }`; the
+    // `{ task: 'characterUpdate', load: {...} }`; the access-revocation path
+    // wraps its as `{ task: 'characterLogout', load: {...} }`; the zKB feed
+    // wraps its as `{ task: 'systemNotification', load: {...} }`; the
     // mass-log wraps its as `{ task: 'connectionMassLog', load: {...} }`.
     // `commitMapEvent` payloads have no top-level `task` field (the trigger
     // forwards the raw event payload, which discriminates internally on `kind`).
@@ -179,6 +182,10 @@ class RealtimeBus {
       const parsed = characterUpdateLoadSchema.safeParse((data as { load?: unknown }).load);
       if (!parsed.success) return; // malformed envelope; drop silently
       message = { task: 'characterUpdate', load: parsed.data as CharacterUpdateLoad };
+    } else if (taskTag === 'characterLogout') {
+      const parsed = characterLogoutLoadSchema.safeParse((data as { load?: unknown }).load);
+      if (!parsed.success) return; // malformed envelope; drop silently
+      message = { task: 'characterLogout', load: parsed.data as CharacterLogoutLoad };
     } else if (taskTag === 'systemNotification') {
       const parsed = systemNotificationLoadSchema.safeParse((data as { load?: unknown }).load);
       if (!parsed.success) return; // malformed envelope; drop silently

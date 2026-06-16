@@ -71,3 +71,26 @@ describe('PresenceStore.getSystemForCharacter', () => {
     expect(located.includes(selected)).toBe(true);
   });
 });
+
+describe('PresenceStore.remove', () => {
+  it('drops the named pilots from their system slices outright', () => {
+    const store = new PresenceStore();
+    store.seed([entry(100, 31000005), entry(200, 31000005), entry(300, 30000142)]);
+
+    store.remove([100, 300]);
+
+    expect(store.getSystemForCharacter(100)).toBeNull();
+    expect(store.getSystemForCharacter(300)).toBeNull();
+    // Untouched pilot stays put.
+    expect(store.getSystemForCharacter(200)).toBe(31000005);
+    expect(store.getForSystem(31000005).map((e) => e.characterId)).toEqual([200]);
+    expect(store.getForSystem(30000142)).toEqual([]);
+  });
+
+  it('is a no-op for unknown character ids', () => {
+    const store = new PresenceStore();
+    store.seed([entry(100, 31000005)]);
+    store.remove([999]);
+    expect(store.getSystemForCharacter(100)).toBe(31000005);
+  });
+});

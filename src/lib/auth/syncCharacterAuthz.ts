@@ -9,6 +9,7 @@ import {
   apRole,
 } from '@/db/schema';
 import { resolveAuthzLevel } from '@/lib/auth/resolveAuthz';
+import { fetchAffiliations, type CharacterAffiliation } from '@/lib/esi/affiliation';
 import {
   esiCall,
   EsiBreakerOpenError,
@@ -18,7 +19,6 @@ import {
 } from '@/lib/esi/client';
 import {
   allianceSchema,
-  characterPublicSchema,
   characterRolesSchema,
   characterTitlesSchema,
   type EsiAlliance,
@@ -42,7 +42,8 @@ import {
  *                                            preserve-hack.
  *   2. `ap_character.corporation_id` /
  *      `ap_character.alliance_id` /
- *      `ap_character.is_director`         — refreshed from `getCharacter` +
+ *      `ap_character.is_director`         — refreshed from `getCharacterAffiliation`
+ *                                            (corp/alliance, ~1h cache) +
  *                                            `getCharacterRoles`. `ap_corporation`
  *                                            row upserted as a side effect (FK
  *                                            target for role rows); `ap_alliance` row
@@ -85,14 +86,15 @@ export interface SyncCharacterAuthzResult {
 export async function syncCharacterAuthz(
   characterId: bigint,
 ): Promise<SyncCharacterAuthzResult> {
-  let publicProfile, roles: EsiCharacterRoles, titles: EsiCharacterTitles;
+  let affiliations: Map<bigint, CharacterAffiliation>;
+  let roles: EsiCharacterRoles, titles: EsiCharacterTitles;
   let alliance: EsiAlliance | null = null;
   try {
-    [publicProfile, roles, titles] = await Promise.all([
-      esiCall('getCharacter', {
-        schema: characterPublicSchema,
-        pathParams: { character_id: characterId },
-      }),
+    // Affiliation (corp/alliance) comes from the bulk affiliation endpoint
+    // (~1h cache) rather than the public profile (~24h) so corp moves surface
+    // within the hour.
+    [affiliations, roles, titles] = await Promise.all([
+      fetchAffiliations([characterId]),
       esiCall('getCharacterRoles', {
         schema: characterRolesSchema,
         pathParams: { character_id: characterId },
@@ -107,10 +109,11 @@ export async function syncCharacterAuthz(
     // Alliance lookup depends on the just-resolved affiliation, so it follows
     // the parallel batch. Guarded by the same try/catch — if ESI is
     // unreachable the whole sync skips rather than landing a partial write.
-    if (publicProfile.alliance_id !== undefined) {
+    const allianceId = affiliations.get(characterId)?.allianceId ?? null;
+    if (allianceId !== null) {
       alliance = await esiCall('getAlliance', {
         schema: allianceSchema,
-        pathParams: { alliance_id: publicProfile.alliance_id },
+        pathParams: { alliance_id: allianceId },
       });
     }
   } catch (err) {
@@ -129,10 +132,17 @@ export async function syncCharacterAuthz(
     throw err;
   }
 
+  // ESI omits an id from the affiliation response only for a non-resolvable
+  // character (e.g. biomassed). Treat that as a transient miss and skip rather
+  // than stomping a live corp/alliance to null.
+  const affiliation = affiliations.get(characterId);
+  if (!affiliation) {
+    return emptyResult({ skipped: 'esi-http' });
+  }
+
   const isDirector = (roles.roles ?? []).includes(apertureConfig.AUTHZ_ADMIN_ROLE);
-  const corporationId = BigInt(publicProfile.corporation_id);
-  const allianceId =
-    publicProfile.alliance_id !== undefined ? BigInt(publicProfile.alliance_id) : null;
+  const corporationId = affiliation.corporationId;
+  const allianceId = affiliation.allianceId;
   const executorCorporationId =
     alliance?.executor_corporation_id !== undefined
       ? BigInt(alliance.executor_corporation_id)

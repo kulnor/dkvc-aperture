@@ -473,6 +473,11 @@ export async function loadMapPresence(mapId: bigint): Promise<MapPresenceEntry[]
     .where(
       and(
         eq(apMapCharacterTracking.mapId, mapId),
+        // Defense-in-depth: a kicked/banned pilot with a lingering tracking row
+        // must never render. View-access revocation (corp/alliance departure) is
+        // handled by pruning the tracking row + `characterLogout`; this guards
+        // the status axis the prune doesn't cover.
+        eq(apCharacter.status, 'active'),
         eq(apCharacter.lastOnline, true),
         isNotNull(apCharacter.lastSystemId),
       ),

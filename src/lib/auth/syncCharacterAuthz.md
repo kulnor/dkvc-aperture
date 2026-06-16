@@ -7,14 +7,14 @@
 
 ### syncCharacterAuthz(characterId: bigint): Promise<SyncCharacterAuthzResult>
 
-Pulls three ESI endpoints in parallel — `getCharacter`, `getCharacterRoles`, `getCharacterTitles` — then, when the character has an alliance, a follow-up `getAlliance`, then runs a single transaction that:
+Pulls three ESI sources in parallel — `fetchAffiliations` (corp/alliance via the ~1h-cached affiliation endpoint), `getCharacterRoles`, `getCharacterTitles` — then, when the character has an alliance, a follow-up `getAlliance`, then runs a single transaction that:
 
 1. **Upserts `ap_corporation`** for the character's corp id (FK target for role rows). Refreshes `alliance_id` and `last_synced_at`; leaves `name` alone (filled by the dedicated corp-name resolver).
 1b. **Upserts `ap_alliance`** when the character belongs to one — caches `name` + `executor_corporation_id` from `getAlliance`. This is the only writer of `ap_alliance`; the executor corp drives alliance-map authority in `canManageMap`.
 2. **Updates `ap_character`** — sets `corporation_id`, `alliance_id`, `is_director`, `authz_synced_at`, and `authz_level` to the value returned by `resolveAuthzLevel(characterId)` (`src/lib/auth/resolveAuthz.ts`). `is_director` is the raw ESI Director bit (carries corp/alliance map authority in the derived model), distinct from `authz_level`. The level is a deterministic cache written verbatim every pass: `'member'` or `'admin'` only — global `'admin'` comes only from an explicit `ap_access_grant` `capability='admin'`; the Director role does not raise the tier. There is no `CASE` preserve-hack — the resolver, not a sticky column, is what keeps explicit grants across resyncs.
 3. **Reconciles `ap_character_role` rows with `source='corp_title'`** — upserts an `ap_role` per ESI title (`external_ref='<corp_id>:<title_id>'`), inserts memberships for newly held titles, deletes memberships for titles no longer returned by ESI. Built-in / external (Discord) role grants are untouched.
 
-**ESI failures (`EsiBreakerOpenError`, `EsiDowntimeError`, `EsiTokenError`, `EsiHttpError`)** cause the function to return `{ applied: false, skipped: <reason> }` *before* touching the DB. Unexpected errors propagate to the caller.
+**ESI failures (`EsiBreakerOpenError`, `EsiDowntimeError`, `EsiTokenError`, `EsiHttpError`)** cause the function to return `{ applied: false, skipped: <reason> }` *before* touching the DB. Unexpected errors propagate to the caller. A character ESI omits from the affiliation response (rare — e.g. biomassed) is also treated as a skip (`skipped: 'esi-http'`) so a live corp/alliance is never stomped to null.
 
 **Returns** `SyncCharacterAuthzResult`:
 - `authzLevel` — `'member' | 'admin'`, the exact value written to the row (the `resolveAuthzLevel` result; reflects explicit grants).
@@ -25,7 +25,7 @@ Pulls three ESI endpoints in parallel — `getCharacter`, `getCharacterRoles`, `
 - `applied` — `true` if the DB was updated; `false` with a `skipped` reason if ESI was unreachable.
 
 ### Depends On
-- ESI: `getCharacter`, `getCharacterRoles`, `getCharacterTitles`, `getAlliance` via `esiCall`.
+- ESI: `fetchAffiliations` (`src/lib/esi/affiliation.ts`, corp/alliance); `getCharacterRoles`, `getCharacterTitles`, `getAlliance` via `esiCall`.
 - `resolveAuthzLevel` (`src/lib/auth/resolveAuthz.ts`) — computes the cached `authz_level`.
 - Schema: `ap_character`, `ap_corporation`, `ap_alliance`, `ap_role`, `ap_character_role`; `ap_access_grant` (read indirectly via the resolver).
 - Constants: `apertureConfig.AUTHZ_ADMIN_ROLE` (`'Director'`).
