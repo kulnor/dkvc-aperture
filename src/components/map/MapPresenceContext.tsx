@@ -12,6 +12,7 @@ import {
 } from 'react';
 import type { MapPresenceEntry } from '@/lib/map/loadMap';
 import {
+  characterLogoutLoadSchema,
   characterUpdateLoadSchema,
   type CharacterUpdateLoad,
   type Envelope,
@@ -137,6 +138,28 @@ export class PresenceStore {
     }
   }
 
+  /**
+   * Drop pilots from the roster outright (server-revoked access via a
+   * `characterLogout` broadcast). Unlike an offline `characterUpdate`, there is
+   * no breadcrumb to keep — the pilot should vanish from every system slice.
+   */
+  remove(characterIds: number[]): void {
+    const changed = new Set<number>();
+    for (const characterId of characterIds) {
+      const systemId = this.byCharacterSystem.get(characterId);
+      if (systemId === undefined) continue;
+      const list = this.bySystem.get(systemId);
+      if (list) {
+        const next = list.filter((e) => e.characterId !== characterId);
+        if (next.length === 0) this.bySystem.delete(systemId);
+        else this.bySystem.set(systemId, next);
+        changed.add(systemId);
+      }
+      this.byCharacterSystem.delete(characterId);
+    }
+    this.notify(changed);
+  }
+
   subscribe(systemId: number, sub: Subscriber): () => void {
     let set = this.subs.get(systemId);
     if (!set) {
@@ -240,10 +263,18 @@ export function MapPresenceProvider({
   useRealtimeEvents(
     useCallback(
       (envelope: Envelope) => {
-        if (envelope.task !== 'characterUpdate') return;
-        const parsed = characterUpdateLoadSchema.safeParse(envelope.load);
-        if (!parsed.success) return;
-        store.apply(parsed.data);
+        if (envelope.task === 'characterUpdate') {
+          const parsed = characterUpdateLoadSchema.safeParse(envelope.load);
+          if (!parsed.success) return;
+          store.apply(parsed.data);
+          return;
+        }
+        if (envelope.task === 'characterLogout') {
+          const parsed = characterLogoutLoadSchema.safeParse(envelope.load);
+          if (!parsed.success) return;
+          store.remove(parsed.data.characterIds);
+          return;
+        }
       },
       [store],
     ),

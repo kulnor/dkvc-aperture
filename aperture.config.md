@@ -20,6 +20,7 @@ A frozen `as const` object exposed as a named export. Grouped by concern:
 - `SSO_AUTHORIZE_PATH` / `SSO_TOKEN_PATH` / `SSO_JWKS_PATH` — EVE SSO endpoint paths joined onto `env.AUTH_EVE_SSO_BASE`.
 - `SSO_EXPECTED_ISSUER` — accepted `iss` claim values (bare host + scheme-prefixed form).
 - `SSO_TOKEN_REFRESH_BUFFER_S` — refresh the access token this many seconds before expiry.
+- `LOGIN_REGATE_INTERVAL_S` — how often the `jwt` callback re-checks login eligibility for an already-issued session (reads cached corp/alliance from `ap_character`, no ESI); on denial the session is invalidated. Bounds how long a pilot who left the owning corp/alliance keeps app access on a restricted deployment.
 - `ESI_SCOPES` — default scope list requested at login.
 
 **Third-party integrations (read-side)**

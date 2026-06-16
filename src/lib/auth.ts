@@ -10,9 +10,9 @@ import type { EveProfile } from '@/lib/auth/eve-provider';
 import { clearLinkCookie, readLinkUserId } from '@/lib/auth/link-cookie';
 import { isLoginAllowed } from '@/lib/auth/loginGate';
 import { syncCharacterAuthz } from '@/lib/auth/syncCharacterAuthz';
+import { seedTrackingForGainedAccess } from '@/lib/jobs/tracking';
 import { AUTH_COOKIE_OPTIONS } from '@/lib/cookies';
-import { esiCall } from '@/lib/esi/client';
-import { characterPublicSchema } from '@/lib/esi/decoders';
+import { fetchAffiliations } from '@/lib/esi/affiliation';
 
 // Auth.js v5, stateless JWT sessions (no DB session store, no Redis).
 // The JWT carries only the active character/user ids; ESI tokens never leave
@@ -30,6 +30,7 @@ declare module 'next-auth/jwt' {
     characterId?: string;
     userId?: number;
     accessTokenExpiresAt?: number; // epoch seconds
+    gateCheckedAt?: number; // epoch seconds — last login-eligibility re-check
   }
 }
 
@@ -146,16 +147,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       const eve = profile as unknown as EveProfile;
       const characterId = BigInt(eve.characterId);
       // The gate needs corp/alliance, which the SSO token claims don't carry.
-      // Fetch them via the public (token-less) ESI profile endpoint.
+      // Resolve them via the token-less ESI affiliation endpoint (cached ~1h, so
+      // a pilot who just joined the owning corp gates in within the hour rather
+      // than waiting out the ~24h public-profile cache).
       let corporationId: bigint | null = null;
       let allianceId: bigint | null = null;
       try {
-        const pub = await esiCall('getCharacter', {
-          schema: characterPublicSchema,
-          pathParams: { character_id: characterId },
-        });
-        corporationId = BigInt(pub.corporation_id);
-        allianceId = pub.alliance_id !== undefined ? BigInt(pub.alliance_id) : null;
+        const affiliation = (await fetchAffiliations([characterId])).get(characterId);
+        if (affiliation) {
+          corporationId = affiliation.corporationId;
+          allianceId = affiliation.allianceId;
+        }
       } catch (err) {
         // ESI unreachable (downtime / breaker open / schema drift). Degrade to
         // character-level checks: explicit character grants and the bootstrap
@@ -208,12 +210,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         // login — the user can still see the maps they already had access to.
         try {
           await syncCharacterAuthz(eve.characterId);
+          // With fresh affiliation/authz cached, auto-track this character on
+          // every already-seeded map it can now view — so a re-joining pilot or
+          // a freshly-added alt lands tracked without waiting for the cron.
+          await seedTrackingForGainedAccess(eve.characterId);
         } catch (err) {
           console.warn(
             `[auth] syncCharacterAuthz failed for character ${eve.characterId}:`,
             err,
           );
         }
+        // The `signIn` gate just ran — stamp the re-gate clock so we don't
+        // immediately re-check on the next request.
+        token.gateCheckedAt = Math.floor(Date.now() / 1000);
         return token;
       }
 
@@ -233,6 +242,36 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             // Refresh failed (revoked token / CCP downtime). Leave the token as
             // is; downstream callers treat a stale character as logged-out.
           }
+        }
+      }
+
+      // Re-gate the session against the login allowlist. A pilot who leaves the
+      // owning corp/alliance (or is kicked/banned) keeps a valid JWT until this
+      // runs; throttled to LOGIN_REGATE_INTERVAL_S so the hot path stays cheap.
+      // Reads the freshly-synced corp/alliance from `ap_character` — the
+      // `character-cleanup` affiliation sweep keeps it current — so no ESI here.
+      // Returning `null` invalidates the session; the next navigation lands on
+      // `/access-denied`.
+      if (token.characterId) {
+        const now = Math.floor(Date.now() / 1000);
+        if (now - (token.gateCheckedAt ?? 0) >= apertureConfig.LOGIN_REGATE_INTERVAL_S) {
+          const characterId = BigInt(token.characterId);
+          const [row] = await db
+            .select({
+              status: apCharacter.status,
+              corporationId: apCharacter.corporationId,
+              allianceId: apCharacter.allianceId,
+            })
+            .from(apCharacter)
+            .where(eq(apCharacter.id, characterId));
+          if (!row || row.status !== 'active') return null;
+          const allowed = await isLoginAllowed({
+            characterId,
+            corporationId: row.corporationId,
+            allianceId: row.allianceId,
+          });
+          if (!allowed) return null;
+          token.gateCheckedAt = now;
         }
       }
       return token;

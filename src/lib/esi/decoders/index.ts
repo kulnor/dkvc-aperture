@@ -23,6 +23,12 @@ export {
 export { incursionsSchema, type EsiIncursions } from './incursions';
 export { allianceSchema, type EsiAlliance } from './alliance';
 export {
+  characterAffiliationEntrySchema,
+  characterAffiliationSchema,
+  type EsiCharacterAffiliationEntry,
+  type EsiCharacterAffiliation,
+} from './affiliation';
+export {
   characterPublicSchema,
   characterRolesSchema,
   characterTitleSchema,

@@ -15,7 +15,7 @@ Wraps the canvas subtree. Owns one `PresenceStore` instance.
 | initial | MapPresenceEntry[] | yes | The server-loaded initial roster from `loadMapPresence` (via `MapViewData.presence`). |
 | children | ReactNode | yes | The canvas subtree. |
 
-The provider seeds the store synchronously inside `useState`'s init so the first paint already shows badges; an effect re-seeds when the `initial` reference actually changes (e.g. soft navigation back to this map). It also registers a `useRealtimeEvents` listener and calls `store.apply()` for every parsed `characterUpdate` envelope — every envelope is delivered exactly once (no `lastEvent` coalescing), so a burst of presence updates in one tick all fold in rather than dropping to the last. `apply()` copies the account/main identity (`userId`/`mainCharacterId`/`mainCharacterName`) from the load onto the rebuilt entry, so the roster keeps grouping alts under their main across live moves.
+The provider seeds the store synchronously inside `useState`'s init so the first paint already shows badges; an effect re-seeds when the `initial` reference actually changes (e.g. soft navigation back to this map). It also registers a `useRealtimeEvents` listener: it calls `store.apply()` for every parsed `characterUpdate` envelope and `store.remove()` for every parsed `characterLogout` envelope — every envelope is delivered exactly once (no `lastEvent` coalescing), so a burst of presence updates in one tick all fold in rather than dropping to the last. `apply()` copies the account/main identity (`userId`/`mainCharacterId`/`mainCharacterName`) from the load onto the rebuilt entry, so the roster keeps grouping alts under their main across live moves.
 
 ### usePresenceForSystem(systemId: number): readonly MapPresenceEntry[]
 
@@ -41,12 +41,13 @@ Subscribes to pilot jumps. The store emits a `Traversal` (`{ characterId, fromSy
 - **Offline pilots are hidden.** The store only inserts an entry when `online === true && systemId !== null && locationAt !== null`. An envelope with any of those falsy removes the character from their prior system (if any) and inserts nothing.
 - **Sorted by character name** within each system, so the hover list renders deterministically.
 - **Re-seed (full replace)** notifies every previously-present *and* currently-present system — so a system that lost all its pilots between server-load snapshots still re-renders to empty.
+- **`characterLogout` removal.** A `characterLogout` envelope drops the named pilots from every system slice outright (server-revoked access after leaving the owning corp/alliance) — unlike an offline `characterUpdate`, there is no breadcrumb to retain.
 
 ### PresenceStore (exported)
 
-The store class is exported for unit testing. Relevant methods beyond the internal subscribe/notify plumbing: `seed(initial)`, `apply(load)`, `getForSystem(id)`, `getAll()`, and `getSystemForCharacter(characterId)` (the EVE system id that character is online+located in, else null — read live for the CTRL+V location check).
+The store class is exported for unit testing. Relevant methods beyond the internal subscribe/notify plumbing: `seed(initial)`, `apply(load)`, `remove(characterIds)` (drop pilots outright on a `characterLogout`), `getForSystem(id)`, `getAll()`, and `getSystemForCharacter(characterId)` (the EVE system id that character is online+located in, else null — read live for the CTRL+V location check).
 
 ### Depends On
 - `@/lib/map/loadMap` (`MapPresenceEntry` type)
-- `@/lib/realtime/protocol` (`characterUpdateLoadSchema`, `CharacterUpdateLoad`, `Envelope`)
+- `@/lib/realtime/protocol` (`characterUpdateLoadSchema`, `characterLogoutLoadSchema`, `CharacterUpdateLoad`, `Envelope`)
 - `@/lib/realtime/useRealtime` (`useRealtimeEvents`)
