@@ -7,6 +7,8 @@ import { connectionBadges, connectionStyle, systemClassColor } from '@/component
 import { Flag } from 'lucide-react';
 import { connectionTimeLeftMs } from '@/lib/map/connectionState';
 import { formatRelativeFromMs } from '@/lib/map/relativeTime';
+import { pingSystemOnServer, updateSystemOnServer } from '@/lib/map/client';
+import { RALLY_UNDERGLOW, UNDERGLOW_PRESETS } from '@/components/map/underglowPresets';
 import { cn } from '@/lib/utils';
 import type { MapConnectionEdge, MapPresenceEntry, MapSystemNode, MapViewData } from '@/types';
 import { Button } from '../ui/button';
@@ -45,17 +47,40 @@ function useEolCountdown(c: MapConnectionEdge): string | null {
 function Header({
   node,
   fallback,
+  mapId,
 }: {
   node: MapSystemNode | null;
   fallback: MapPresenceEntry | null;
+  mapId: string;
 }) {
   const security = node ? node.security : (fallback?.systemSecurity ?? null);
   const trueSec = node ? node.trueSec : (fallback?.systemTrueSec ?? null);
   const name = node ? (node.alias ?? node.name) : (fallback?.systemName ?? 'Unknown system');
   const tag = node?.tag ?? null;
   const color = systemClassColor(security);
+  const [pinging, setPinging] = useState(false);
+  const [togglingRally, setTogglingRally] = useState(false);
+
+  async function handlePing() {
+    if (!node || pinging) return;
+    setPinging(true);
+    await pingSystemOnServer({ mapId, mapSystemId: node.id });
+    setPinging(false);
+  }
+
+  async function handleRally() {
+    if (!node || togglingRally) return;
+    setTogglingRally(true);
+    await updateSystemOnServer({
+      mapId,
+      mapSystemId: node.id,
+      patch: { rallyAt: node.rallyAt ? null : new Date().toISOString() },
+    });
+    setTogglingRally(false);
+  }
+
   return (
-    <div className="flex items-baseline gap-2 border-b border-foreground/10 pb-1.5">
+    <div className="flex items-center gap-2 border-b border-foreground/10 pb-1.5">
       <span className="font-mono text-xl font-bold leading-none" style={{ color }}>
         {classLabel(security, trueSec)}
       </span>
@@ -64,10 +89,28 @@ function Header({
           {tag}
         </span>
       )}
-      <span className="truncate text-xs text-muted-foreground">{name}</span>
-      <div className="float-right">
-        <Button variant="outline" className="h-8 px-2 text-xs mr-0.5 align-middle" size="sm">Ping</Button>
-        <Button variant="outline" className="h-8 px-2 text-xs align-middle" size="sm"><Flag/> Rally</Button>
+      <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">{name}</span>
+      <div className="ml-auto flex shrink-0 items-center gap-1">
+        <Button
+          variant="outline"
+          className="h-6 px-1.5 text-[10px]"
+          size="sm"
+          disabled={!node || pinging}
+          style={{ borderColor: UNDERGLOW_PRESETS.ping.color }}
+          onClick={() => void handlePing()}
+        >
+          Ping
+        </Button>
+        <Button
+          variant="outline"
+          className="h-6 px-1.5 text-[10px]"
+          size="sm"
+          disabled={!node || togglingRally}
+          style={{ borderColor: RALLY_UNDERGLOW.color }}
+          onClick={() => void handleRally()}
+        >
+          <Flag className="size-3" /> Rally
+        </Button>
       </div>
     </div>
   );
@@ -204,7 +247,7 @@ export function SystemOverlay({ viewData }: { viewData: MapViewData }) {
 
   return (
     <div className="flex flex-col gap-2 p-2 text-sm">
-      <Header node={node} fallback={fallback} />
+      <Header node={node} fallback={fallback} mapId={viewData.map.id} />
       <Pilots others={others} />
       {node && <Connections node={node} viewData={viewData} />}
     </div>
