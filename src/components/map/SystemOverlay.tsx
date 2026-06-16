@@ -4,10 +4,12 @@ import { useEffect, useState } from 'react';
 import { useMapActiveChar } from '@/components/map/MapActiveCharContext';
 import { usePresenceForSystem } from '@/components/map/MapPresenceContext';
 import { connectionBadges, connectionStyle, systemClassColor } from '@/components/map/styling';
+import { Flag } from 'lucide-react';
 import { connectionTimeLeftMs } from '@/lib/map/connectionState';
 import { formatRelativeFromMs } from '@/lib/map/relativeTime';
 import { cn } from '@/lib/utils';
 import type { MapConnectionEdge, MapPresenceEntry, MapSystemNode, MapViewData } from '@/types';
+import { Button } from '../ui/button';
 
 // Re-tick the EOL countdown on the same cadence as the canvas edge label.
 const EOL_TICK_MS = 30_000;
@@ -63,6 +65,10 @@ function Header({
         </span>
       )}
       <span className="truncate text-xs text-muted-foreground">{name}</span>
+      <div className="float-right">
+        <Button variant="outline" className="h-8 px-2 text-xs mr-0.5 align-middle" size="sm">Ping</Button>
+        <Button variant="outline" className="h-8 px-2 text-xs align-middle" size="sm"><Flag/> Rally</Button>
+      </div>
     </div>
   );
 }
