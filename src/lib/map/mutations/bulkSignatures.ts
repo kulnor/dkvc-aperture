@@ -66,21 +66,49 @@ export async function pasteSignatures(
           typeId: apMapSignature.typeId,
           name: apMapSignature.name,
           mapConnectionId: apMapSignature.mapConnectionId,
+          expiresAt: apMapSignature.expiresAt,
         })
         .from(apMapSignature)
         .where(eq(apMapSignature.mapSystemId, input.mapSystemId));
-
-      const existingBySigId = new Map(existing.map((s) => [s.sigId, s]));
-
-      // Dedupe incoming by sigId (keep last — matches "most recent typo wins").
-      const incomingBySigId = new Map<string, ResolvedSigRow>();
-      for (const r of input.rows) incomingBySigId.set(r.sigId, r);
 
       const payloads: MapEventPayload[] = [];
       let added = 0;
       let updated = 0;
       let removed = 0;
       let connectionsRemoved = 0;
+
+      // A sig past its TTL is logically gone; the reap cron is only a lazy GC,
+      // so within its lag window an expired row still physically occupies its
+      // (map_system_id, sig_id) slot. Sweep those ghosts up front, before the
+      // diff, so a re-pasted code that collides only with an expired row becomes
+      // a clean create against a freed slot — instead of "updating" a dead row
+      // that stays invisible. Independent of removeMissing (these are past TTL
+      // regardless of whether this scan is complete) and deliberately uncounted:
+      // it's housekeeping, not a paste decision, so the summary the user sees
+      // reflects only live sigs. The delete events still ride `payloads` so every
+      // tab drops the ghost.
+      const now = Date.now();
+      const liveExisting: typeof existing = [];
+      for (const row of existing) {
+        if (row.expiresAt.getTime() <= now) {
+          const res = await deleteSignature({
+            mapId: input.mapId,
+            signatureId: row.id,
+            characterId: input.characterId,
+            tx,
+          });
+          if (!res.ok) throw new Error(res.error);
+          payloads.push(res.data);
+          continue;
+        }
+        liveExisting.push(row);
+      }
+
+      const existingBySigId = new Map(liveExisting.map((s) => [s.sigId, s]));
+
+      // Dedupe incoming by sigId (keep last — matches "most recent typo wins").
+      const incomingBySigId = new Map<string, ResolvedSigRow>();
+      for (const r of input.rows) incomingBySigId.set(r.sigId, r);
 
       // Creates + updates.
       for (const [sigId, incoming] of incomingBySigId) {
@@ -119,11 +147,16 @@ export async function pasteSignatures(
         // blank one, so a row first added from a low-strength scan (group known,
         // site name not yet revealed) gets its Type populated by a later
         // high-strength re-paste.
+        // This branch only sees live rows (expired ones were swept above). A sig
+        // re-appearing in a fresh scan is still in space, so always reset its TTL
+        // even when classification is unchanged — that's what keeps an actively
+        // scanned sig from ever decaying out from under the people watching it.
         const patch: {
           groupKey?: SignatureGroupKey | null;
           typeId?: number | null;
           name?: string | null;
-        } = {};
+          expiresAt?: Date;
+        } = { expiresAt: input.defaultExpiresAt };
         if (incoming.groupKey !== null && incoming.groupKey !== existingRow.groupKey) {
           patch.groupKey = incoming.groupKey;
         }
