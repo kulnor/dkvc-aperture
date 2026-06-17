@@ -1,5 +1,5 @@
 import 'server-only';
-import { and, asc, eq, inArray, isNotNull, isNull, sql } from 'drizzle-orm';
+import { and, asc, eq, gt, inArray, isNotNull, isNull, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import { db } from '@/db/client';
 import {
@@ -327,7 +327,14 @@ export async function loadMapForView(
         })
         .from(apMapSignature)
         .leftJoin(universeWormhole, eq(apMapSignature.typeId, universeWormhole.typeId))
-        .where(inArray(apMapSignature.mapSystemId, visibleSystemIds))
+        // Expired sigs are logically gone (the reap cron deletes them lazily);
+        // never ship a ghost to the client between expiry and the next reap tick.
+        .where(
+          and(
+            inArray(apMapSignature.mapSystemId, visibleSystemIds),
+            gt(apMapSignature.expiresAt, sql`now()`),
+          ),
+        )
         .orderBy(apMapSignature.sigId)
     : [];
 
