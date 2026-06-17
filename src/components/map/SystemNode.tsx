@@ -89,7 +89,7 @@ function getStaticRank(value: string): [SecurityRank, ClassRank] {
   return [5, 0];
 }
 
-function staticCompare(a: string, b: string): number {
+export function staticCompare(a: string, b: string): number {
   const [ra1, ra2] = getStaticRank(a);
   const [rb1, rb2] = getStaticRank(b);
   return ra1 - rb1 || ra2 - rb2;

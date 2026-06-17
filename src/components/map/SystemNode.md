@@ -3,6 +3,9 @@
 **Purpose:** xyflow custom node rendering a single map system tile (status stripe, security badge, tag, alias/name, Home marker, lock, statics/effect line) with inline edit affordances for alias and tag.
 **File:** `src/components/map/SystemNode.tsx`
 
+### staticCompare(a: string, b: string): number
+Comparator (exported) behind the memoised `orderedStatics` line. Orders a system's static target-class labels for display: wormhole classes first by class number ascending (`C1` … `C6`), then the k-space labels `H` < `L` < `0.0` < `P`, then any unrecognised label last. Returns the usual negative / `0` / positive sort sign.
+
 ### Props
 Receives xyflow `NodeProps` with `data: SystemNodeData` and `selected`.
 
