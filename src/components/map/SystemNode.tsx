@@ -32,6 +32,7 @@ import { useSignatureIndicator } from './MapSignatureIndicatorContext';
 import { useUnderglowForSystem } from './MapUnderglowContext';
 import { SystemUnderglow } from './SystemUnderglow';
 import { RALLY_UNDERGLOW } from './underglowPresets';
+import React from 'react';
 
 // System tile. Status stripe + security badge + tag + alias/name + presence
 // badge + lock + a J-space statics line. Alias and tag are inline
@@ -61,6 +62,37 @@ function securityLabel(node: MapSystemNode): string {
 function classIdFromSecurity(security: string | null): number | null {
   const m = security ? /^C(\d+)$/.exec(security) : null;
   return m ? Number(m[1]) : null;
+}
+
+const fixedStaticOrder: Record<string, SecurityRank> = {
+  // Wormholes are index 0,
+  "H": 1,
+  "L": 2,
+  "0.0": 3,
+  "P": 4
+};
+
+type SecurityRank = number;
+type ClassRank = number;
+
+function getStaticRank(value: string): [SecurityRank, ClassRank] {
+  const fixed = fixedStaticOrder[value];
+  if (fixed !== undefined) {
+    return [fixed, 0];
+  }
+
+  const match = value.match(/^C(\d+)$/);
+  if (match) {
+    return [0, parseInt(match[1]!, 10)]
+  }
+
+  return [5, 0];
+}
+
+function staticCompare(a: string, b: string): number {
+  const [ra1, ra2] = getStaticRank(a);
+  const [rb1, rb2] = getStaticRank(b);
+  return ra1 - rb1 || ra2 - rb2;
 }
 
 export function SystemNode({ data, selected }: NodeProps & { data: SystemNodeData }) {
@@ -111,6 +143,10 @@ export function SystemNode({ data, selected }: NodeProps & { data: SystemNodeDat
     bottom: { ...handleBase, transform: 'translate(-50%, 75%)' },
     left: { ...handleBase, transform: 'translate(calc(-75% - 4px), -50%)' },
   };
+
+  const orderedStatics = React.useMemo(() => {
+    return data.statics.sort(staticCompare);
+  }, [data.statics]);
 
   return (
     <div
@@ -225,9 +261,9 @@ export function SystemNode({ data, selected }: NodeProps & { data: SystemNodeDat
           <div className="flex items-center gap-1 px-2 text-[10px] text-muted-foreground">
             {isWormhole ? (
               <>
-                {data.statics.length > 0 && (
+                {orderedStatics.length > 0 && (
                   <span className="flex items-center gap-1">
-                    {data.statics.map((cls, i) => (
+                    {orderedStatics.map((cls, i) => (
                       <span key={i} className="font-bold" style={{ color: systemClassColor(cls) }}>{cls}</span>
                     ))}
                   </span>
