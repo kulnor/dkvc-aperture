@@ -14,6 +14,10 @@ import type { WormholeTypeOption } from '@/types';
 
 const NONE_VALUE = '__none__';
 
+function OptionDivider() {
+  return <div className="my-0.5 h-px bg-border" />;
+}
+
 /**
  * Class-filtered wormhole-type dropdown for the signature inspector.
  * Lazy-loads options from `/api/map/[mapId]/wormhole-types?systemId=`
@@ -70,16 +74,19 @@ export function WormholeTypeSelect({
   // Three groups: the system's statics (pinned), holes that plausibly spawn in
   // this class (shown by default), and everything else (behind "show all").
   // Each keeps the server's alphabetical order.
-  const { statics, classMatched, others } = useMemo(() => {
+  const { statics, exitHole, classMatched, others } = useMemo(() => {
     const statics: WormholeTypeOption[] = [];
+    let exitHole: WormholeTypeOption | undefined;
     const classMatched: WormholeTypeOption[] = [];
     const others: WormholeTypeOption[] = [];
     for (const opt of options) {
       if (opt.isStatic) statics.push(opt);
+      else if (opt.name === 'K162') exitHole = opt;
       else if (opt.matchesClass) classMatched.push(opt);
       else others.push(opt);
     }
-    return { statics, classMatched, others };
+
+    return { statics, exitHole, classMatched, others };
   }, [options]);
 
   const stringValue = value == null ? NONE_VALUE : String(value);
@@ -143,13 +150,20 @@ export function WormholeTypeSelect({
               Statics
             </div>
             {statics.map(renderOption)}
-            {classMatched.length > 0 && <div className="my-0.5 h-px bg-border" />}
           </>
         )}
+        
+        {exitHole && <>
+          <OptionDivider />
+          {renderOption(exitHole)}
+        </>}
+        
+        {classMatched.length > 0 && <OptionDivider />}
         {classMatched.map(renderOption)}
+
         {others.length > 0 && (
           <>
-            <div className="my-0.5 h-px bg-border" />
+            <OptionDivider />
             <button
               type="button"
               // Toggle the "other classes" group without selecting an item or
