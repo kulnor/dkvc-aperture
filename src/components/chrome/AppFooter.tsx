@@ -9,7 +9,7 @@ export function AppFooter() {
           <span>Aperture — collaborative wormhole mapping for EVE Online</span>
           <CreditsDialog version={pkg.version} />
         </div>
-        <span>EVE Online and all related trademarks are property of CCP hf.</span>
+        <span>EVE Online and all related trademarks are property of Fenris Creations.</span>
       </div>
     </footer>
   );
