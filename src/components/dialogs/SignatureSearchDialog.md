@@ -16,13 +16,14 @@
 | onNavigate | (systemId: string, sigId: string) => void | yes | Closes dialog, centers canvas, selects system, starts row flash |
 
 ### Renders
-A `max-w-3xl` dialog with a labelled filter bar (Name text input, Group select, Max age input, System class toggle buttons) and a scrollable results table. Columns: Group, Sig ID, System (alias ?? name), Security, Name, Age (from `createdAt`), action button. Column headers for Sig, System, and Age are sortable (click to toggle asc/desc). A result count is shown below the table. The results container has a `min-h-48` so the dialog doesn't snap when filters change the row count.
+A `max-w-3xl` dialog with a labelled filter bar (Name text input, Group select, Max age input, System class toggle buttons) and a scrollable results table. Columns: Group, Sig ID, System, Name, Age (from `createdAt`), action button. The System header is a single `colSpan={2}` sortable cell over two `<td>`s per row — the system alias/name followed by a left-aligned Tag cell (system class + ABC tag, e.g. `C2A`, in the system-class colour) — so each row reads name then tag (`J160941 C2A`, `Jita H`, `Amamake L`). Column headers for Sig, System, and Age are sortable (click to toggle asc/desc). A result count is shown below the table. The results container has a `min-h-48` so the dialog doesn't snap when filters change the row count.
 
 ### Behaviour & Interactions
 - All filtering and sorting is done synchronously via `buildSigSearchResults` from `@/lib/map/sigSearch`. No server fetch — data is always live from `viewData`.
 - The Name input maintains local draft state (`inputName`) and debounces propagation to `onFiltersChange` at 150 ms to prevent per-keystroke table redraws. The latest `filters` object is read via a ref inside the debounce callback so group/age/class changes are never lost.
 - Filter state is owned by `MapCanvas` so the filters persist when the dialog is closed and reopened.
 - Age is computed from `sig.createdAt` (not `updatedAt`).
+- The Tag cell (rendered after the system-name cell, left-aligned) renders `system.security` concatenated with `system.tag` (e.g. `C2` + `A` → `C2A`) in bold mono, coloured by `systemClassColor(system.security)`. Falls back to a muted `—` when the system has no security class. It shares the "System" header (a `colSpan={2}` cell) but sorts on `systemName`, never the tag.
 - Clicking the → button on a result row calls `onNavigate(system.id, sig.id)`, which closes the dialog, selects the system, centers the canvas, and starts a 3-second row flash in `SignatureModule`.
 - Security class filter buttons are split into two labelled groups — **Wormhole** (C1–C6) and **K-Space** (HS/LS/NS/Poch) — and are multi-select toggles (empty = all classes). Each button's text color is always the system-class color from `systemClassColor`; when active, the border also takes that color. Abyssal (`A` / Thera) is intentionally excluded.
 - The `_all` sentinel is used for the group `<Select>` "All Types" option (shown as "All Types" in the trigger), mapping to `groupKey: null` in `SigSearchFilters`.

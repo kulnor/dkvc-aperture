@@ -218,12 +218,12 @@ export function SignatureSearchDialog({
                   Sig{sortIndicator('sigId')}
                 </th>
                 <th
+                  colSpan={2}
                   className="px-2 py-1.5 font-medium cursor-pointer select-none hover:text-foreground"
                   onClick={() => handleSortHeader('systemName')}
                 >
                   System{sortIndicator('systemName')}
                 </th>
-                <th className="px-2 py-1.5 font-medium w-16">Sec</th>
                 <th className="px-2 py-1.5 font-medium">Name</th>
                 <th
                   className="px-2 py-1.5 font-medium w-24 cursor-pointer select-none hover:text-foreground"
@@ -254,9 +254,18 @@ export function SignatureSearchDialog({
                     {labelForSignatureGroupKey(sig.groupKey) ?? '—'}
                   </td>
                   <td className="px-2 py-1.5 font-mono text-xs">{sig.sigId}</td>
-                  <td className="px-2 py-1.5 text-xs">{system.alias ?? system.name}</td>
-                  <td className="px-2 py-1.5 text-xs text-muted-foreground">
-                    {system.security ?? '—'}
+                  <td className="pl-2 py-1.5 text-xs">{system.alias ?? system.name}</td>
+                  <td className="w-12 pr-2 py-1.5 text-xs">
+                    {system.security ? (
+                      <span
+                        className="font-mono font-bold"
+                        style={{ color: systemClassColor(system.security) }}
+                      >
+                        {system.security}{system.tag ?? ''}
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
                   </td>
                   <td className="px-2 py-1.5 text-xs text-muted-foreground">
                     {sig.name ?? '—'}
