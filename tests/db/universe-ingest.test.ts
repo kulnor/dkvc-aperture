@@ -183,4 +183,24 @@ describe.skipIf(!run)(`universe ingest gate (SDE build ${SDE_BUILD})`, () => {
       WHERE type_id = 30678 AND attr_id = 3974`);
     expect(ov.value).toBe(5);
   });
+
+  // The WH catalog's source_classes/target_class must use the same vocabulary as
+  // universe_system.security (the join key for "leads to" / "mark as static" /
+  // WH-type suggestion). Thera (class 12) derives to `C12`, so a hole leading to
+  // Thera (e.g. F135) must carry target_class = `C12`, not the literal `Thera`.
+  it('catalog class tokens match universe_system.security for Thera (F135 leads to C12)', async () => {
+    const row = await scalar<{ targetClass: string | null; theraSecurity: string | null }>(sql`
+      SELECT
+        (SELECT target_class FROM universe_wormhole WHERE name = 'F135') AS "targetClass",
+        (SELECT security FROM universe_system WHERE id = 31000005) AS "theraSecurity"`);
+    // Thera's derived class drives the expectation, so this is robust to the exact label.
+    expect(row.theraSecurity).toBe('C12');
+    expect(row.targetClass).toBe(row.theraSecurity);
+
+    // No catalog row may use the Pathfinder-era literal `Thera` token in either column.
+    const stray = await scalar<{ n: number }>(sql`
+      SELECT count(*)::int AS n FROM universe_wormhole
+      WHERE target_class = 'Thera' OR 'Thera' = ANY(source_classes)`);
+    expect(stray.n).toBe(0);
+  });
 });

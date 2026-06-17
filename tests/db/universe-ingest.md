@@ -21,3 +21,4 @@ RUN_DB_TESTS=1 pnpm test
 - **Route lookup:** Jita↔Perimeter adjacency present both directions; 5-hop BFS over `universe_stargate_edge` reaches >50 systems.
 - **Trade-hub proximity** (`computeHubProximity` output on `universe_system`): Perimeter → Jita at 1 jump; hub systems (distance 0) and non-HS systems are unbadged; every assigned row uses a valid hub id with `1 ≤ jumps ≤ hub.proximityJumps`; and Jita-assigned distances exactly match an HS-only recursive-CTE BFS from Jita (proving the route stays in high-sec end-to-end).
 - **Effective view:** WH A239 (type 30678) attr 3974 resolves to the CSV override value (5).
+- **WH catalog vocabulary:** Thera (31000005) derives to `C12`, F135's `target_class` equals it, and no `universe_wormhole` row uses the literal `Thera` token in `target_class`/`source_classes` (catalog labels share `universe_system.security`'s vocabulary).
