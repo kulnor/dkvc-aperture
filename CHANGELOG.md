@@ -1,5 +1,38 @@
 # Changelog
 
+## v1.0.0-rc.4
+
+This release adds map ping and rally tooling, refines the wormhole type selector and signature search, and corrects several wormhole static-data issues.
+
+### New features
+
+- **Map ping and rally** — new overlay buttons to ping the map and rally tracked pilots to a chosen map node, with a hidden rallypoint easter egg. Ping notifications now stay up longer. *(Ionis en Gravonere)*
+
+### Improvements
+
+- **Signature search system tag** — search results now carry a system tag. *(Ionis en Gravonere)*
+- **Discoverable signature search** — the search Go button is more discoverable. *(MonoliYoda)*
+- **Wormhole type selector** — K162 now sorts after statics with a separator. *(Ionis en Gravonere)*
+- **Connection mass log ordering** — jumps are returned newest-first so the latest activity is shown at the top. *(Ionis en Gravonere)*
+- **Copyable system name** — the inspector system name can now be selected for copy. *(MonoliYoda)*
+- **Re-home an alt** — an alt can be moved onto the linking account, with audit re-attribution. *(MonoliYoda)*
+
+### Fixes
+
+- Homefront combat site signatures now paste correctly despite being in the database. *(Ionis en Gravonere)*
+- C13 small shattered Wolf-Rayet systems are now labeled A, B, C, etc. *(Ionis en Gravonere)*
+- Added missing Pochven wormholes to the wormhole-classes seed data. *(Ionis en Gravonere)*
+- Renamed Thera to C12 in the wormhole-classes data to match Aperture conventions. *(Ionis en Gravonere)*
+
+### Misc
+
+- Replaced CCP with Fenris Creations in trademark notices. *(Ionis en Gravonere)*
+
+### Contributors
+
+- **Ionis en Gravonere** — ping/rally tooling, wormhole selector and signature search refinements, static-data fixes
+- **MonoliYoda** — alt re-homing, inspector copy polish
+
 ## v1.0.0-rc.3
 
 This release hardens character access and tracking around corp/alliance membership changes, so leavers lose access promptly and joiners are picked up quickly.
