@@ -128,7 +128,7 @@ function SystemInspector({
         <Tooltip.Root>
           <Tooltip.Trigger
             render={<CardTitle />}
-            className="block w-full cursor-default truncate text-sm select-none"
+            className="block w-full cursor-text truncate text-sm select-text"
           >
             {displayName}
           </Tooltip.Trigger>
