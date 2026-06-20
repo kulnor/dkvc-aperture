@@ -123,6 +123,20 @@ export function removeSystem(input: RemoveSystemInput): Promise<ActionResult<Map
     kind: 'system.removed',
     tx: input.tx,
     mutate: async (tx) => {
+      // Locked-system delete guard: a locked system is a full block on removal —
+      // it forces a mindful unlock before deletion (issue #157). Applies to every
+      // delete path, since they all route through here (single, group, subchain,
+      // disconnected); a locked system anywhere in a subchain rolls the whole
+      // batch back.
+      const [target] = await tx
+        .select({ locked: apMapSystem.locked })
+        .from(apMapSystem)
+        .where(and(eq(apMapSystem.id, input.mapSystemId), eq(apMapSystem.mapId, input.mapId)));
+      if (!target) throw new Error('System not found on map.');
+      if (target.locked) {
+        throw new Error('Cannot remove a locked system. Unlock it first.');
+      }
+
       // Home-system delete guard: the auto-tagging Home is the
       // node both schemes calculate from and must not be removable while
       // designated. Clear it in map settings first.

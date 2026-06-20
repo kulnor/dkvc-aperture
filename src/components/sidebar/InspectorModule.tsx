@@ -229,8 +229,21 @@ function SystemInspector({
           </Button>
         </div>
 
-        <div className="flex justify-end">
-          <Button type="button" variant="destructive" size="sm" onClick={onRemove} className="gap-1.5">
+        {/* A locked system can't be removed — mirror the server guard so the
+            button greys out with a hint to unlock it first (the Locked checkbox
+            sits directly above). */}
+        <div className="flex items-center justify-end gap-2">
+          {system.locked && (
+            <span className="text-[10px] text-muted-foreground">Unlock to remove</span>
+          )}
+          <Button
+            type="button"
+            variant="destructive"
+            size="sm"
+            onClick={onRemove}
+            disabled={system.locked}
+            className="gap-1.5"
+          >
             <Trash2 className="size-3.5" />
             Remove
           </Button>
