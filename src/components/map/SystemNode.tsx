@@ -243,7 +243,8 @@ export function SystemNode({ data, selected }: NodeProps & { data: SystemNodeDat
                 className="text-emerald-400 ring-emerald-400/40"
                 label={`${data.tradeHub.jumps} jump${data.tradeHub.jumps === 1 ? '' : 's'} to ${data.tradeHub.name}`}
               >
-                {data.tradeHub.jumps}j
+                {data.tradeHub.jumps}
+                {data.tradeHub.name.charAt(0).toUpperCase()}
               </IndicatorPill>
             )}
             {isShattered && (
