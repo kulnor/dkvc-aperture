@@ -1,5 +1,23 @@
 # Changelog
 
+## v1.0.0-rc.5
+
+This release protects locked systems from deletion, sharpens the proximity badge with a trade-hub initial, and fixes two signature-panel annoyances.
+
+### Improvements
+
+- **Locked systems are protected from deletion** — every delete path (single, group, subchain, disconnected) now rolls back if any locked system is in the doomed set. The relevant context-menu items and the inspector Remove button are greyed out, each hinting which system to unlock first. *(MonoliYoda)*
+- **Trade-hub initial in the proximity badge** — the nearest trade hub's initial now follows the jump count (e.g. "3J" for Jita, "5R" for Rens, "4H" for Hek) instead of a generic "j" suffix; the full hub name stays in the tooltip. *(MonoliYoda)*
+
+### Fixes
+
+- Signature dropdowns no longer snap shut when another viewer edits a signature in the same system during a realtime update. *(MonoliYoda)*
+- Removed the duplicate "Combat" options from the signature type dropdown and combat filter. *(MonoliYoda)*
+
+### Contributors
+
+- **MonoliYoda** — locked-system delete guard, proximity-badge polish, signature-panel fixes
+
 ## v1.0.0-rc.4
 
 This release adds map ping and rally tooling, refines the wormhole type selector and signature search, and corrects several wormhole static-data issues.

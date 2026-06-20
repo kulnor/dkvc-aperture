@@ -29,7 +29,7 @@ Webhook fanout: the joined transaction skips the per-commit webhook enqueue (lik
 ---
 
 ### removeSystem(input: RemoveSystemInput): Promise<ActionResult<MapEventPayload>>
-Flips `visible = false` (and stamps `last_visible_at`) on the `ap_map_system` row matching `(mapSystemId, mapId)`. The row persists. **Home guard:** throws (rolls back) if the target system is the map's `home_map_system_id` — the Home node can't be removed while designated. Throws if no matching row. Emits `system.removed` → `{ id }`. Accepts an optional outer `tx` so `subchain.ts` can soft-delete a whole branch atomically (when `tx` is passed, failures throw instead of returning `{ ok: false }`, so the outer batch rolls back).
+Flips `visible = false` (and stamps `last_visible_at`) on the `ap_map_system` row matching `(mapSystemId, mapId)`. The row persists. **Locked guard:** throws (rolls back) if the target system has `locked = true` — a full block forcing a mindful unlock before deletion (issue #157). This is the single chokepoint every delete path routes through (single, group, subchain, disconnected), so a locked system anywhere in a subchain rolls the entire batch back. **Home guard:** throws (rolls back) if the target system is the map's `home_map_system_id` — the Home node can't be removed while designated. Throws if no matching row. Emits `system.removed` → `{ id }`. Accepts an optional outer `tx` so `subchain.ts` can soft-delete a whole branch atomically (when `tx` is passed, failures throw instead of returning `{ ok: false }`, so the outer batch rolls back).
 
 **Parameters:**
 - `input.mapSystemId` — `ap_map_system.id` (xyflow node id).

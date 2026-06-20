@@ -832,6 +832,14 @@ export function MapCanvas({
     return [...selectedSystemIds].filter((id) => id !== homeId && !locked.has(id));
   }, [selectedSystemIds, viewData.map.homeMapSystemId, viewData.systems]);
 
+  // How many of the current selection are locked (and so excluded from the group
+  // delete) — feeds the "Remove N" button's hint so the count discrepancy is
+  // explained rather than silent.
+  const lockedSelectedCount = useMemo(() => {
+    const locked = new Set(viewData.systems.filter((s) => s.locked).map((s) => s.id));
+    return [...selectedSystemIds].filter((id) => locked.has(id)).length;
+  }, [selectedSystemIds, viewData.systems]);
+
   const removeSelectedSystems = useCallback(() => {
     for (const id of deletableSelectedSystemIds) {
       runOptimistic({ kind: 'system.removed', eventId: 0, id }, () =>
@@ -1244,10 +1252,18 @@ export function MapCanvas({
                   variant="destructive"
                   size="sm"
                   onClick={removeSelectedSystems}
+                  title={
+                    lockedSelectedCount > 0
+                      ? `${lockedSelectedCount} locked system${lockedSelectedCount > 1 ? 's' : ''} excluded — unlock to remove`
+                      : undefined
+                  }
                   className="nodrag nopan absolute right-2 top-2 z-10"
                 >
                   <Trash2 />
                   Remove {deletableSelectedSystemIds.length}
+                  {lockedSelectedCount > 0 && (
+                    <span className="ml-1 text-[10px] opacity-80">({lockedSelectedCount} locked)</span>
+                  )}
                 </Button>
               )}
             <TransitSignaturePrompt
