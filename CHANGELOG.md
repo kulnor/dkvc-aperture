@@ -1,5 +1,25 @@
 # Changelog
 
+## v1.0.0-rc.6
+
+This release makes signatures and wormhole connections survive re-adds and reloads without a refresh, and corrects two wormhole-type suggestion errors so Drifter and shattered systems are classified from the data instead of stale id lists.
+
+### Improvements
+
+- **Signatures re-hydrate on re-add** — re-adding a soft-removed system now carries its surviving signatures in the same broadcast, so every tab shows them immediately without a reload. *(MonoliYoda)*
+- **Self-healing signature updates** — a signature update can now carry a full-row snapshot, so a client whose baseline is missing or stale (reconnect gaps, missed creates, reordering) repairs itself instead of silently dropping the change. *(MonoliYoda)*
+- **Sig-memory connection restore** — when a paste re-confirms a wormhole signature whose remembered connection was hidden, a non-blocking prompt offers to restore the connection and its endpoint, preserving the observed wormhole state. *(MonoliYoda)*
+
+### Fixes
+
+- **Unconfirmed connections no longer resurface on reload** — wormhole connections are shown only while confirmed by a current signature observation; removing an endpoint now dormants its `wh` connection rather than leaving it to reappear after a refresh. Structural links are unaffected. *(MonoliYoda)*
+- **Drifter holes stay out of J-space suggestions** — the five Drifter wormholes (B735/C414/R259/S877/V928) are now scoped to k-space, so they no longer appear in the default suggestion list for every system. *(MonoliYoda)*
+- **Shattered systems detected from the J-sig** — shattered detection now derives from the system name (the J0xxxxx band plus Thera) instead of a hardcoded id set, dropping two wrongly-pinned ids (J164104, J115422) and naturally excluding the Drifter systems. *(MonoliYoda)*
+
+### Contributors
+
+- **MonoliYoda** — signature re-hydration and self-heal, connection confirmation state and restore, Drifter and shattered-system classification fixes
+
 ## v1.0.0-rc.5
 
 This release protects locked systems from deletion, sharpens the proximity badge with a trade-hub initial, and fixes two signature-panel annoyances.
