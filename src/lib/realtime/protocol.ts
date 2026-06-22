@@ -178,7 +178,15 @@ const signatureBody = {
 };
 
 export const mapEventPayloadSchema = z.discriminatedUnion('kind', [
-  z.object({ kind: z.literal('system.added'), eventId, ...systemNodeBody }),
+  // `signatures` re-hydrates a re-added (soft-removed) system's surviving sigs on
+  // every tab in the single real broadcast — see buildSystemNode + applyEvent.
+  // Absent/empty for a brand-new add.
+  z.object({
+    kind: z.literal('system.added'),
+    eventId,
+    ...systemNodeBody,
+    signatures: z.array(z.object(signatureBody)).optional(),
+  }),
   z.object({ kind: z.literal('system.removed'), eventId, id: z.string() }),
   z.object({
     kind: z.literal('system.updated'),
@@ -243,6 +251,13 @@ export const mapEventPayloadSchema = z.discriminatedUnion('kind', [
     description: z.string().nullable().optional(),
     expiresAt: z.string().optional(),
     updatedAt: z.string().optional(),
+    // Full post-update row (Stage 2 self-heal). Additive to the conditional
+    // audit fields above — the formatter/audit ignore it and keep reading those,
+    // so precision + no-op suppression are untouched. The canvas upserts from it
+    // to materialize a sig whose `signature.create` it never received (reconnect
+    // gaps, reordering). Its `leadsToMapSystemId` is populated for linked sigs so
+    // the Stage 4 restore offer can name a dormant connection's destination.
+    snapshot: z.object(signatureBody).optional(),
   }),
   // `mapSystemId`/`sigId` captured at delete time (the signature row is
   // hard-deleted) so the audit names the system and the in-game code.
