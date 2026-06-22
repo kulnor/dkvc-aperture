@@ -106,7 +106,7 @@ export function SystemNode({ data, selected }: NodeProps & { data: SystemNodeDat
   const classColor = systemClassColor(data.security);
   const displayName = systemDisplayName(data.systemId, data.name);
   const isDrifter = isDrifterSystem(data.systemId);
-  const isShattered = isShatteredSystem(data.systemId);
+  const isShattered = isShatteredSystem(data.name);
 
   // Compose the box-shadow as concentric rings: the resting ring is the system's
   // status colour (replacing the old neutral Tailwind `ring-1`), with the Home
@@ -405,8 +405,8 @@ function IndicatorPill({
 
 /**
  * Head-row badge marking a special wormhole-system kind (shattered / Drifter).
- * A bare lucide icon with a hover/focus tooltip naming the kind, since the
- * distinction isn't obvious from the J-sig. Rendered as a `span` so clicks still
+ * A bare lucide icon with a hover/focus tooltip naming the kind, surfacing at a
+ * glance what an experienced reader could infer from the J-sig. Rendered as a `span` so clicks still
  * bubble through to node selection; `nodrag nopan` keeps the hover from panning.
  */
 function SystemKindIcon({
