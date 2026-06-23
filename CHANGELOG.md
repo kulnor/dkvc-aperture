@@ -1,5 +1,17 @@
 # Changelog
 
+## v1.0.0-rc.7
+
+This release fixes a regression from rc.6 where wormhole connections drawn automatically — by a tracked pilot jumping a hole, by Thera ingest, or by a map transfer — would show up live and then silently vanish the next time the map was loaded.
+
+### Fixes
+
+- **Auto-drawn connections no longer disappear on reload** — rc.6 began showing a wormhole connection only while it is "confirmed by a current observation," but only manually drawn connections were being stamped as confirmed. Connections created by the server-side location poll when a tracked pilot jumps a wormhole (plus Thera ingest and map transfer) were born unconfirmed, so they appeared for everyone watching live and then dropped off on the next reload, leaving no audit trail. `confirmed_at` now defaults at the database level, so every connection is confirmed the moment it's created no matter how it was drawn. The intended hide-on-endpoint-removal behaviour is unchanged. *(MonoliYoda)*
+
+### Contributors
+
+- **MonoliYoda** — connection-confirmation regression fix
+
 ## v1.0.0-rc.6
 
 This release makes signatures and wormhole connections survive re-adds and reloads without a refresh, and corrects two wormhole-type suggestion errors so Drifter and shattered systems are classified from the data instead of stale id lists.
