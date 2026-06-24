@@ -92,7 +92,7 @@ import {
   SignatureModule,
   SignatureModuleHeaderActions,
 } from '@/components/sidebar/SignatureModule';
-import { Info, LayoutDashboard, Plus, RotateCcw, ScrollText, Search, Settings, Trash2, User } from 'lucide-react';
+import { Download, Info, LayoutDashboard, Plus, RotateCcw, ScrollText, Search, Settings, Trash2, Upload, User } from 'lucide-react';
 import { Tooltip } from '@base-ui/react/tooltip';
 import { Button } from '@/components/ui/button';
 import {
@@ -134,7 +134,9 @@ import { RestoreConnectionPrompt } from './RestoreConnectionPrompt';
 import { MapLayoutGrid } from './layout/MapLayoutGrid';
 import { MapPanel } from './layout/MapPanel';
 import { DEFAULT_MAP_LAYOUT, PANELS, ensurePanelsPlaced } from '@/lib/map/layout/panels';
+import { mapLayoutConfigSchema } from '@/lib/map/layout/schema';
 import { setMapLayoutAction } from '@/app/(app)/actions/account';
+import { toast } from 'sonner';
 
 // Debounce window for persisting layout edits (drag/resize/hide) to the server.
 const LAYOUT_SAVE_DEBOUNCE_MS = 600;
@@ -530,6 +532,45 @@ export function MapCanvas({
     setLayout(next);
     saveLayout(next);
   }, [saveLayout]);
+
+  // Download the current arrangement as a shareable JSON file. The exported blob
+  // is exactly `MapLayoutConfig` — the same shape the import validator accepts.
+  const handleExportLayout = useCallback(() => {
+    const blob = new Blob([JSON.stringify(layout, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'aperture-layout.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [layout]);
+
+  // Hidden picker for importing someone else's exported layout file.
+  const importInputRef = useRef<HTMLInputElement | null>(null);
+
+  const handleImportFile = useCallback(
+    async (file: File) => {
+      let raw: unknown;
+      try {
+        raw = JSON.parse(await file.text());
+      } catch {
+        toast.error('Not a valid layout file.');
+        return;
+      }
+      // Re-validate the untrusted file at this boundary; `ensurePanelsPlaced`
+      // then back-fills any panels absent from a layout saved by another build.
+      const parsed = mapLayoutConfigSchema.safeParse(raw);
+      if (!parsed.success) {
+        toast.error('This file is not a valid Aperture layout.');
+        return;
+      }
+      const next = ensurePanelsPlaced(parsed.data);
+      setLayout(next);
+      saveLayout(next);
+      toast.success('Layout imported.');
+    },
+    [saveLayout],
+  );
 
   const handleNavigateToSig = useCallback((systemId: string, sigId: string) => {
     setSigSearchOpen(false);
@@ -1815,11 +1856,32 @@ export function MapCanvas({
                     </MenuCheckboxItem>
                   ))}
                   <MenuSeparator />
-                  <MenuItem icon={<RotateCcw />} onClick={handleResetLayout}>
+                  <MenuItem icon={<Download className="size-3.5" />} onClick={handleExportLayout}>
+                    Export layout
+                  </MenuItem>
+                  <MenuItem
+                    icon={<Upload className="size-3.5" />}
+                    onClick={() => importInputRef.current?.click()}
+                  >
+                    Import layout
+                  </MenuItem>
+                  <MenuItem icon={<RotateCcw className="size-3.5" />} onClick={handleResetLayout}>
                     Reset layout
                   </MenuItem>
                 </MenuContent>
               </Menu>
+              <input
+                ref={importInputRef}
+                type="file"
+                accept="application/json,.json"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  // Reset so re-selecting the same file fires `change` again.
+                  e.target.value = '';
+                  if (file) void handleImportFile(file);
+                }}
+              />
               <Button variant="ghost" size="sm" onClick={() => setAddSystemOpen(true)}>
                 <Plus />
                 Add system
